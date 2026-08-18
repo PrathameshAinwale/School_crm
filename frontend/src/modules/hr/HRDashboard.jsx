@@ -54,6 +54,19 @@ export default function HRDashboard() {
       actionText: 'Review Staff Leaves',
       path: '/hr/staff-leaves',
     },
+    {
+      id: 'trainings',
+      title: 'Faculty Trainings & Muster',
+      badge: '4 Active Workshops',
+      badgeColor: 'bg-primary-50 text-primary-700 border-primary-200',
+      icon: LuUsers,
+      iconBg: 'bg-primary-50 text-primary-600',
+      highlight: '88% Attendance Rate',
+      time: 'Assigned & Notified',
+      subtext: 'Targeted faculty pedagogy sessions',
+      actionText: 'Plan & Track Trainings',
+      path: '/trainings',
+    },
   ];
 
   // Upcoming School Events
@@ -77,7 +90,7 @@ export default function HRDashboard() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {dailyCards.map((card) => {
             const Icon = card.icon;
             return (

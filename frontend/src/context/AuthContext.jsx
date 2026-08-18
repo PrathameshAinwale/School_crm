@@ -8,7 +8,6 @@ const ROLES = {
   TEACHER: 'teacher',
   STUDENT_PARENT: 'student_parent',
   HR: 'hr',
-  FINANCE: 'finance',
 };
 
 const ROLE_LABELS = {
@@ -17,7 +16,6 @@ const ROLE_LABELS = {
   [ROLES.TEACHER]: 'Teacher',
   [ROLES.STUDENT_PARENT]: 'Student / Parent',
   [ROLES.HR]: 'HR Manager',
-  [ROLES.FINANCE]: 'Finance Manager',
 };
 
 const DEFAULT_USERS = {
@@ -53,13 +51,6 @@ const DEFAULT_USERS = {
     name: 'Meera Gupta',
     email: 'hr@eduflow.com',
     role: ROLES.HR,
-    avatar: null,
-    school: 'Delhi Public Academy',
-  },
-  [ROLES.FINANCE]: {
-    name: 'Vikram Reddy',
-    email: 'finance@eduflow.com',
-    role: ROLES.FINANCE,
     avatar: null,
     school: 'Delhi Public Academy',
   },

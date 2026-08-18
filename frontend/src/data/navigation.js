@@ -44,8 +44,6 @@ const navigation = {
     { label: 'Dashboard', path: '/dashboard', icon: LuLayoutDashboard },
     { label: 'Manage teachers', path: '/manage-teachers', icon: LuUsers },
     { label: 'Students', path: '/students', icon: LuGraduationCap },
-    { label: 'Time table', path: '/time-table', icon: LuCalendarClock },
-    { label: 'Subjects', path: '/subjects', icon: LuBookOpen },
     { label: 'Attendance', path: '/attendance', icon: LuClipboardList },
     { label: 'Admission', path: '/admission', icon: LuUserPlus },
     { label: 'School vehicles', path: '/school-vehicles', icon: LuBus },
@@ -56,10 +54,9 @@ const navigation = {
     { label: 'Staff', path: '/staff', icon: LuUsers },
     { label: 'Expenses', path: '/expenses', icon: LuReceipt },
     { label: 'Student count', path: '/student-count', icon: LuGraduationCap },
-    { label: 'Enquiries', path: '/enquiries', icon: LuPhoneCall },
-    { label: 'External affairs', path: '/external-affairs', icon: LuGlobe },
-    { label: 'Vault (Permission Documents)', path: '/vault', icon: LuFolderLock },
-    { label: 'Notices', path: '/notices', icon: LuBell },
+    { label: 'Vault (Documents)', path: '/vault', icon: LuFolderLock },
+    { label: 'Performance Analytics', path: '/analytics', icon: LuChartBar },
+    { label: 'Notices & Events', path: '/notices', icon: LuBell },
   ],
   teacher: [
     {
@@ -84,6 +81,7 @@ const navigation = {
         { label: 'Attendance', path: '/teacher/attendance', icon: LuTimer },
         { label: 'Leave Balance', path: '/teacher/leave-balance', icon: LuFileText },
         { label: 'Apply for Leave', path: '/teacher/apply-leave', icon: LuClipboardList },
+        { label: 'Trainings', path: '/teacher/trainings', icon: LuPresentation },
       ],
     },
   ],
@@ -124,14 +122,6 @@ const navigation = {
         { label: 'Apply for Leave', path: '/hr/apply-leave', icon: LuClipboardList },
       ],
     },
-  ],
-  finance: [
-    { label: 'Dashboard (Patterns)', path: '/dashboard', icon: LuLayoutDashboard },
-    { label: 'Salaries', path: '/salaries', icon: LuBanknote },
-    { label: 'Expenses', path: '/expenses', icon: LuReceipt },
-    { label: 'Ratio analysis', path: '/ratio-analysis', icon: LuScale },
-    { label: 'Budgeting', path: '/budgeting', icon: LuFileSpreadsheet },
-    { label: 'Forecasting', path: '/forecasting', icon: LuTrendingUp },
   ],
 };
 
