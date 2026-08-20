@@ -18,6 +18,7 @@ import {
   LuGraduationCap,
   LuCheckCheck,
 } from 'react-icons/lu';
+import { hrService } from '../../services/hrService';
 import {
   getStoredTrainings,
   saveStoredTrainings,
@@ -32,18 +33,64 @@ export default function HRTrainingsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedTraining, setSelectedTraining] = useState(null);
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // New Training Form States
   const [targetType, setTargetType] = useState('group'); // 'group' | 'specific'
   const [selectedGroup, setSelectedGroup] = useState(TEACHER_GROUPS[0].id);
   const [selectedSpecificTeachers, setSelectedSpecificTeachers] = useState([]);
 
+  const fetchTrainings = async () => {
+    try {
+      const res = await hrService.getTrainings();
+      if (res?.success && res.data?.trainings?.length > 0) {
+        // Map backend trainings ensuring attendees array
+        const defaultAttendees = TEACHERS_LIST.map((t) => ({
+          teacherId: t.id,
+          teacherName: t.name,
+          role: t.role,
+          dept: t.dept,
+          status: 'Assigned & Notified',
+          markedAt: null,
+          feedback: '',
+        }));
+
+        const mapped = res.data.trainings.map((t) => ({
+          id: t.id,
+          db_id: t.db_id,
+          title: t.title,
+          category: t.category,
+          trainer: t.trainer,
+          trainerOrg: 'Institutional Training Wing',
+          date: t.date,
+          time: t.time || '10:00 AM - 01:00 PM',
+          venue: t.venue || 'Main Auditorium',
+          mode: 'In-Person',
+          targetGroupName: t.targetGroup || 'All Faculty',
+          description: t.description || 'Pedagogical training session.',
+          status: t.status || 'Scheduled',
+          attendees: Array.isArray(t.enrolledTeachers) && t.enrolledTeachers.length > 0
+            ? t.enrolledTeachers
+            : defaultAttendees,
+        }));
+        setTrainings(mapped);
+      } else {
+        setTrainings(getStoredTrainings());
+      }
+    } catch (err) {
+      console.log('Using local training store:', err);
+      setTrainings(getStoredTrainings());
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    setTrainings(getStoredTrainings());
+    fetchTrainings();
   }, []);
 
   const refreshTrainings = () => {
-    setTrainings(getStoredTrainings());
+    fetchTrainings();
   };
 
   const filteredTrainings = trainings.filter((t) => {
@@ -66,7 +113,7 @@ export default function HRTrainingsPage() {
   const overallAttendanceRate =
     totalAssignedSlots > 0 ? Math.round((totalAttendedSlots / totalAssignedSlots) * 100) : 0;
 
-  const handleCreateTraining = (e) => {
+  const handleCreateTraining = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
 
@@ -104,22 +151,46 @@ export default function HRTrainingsPage() {
       return;
     }
 
+    const title = formData.get('title');
+    const category = formData.get('category') || 'Pedagogy';
+    const trainer = formData.get('trainer');
+    const date = formData.get('date') || new Date().toISOString().split('T')[0];
+    const time = formData.get('time') || '10:00 AM - 01:00 PM';
+    const venue = formData.get('venue') || 'Main Auditorium';
+    const description = formData.get('description');
+
     const newProg = {
       id: `TRN-2026-${Math.floor(100 + Math.random() * 900)}`,
-      title: formData.get('title'),
-      category: formData.get('category') || 'Pedagogy & Curriculum',
-      trainer: formData.get('trainer'),
+      title,
+      category,
+      trainer,
       trainerOrg: formData.get('trainerOrg') || 'Institutional Training Wing',
-      date: formData.get('date') || '25 Aug 2026',
-      time: formData.get('time') || '10:00 AM - 01:00 PM',
-      venue: formData.get('venue') || 'Main Auditorium',
+      date: date || '25 Aug 2026',
+      time,
+      venue,
       mode: formData.get('mode') || 'In-Person',
       targetType,
       targetGroupName,
-      description: formData.get('description'),
+      description,
       status: 'Scheduled',
       attendees: assignedAttendees,
     };
+
+    // Save to backend database and dispatch notifications
+    try {
+      await hrService.createTraining({
+        title,
+        category,
+        trainer_name: trainer,
+        date: date.includes('-') ? date : '2026-08-25',
+        time_slot: time,
+        venue,
+        target_audience: targetGroupName,
+        description,
+      });
+    } catch (err) {
+      console.log('Saved training locally:', err);
+    }
 
     const updated = addTrainingProgram(newProg);
     setTrainings(updated);

@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { adminService } from '../../services/adminService';
+import { useAuth } from '../../context/AuthContext';
+import TeacherProfilePage from '../teacher/TeacherProfilePage';
 import {
   LuUser,
   LuPhone,
@@ -20,100 +23,146 @@ import {
   LuX,
   LuClock,
   LuGraduationCap,
+  LuLoader,
 } from 'react-icons/lu';
 
-const studentProfileData = {
-  // Student Details
+const DEFAULT_PROFILE = {
   student: {
     fullName: 'Aarav Patel',
     admissionNo: 'STU-2024-X-101',
     rollNo: '101',
-    classSection: 'Class X-A (Senior Secondary)',
+    classSection: 'Class 10 - Saffron A',
     academicYear: '2026-27',
     dateOfBirth: 'October 14, 2010',
-    age: '15 Years',
     gender: 'Male',
     bloodGroup: 'O+ Positive',
     house: 'Tagore House (Red)',
-    aadhaarNo: 'XXXX-XXXX-8912',
-    rfidCardId: 'RFID-SMART-881920',
-    admissionDate: 'April 04, 2016 (Grade 1)',
-    cbseRollNo: 'CBSE-2027-109281',
-    classTeacher: 'Dr. Ananya Sen (PGT Mathematics)',
-    attendanceRate: '94.9%',
+    admissionDate: 'April 04, 2020',
+    attendanceRate: '96.2%',
     overallGrade: 'A+ (92.4%)',
+    status: 'Active',
   },
-
-  // Parents / Guardians
   parents: {
     father: {
       name: 'Rajesh Patel',
       relation: 'Father',
-      phone: '+91 98201-11021',
-      email: 'rajesh.patel@email.com',
-      occupation: 'Senior Software Architect',
-      organization: 'Tata Consultancy Services (TCS)',
-      qualification: 'B.Tech (Computer Science), IIT Bombay',
-      aadhaarNo: 'XXXX-XXXX-3341',
+      phone: '+91 87672 27125',
+      email: 'rajesh@school.com',
+      occupation: 'Senior Professional',
+      organization: 'Enterprise Solutions',
     },
     mother: {
       name: 'Meena Patel',
       relation: 'Mother',
-      phone: '+91 98201-11022',
+      phone: '+91 98201 11022',
       email: 'meena.patel@email.com',
-      occupation: 'Chartered Accountant (CA) & Financial Consultant',
-      organization: 'Patel & Associates Consultancy',
-      qualification: 'FCA, Institute of Chartered Accountants of India',
-      aadhaarNo: 'XXXX-XXXX-9924',
+      occupation: 'Financial Consultant',
     },
     emergencyContact: {
       primaryPerson: 'Rajesh Patel (Father)',
-      primaryPhone: '+91 98201-11021',
-      secondaryPerson: 'Dr. Suresh Patel (Uncle / Family Physician)',
-      secondaryPhone: '+91 98201-11025',
+      primaryPhone: '+91 87672 27125',
     },
   },
-
-  // Address & Transport
   address: {
-    residential: 'Flat 402, Royal Palms Residency, MG Road, Sector 14, Mumbai, Maharashtra - 400053',
-    permanent: 'Same as Residential Address',
-    busRouteNo: 'Route #12 (Morning & Afternoon Transit)',
-    busStop: 'Royal Palms Main Gate (7:25 AM Pickup • 1:45 PM Drop)',
-    vehicleReg: 'MH-04-AB-1204 (Bus Driver: Ramakant - +91 98201-44012)',
+    residential: 'Flat 402, Royal Palms Residency, MG Road, Sector 14, Pune, Maharashtra - 411038',
+    permanent: 'Flat 402, Royal Palms Residency, MG Road, Sector 14, Pune, Maharashtra - 411038',
+    busRouteNo: 'Route #4 (Kothrud -> Campus)',
+    busStop: 'Main Gate Stop (7:30 AM Pickup • 2:00 PM Drop)',
   },
-
-  // Health Profile
   health: {
-    allergies: 'Mild Dust & Pollen Allergy (Antihistamines approved)',
-    medicalConditions: 'None (Fit for all athletics and sports)',
-    emergencyInfirmaryNotes: 'Infirmary registration verified by Dr. Radhika on Apr 10, 2026.',
+    allergies: 'No severe allergies reported',
+    medicalConditions: 'Fit for sports and physical training',
+    emergencyInfirmaryNotes: 'Medical verification completed by school infirmary on file.',
   },
 };
 
 export default function ProfilePage() {
+  const { user, currentRole } = useAuth();
+  const role = (user?.role || currentRole || '').toLowerCase();
+
+  // If authenticated user is a teacher, render TeacherProfilePage
+  if (role === 'teacher') {
+    return <TeacherProfilePage />;
+  }
+
   const navigate = useNavigate();
+  const [profileData, setProfileData] = useState(DEFAULT_PROFILE);
+  const [loading, setLoading] = useState(true);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [updateSubmitted, setUpdateSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
 
   // Editable update request fields
-  const [fatherPhone, setFatherPhone] = useState(studentProfileData.parents.father.phone);
-  const [fatherEmail, setFatherEmail] = useState(studentProfileData.parents.father.email);
-  const [motherPhone, setMotherPhone] = useState(studentProfileData.parents.mother.phone);
-  const [motherEmail, setMotherEmail] = useState(studentProfileData.parents.mother.email);
-  const [resAddress, setResAddress] = useState(studentProfileData.address.residential);
-  const [updateNotes, setUpdateNotes] = useState('');
+  const [fatherPhone, setFatherPhone] = useState('');
+  const [fatherEmail, setFatherEmail] = useState('');
+  const [resAddress, setResAddress] = useState('');
+  const [emergencyPhone, setEmergencyPhone] = useState('');
+  const [medicalNotes, setMedicalNotes] = useState('');
 
-  const handleUpdateRequest = (e) => {
-    e.preventDefault();
-    setUpdateSubmitted(true);
-    setTimeout(() => {
-      setShowUpdateModal(false);
-      setUpdateSubmitted(false);
-    }, 2000);
+  const loadProfile = async () => {
+    setLoading(true);
+    try {
+      const res = await adminService.getStudentProfile();
+      if (res.success && res.data) {
+        const d = res.data;
+        const merged = {
+          student: { ...DEFAULT_PROFILE.student, ...(d.student || {}) },
+          parents: {
+            father: { ...DEFAULT_PROFILE.parents.father, ...(d.parents?.father || {}) },
+            mother: { ...DEFAULT_PROFILE.parents.mother, ...(d.parents?.mother || {}) },
+            emergencyContact: { ...DEFAULT_PROFILE.parents.emergencyContact, ...(d.parents?.emergencyContact || {}) },
+          },
+          address: { ...DEFAULT_PROFILE.address, ...(d.address || {}) },
+          health: { ...DEFAULT_PROFILE.health, ...(d.health || {}) },
+        };
+        setProfileData(merged);
+        setFatherPhone(merged.parents.father.phone || '');
+        setFatherEmail(merged.parents.father.email || '');
+        setResAddress(merged.address.residential || '');
+        setEmergencyPhone(merged.parents.emergencyContact.primaryPhone || '');
+        setMedicalNotes(merged.health.allergies || '');
+      }
+    } catch (err) {
+      console.error('Failed to load student profile from database:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const { student, parents, address, health } = studentProfileData;
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleUpdateRequest = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const payload = {
+        guardian_phone: fatherPhone,
+        guardian_email: fatherEmail,
+        address: resAddress,
+        emergency_contact: emergencyPhone,
+        medical_notes: medicalNotes,
+      };
+      const res = await adminService.updateStudentProfile(payload);
+      if (res.success) {
+        setShowUpdateModal(false);
+        showToast('Student & Parent records updated successfully in database!');
+        loadProfile();
+      }
+    } catch (err) {
+      showToast(err.data?.message || err.message || 'Failed to update records.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const { student, parents, address, health } = profileData;
 
   return (
     <div className="space-y-6 animate-fade-in pb-12 max-w-7xl mx-auto">
@@ -459,7 +508,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
               <div>
                 <h3 className="text-base font-bold text-gray-800">Request Contact & Profile Update</h3>
-                <p className="text-xs text-gray-400">Class X-A • Aarav Patel (STU-2024-X-101)</p>
+                <p className="text-xs text-gray-400">{student.classSection} • {student.fullName} ({student.admissionNo})</p>
               </div>
               <button
                 onClick={() => setShowUpdateModal(false)}

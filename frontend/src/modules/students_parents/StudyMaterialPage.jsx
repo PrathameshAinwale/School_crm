@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { studentParentService } from '../../services/studentParentService';
 import {
   LuFolderDown,
   LuArrowLeft,
@@ -9,9 +10,10 @@ import {
   LuEye,
   LuFilter,
   LuBookOpen,
+  LuLoader,
 } from 'react-icons/lu';
 
-const studyMaterialData = [
+const fallbackStudyMaterialData = [
   { id: 'SM-01', title: 'Class X Mathematics: All Board Formulas & Solved Exemplar Problems 2026', subject: 'Mathematics', type: 'PDF', size: '4.2 MB', uploader: 'Dr. Ananya Sen (PGT)', date: 'Aug 12, 2026', downloads: 142, desc: 'Complete formula sheet covering Quadratic Equations, AP, Triangles, and Coordinate Geometry with 50+ solved CBSE previous year questions.' },
   { id: 'SM-02', title: 'Science NCERT Exemplar Solutions & Comprehensive Physics Lab Manual', subject: 'Science', type: 'PDF', size: '6.8 MB', uploader: 'Mr. Vikram Rathore (PGT)', date: 'Aug 10, 2026', downloads: 188, desc: 'Step-by-step practical record write-ups for Ray Optics and Chemical Reactions with ray diagrams and expected viva questions.' },
   { id: 'SM-03', title: 'English Literature Question Bank & Reference Guide (First Flight)', subject: 'English', type: 'PDF', size: '3.1 MB', uploader: 'Ms. Sunita Rao (TGT)', date: 'Aug 08, 2026', downloads: 95, desc: 'Character sketches, theme summaries, extract-based multiple choice questions, and standard letter formats.' },
@@ -22,14 +24,40 @@ const studyMaterialData = [
 
 export default function StudyMaterialPage() {
   const navigate = useNavigate();
+  const [materials, setMaterials] = useState(fallbackStudyMaterialData);
   const [selectedSubject, setSelectedSubject] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const filteredMaterials = studyMaterialData.filter((item) => {
+  const fetchMaterials = () => {
+    setLoading(true);
+    studentParentService.getStudyMaterials({
+      subject: selectedSubject === 'All' ? '' : selectedSubject,
+      search: searchQuery,
+    })
+      .then((res) => {
+        if (res?.data && res.data.length > 0) {
+          setMaterials(res.data);
+        }
+      })
+      .catch((err) => console.log('Loaded mock study materials:', err))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchMaterials();
+  }, [selectedSubject, searchQuery]);
+
+  const handleDownload = (mat) => {
+    studentParentService.downloadStudyMaterial(mat.id || mat.dbId).catch(console.error);
+    alert(`Downloading ${mat.title} (${mat.size || 'PDF'})...`);
+  };
+
+  const filteredMaterials = materials.filter((item) => {
     const matchesSubject = selectedSubject === 'All' || item.subject === selectedSubject;
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.uploader.toLowerCase().includes(searchQuery.toLowerCase());
+                          (item.desc && item.desc.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                          (item.uploader && item.uploader.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesSubject && matchesSearch;
   });
 
@@ -50,7 +78,7 @@ export default function StudyMaterialPage() {
           </div>
         </div>
         <span className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-violet-50 text-violet-700 font-mono">
-          {studyMaterialData.length} Files Available
+          {filteredMaterials.length} Files Available
         </span>
       </div>
 
@@ -112,7 +140,10 @@ export default function StudyMaterialPage() {
                 <p>{mat.date} • {mat.downloads} downloads</p>
               </div>
 
-              <button className="px-3.5 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium inline-flex items-center gap-1.5 shadow-sm transition-colors">
+              <button
+                onClick={() => handleDownload(mat)}
+                className="px-3.5 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium inline-flex items-center gap-1.5 shadow-sm transition-colors"
+              >
                 <LuDownload className="w-3.5 h-3.5" /> Download
               </button>
             </div>

@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { hrService } from '../../services/hrService';
+import { adminService } from '../../services/adminService';
 import {
   LuUsers,
   LuCalendar,
@@ -18,22 +20,8 @@ import {
   LuSparkles,
   LuCheckCheck,
   LuEye,
+  LuLoader,
 } from 'react-icons/lu';
-
-const STAFF_MEMBERS = [
-  { id: 'EMP-101', name: 'Dr. Ananya Sen', role: 'PGT Mathematics', dept: 'Teaching', clockIn: '07:55 AM', clockOut: '04:10 PM', duration: '8h 15m', status: 'Present', phone: '+91 98765 11001', email: 'ananya.sen@eduflow.edu', rate: 98 },
-  { id: 'EMP-102', name: 'Mr. Vikram Rathore', role: 'PGT Physics & Science', dept: 'Teaching', clockIn: '08:02 AM', clockOut: '04:05 PM', duration: '8h 03m', status: 'Present', phone: '+91 98765 11002', email: 'vikram.r@eduflow.edu', rate: 96 },
-  { id: 'EMP-103', name: 'Ms. Sunita Rao', role: 'TGT English Language', dept: 'Teaching', clockIn: '07:50 AM', clockOut: '03:55 PM', duration: '8h 05m', status: 'Present', phone: '+91 98765 11003', email: 'sunita.rao@eduflow.edu', rate: 97 },
-  { id: 'EMP-104', name: 'Mr. Manoj Joshi', role: 'TGT Social Science', dept: 'Teaching', clockIn: '-', clockOut: '-', duration: '-', status: 'Absent', phone: '+91 98765 11004', email: 'manoj.joshi@eduflow.edu', rate: 88 },
-  { id: 'EMP-105', name: 'Mrs. Deepa Krishnan', role: 'Head of Computer Science & AI', dept: 'Teaching', clockIn: '07:45 AM', clockOut: '04:15 PM', duration: '8h 30m', status: 'Present', phone: '+91 98765 11005', email: 'deepa.k@eduflow.edu', rate: 99 },
-  { id: 'EMP-106', name: 'Mr. Rajesh Sharma', role: 'Chief Administrative Officer', dept: 'Administration', clockIn: '08:00 AM', clockOut: '05:00 PM', duration: '9h 00m', status: 'Present', phone: '+91 98765 11006', email: 'rajesh.admin@eduflow.edu', rate: 98 },
-  { id: 'EMP-107', name: 'Ms. Priya Verma', role: 'Senior Accounts Officer', dept: 'Finance & Accounts', clockIn: '08:10 AM', clockOut: '04:45 PM', duration: '8h 35m', status: 'Present', phone: '+91 98765 11007', email: 'priya.accounts@eduflow.edu', rate: 95 },
-  { id: 'EMP-108', name: 'Mr. Suresh Kumar', role: 'TGT Hindi Literature', dept: 'Teaching', clockIn: '-', clockOut: '-', duration: '-', status: 'On Leave', phone: '+91 98765 11008', email: 'suresh.k@eduflow.edu', rate: 92 },
-  { id: 'EMP-109', name: 'Mr. Amit Patel', role: 'Senior Lab & IT Technician', dept: 'IT & Labs', clockIn: '07:40 AM', clockOut: '04:30 PM', duration: '8h 50m', status: 'Present', phone: '+91 98765 11009', email: 'amit.it@eduflow.edu', rate: 100 },
-  { id: 'EMP-110', name: 'Mrs. Kavita Saxena', role: 'Head Librarian & Archivist', dept: 'Library', clockIn: '08:15 AM', clockOut: '04:00 PM', duration: '7h 45m', status: 'Present', phone: '+91 98765 11010', email: 'kavita.lib@eduflow.edu', rate: 94 },
-  { id: 'EMP-111', name: 'Mr. Harish Chandra', role: 'Transport & Fleet Supervisor', dept: 'Support & Transport', clockIn: '06:45 AM', clockOut: '05:30 PM', duration: '10h 45m', status: 'Present', phone: '+91 98765 11011', email: 'harish.fleet@eduflow.edu', rate: 99 },
-  { id: 'EMP-112', name: 'Ms. Neha Kulkarni', role: 'School Nurse & Health Counselor', dept: 'Medical', clockIn: '08:00 AM', clockOut: '04:00 PM', duration: '8h 00m', status: 'Present', phone: '+91 98765 11012', email: 'health.neha@eduflow.edu', rate: 96 },
-];
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -47,6 +35,9 @@ export default function StaffAttendancePage() {
   const [deptFilter, setDeptFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedStaffDetail, setSelectedStaffDetail] = useState(null);
+  const [staffList, setStaffList] = useState([]);
+  const [summary, setSummary] = useState({ total: 0, present: 0, absent: 0, late: 0, leave: 0, attendance_rate: 0 });
+  const [loading, setLoading] = useState(true);
 
   // Calendar popover state
   const [showCalendarDropdown, setShowCalendarDropdown] = useState(false);
@@ -54,6 +45,51 @@ export default function StaffAttendancePage() {
   const [viewYear, setViewYear] = useState(selectedDateObj.getFullYear());
   const [viewMonth, setViewMonth] = useState(selectedDateObj.getMonth());
   const calendarRef = useRef(null);
+
+  const loadAttendance = async () => {
+    setLoading(true);
+    try {
+      const res = await hrService.getStaffAttendance({ date: selectedDate });
+      if (res?.success && res.data?.staff?.length > 0) {
+        setStaffList(res.data.staff.map((item) => ({
+          ...item,
+          clockIn: item.checkIn || item.check_in_time || '07:55 AM',
+          clockOut: item.checkOut || item.check_out_time || '03:30 PM',
+          duration: item.duration || '7h 35m',
+        })));
+        if (res.data.summary) {
+          setSummary(res.data.summary);
+        }
+      } else {
+        // Fallback to adminService
+        const resAdmin = await adminService.getAttendance({ date: selectedDate, type: 'staff' });
+        if (resAdmin.success && resAdmin.data && resAdmin.data.length > 0) {
+          setStaffList(resAdmin.data.map((item) => ({
+            id: item.employee_id || `EMP-${item.teacher_id}`,
+            teacher_id: item.teacher_id,
+            name: item.name,
+            role: 'Faculty Staff',
+            dept: item.department || 'General',
+            clockIn: item.check_in_time || '07:55 AM',
+            clockOut: item.check_out_time || '03:30 PM',
+            duration: item.work_duration || '7h 35m',
+            status: item.status || 'Present',
+            phone: item.phone || '+91 98765 00000',
+            email: item.email || `${(item.name || 'staff').toLowerCase().replace(/[^a-z]/g, '')}@school.com`,
+            rate: 98,
+          })));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load staff attendance:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAttendance();
+  }, [selectedDate]);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -102,23 +138,24 @@ export default function StaffAttendancePage() {
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDayIndex = new Date(viewYear, viewMonth, 1).getDay();
 
-  // Stats calculation
-  const total = 280; // Representing whole campus staff
-  const presentCount = 268;
-  const absentCount = 8;
-  const leaveCount = 4;
-  const attendanceRate = ((presentCount / total) * 100).toFixed(1);
+  // Stats calculation from live summary
+  const total = summary.total || staffList.length;
+  const presentCount = summary.present || staffList.filter((s) => s.status === 'Present').length;
+  const absentCount = summary.absent || staffList.filter((s) => s.status === 'Absent').length;
+  const leaveCount = summary.leave || staffList.filter((s) => s.status === 'Leave' || s.status === 'On Leave').length;
+  const attendanceRate = summary.attendance_rate || (total > 0 ? ((presentCount / total) * 100).toFixed(1) : 100);
 
   // Filtered members
-  const filteredStaff = STAFF_MEMBERS.filter((s) => {
-    const matchesSearch =
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.dept.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredStaff = staffList.filter((s) => {
+    const name = (s.name || '').toLowerCase();
+    const id = (s.id || '').toLowerCase();
+    const role = (s.role || '').toLowerCase();
+    const dept = (s.dept || '').toLowerCase();
+    const q = searchQuery.toLowerCase();
 
-    const matchesDept = deptFilter === 'ALL' || s.dept === deptFilter;
-    const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
+    const matchesSearch = name.includes(q) || id.includes(q) || role.includes(q) || dept.includes(q);
+    const matchesDept = deptFilter === 'ALL' || dept.includes(deptFilter.toLowerCase()) || deptFilter.toLowerCase().includes(dept);
+    const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter || (statusFilter === 'On Leave' && (s.status === 'Leave' || s.status === 'On Leave'));
 
     return matchesSearch && matchesDept && matchesStatus;
   });
@@ -390,7 +427,14 @@ export default function StaffAttendancePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredStaff.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="py-16 text-center text-sm text-gray-400">
+                    <LuLoader className="w-7 h-7 animate-spin text-emerald-600 mx-auto mb-2" />
+                    <p className="text-xs text-gray-500 font-medium">Fetching faculty attendance records...</p>
+                  </td>
+                </tr>
+              ) : filteredStaff.length > 0 ? (
                 filteredStaff.map((staff) => (
                   <tr key={staff.id} className="hover:bg-gray-50/60 transition-colors group">
                     {/* Staff Name & ID */}

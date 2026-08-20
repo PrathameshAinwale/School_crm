@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { studentParentService } from '../../services/studentParentService';
 import {
   LuBookOpen,
   LuCircleCheck,
@@ -17,6 +18,7 @@ import {
   LuCheckCheck,
   LuMessageSquare,
   LuSend,
+  LuLoader,
 } from 'react-icons/lu';
 
 const initialSyllabusData = {
@@ -118,6 +120,7 @@ export default function SyllabusPage() {
   const [activeSubject, setActiveSubject] = useState('math');
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [saveToast, setSaveToast] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Form State for updating progress
   const [formSubject, setFormSubject] = useState('math');
@@ -127,55 +130,49 @@ export default function SyllabusPage() {
   const [formMessage, setFormMessage] = useState('');
   const [formHomework, setFormHomework] = useState('');
 
-  const subject = syllabusData[activeSubject];
+  const fetchSyllabus = () => {
+    setLoading(true);
+    studentParentService.getSyllabus()
+      .then((res) => {
+        if (res?.data) {
+          if (res.data.syllabus && Object.keys(res.data.syllabus).length > 0) {
+            setSyllabusData(res.data.syllabus);
+          }
+          if (res.data.progressLogs && res.data.progressLogs.length > 0) {
+            setProgressLogs(res.data.progressLogs);
+          }
+        }
+      })
+      .catch((err) => console.log('Loaded fallback syllabus data:', err))
+      .finally(() => setLoading(false));
+  };
 
-  const handleUpdateProgressSubmit = (e) => {
+  useEffect(() => {
+    fetchSyllabus();
+  }, []);
+
+  const subject = syllabusData[activeSubject] || initialSyllabusData.math;
+
+  const handleUpdateProgressSubmit = async (e) => {
     e.preventDefault();
     if (!formMessage.trim()) return;
 
-    const selectedSubjectData = syllabusData[formSubject];
+    const selectedSubjectData = syllabusData[formSubject] || initialSyllabusData[formSubject];
     const unitObj = selectedSubjectData.units.find((u) => u.id === Number(formUnitId)) || selectedSubjectData.units[0];
 
-    // Update unit in state
-    setSyllabusData((prev) => {
-      const sub = prev[formSubject];
-      const updatedUnits = sub.units.map((u) => {
-        if (u.id === unitObj.id) {
-          const newStatus = Number(formProgress) === 100 ? 'Completed' : Number(formProgress) > 0 ? 'In Progress' : 'Scheduled';
-          return { ...u, progress: Number(formProgress), status: newStatus };
-        }
-        return u;
+    try {
+      await studentParentService.updateSyllabusProgress({
+        syllabus_id: selectedSubjectData.id,
+        subject_name: selectedSubjectData.name,
+        unit_title: unitObj.title,
+        progress_percentage: Number(formProgress),
+        message: formMessage,
       });
+      fetchSyllabus();
+    } catch (err) {
+      console.error(err);
+    }
 
-      // Recalculate average subject completion
-      const totalProg = updatedUnits.reduce((acc, curr) => acc + curr.progress, 0);
-      const newCompletion = Math.round(totalProg / updatedUnits.length);
-
-      return {
-        ...prev,
-        [formSubject]: {
-          ...sub,
-          completion: newCompletion,
-          units: updatedUnits,
-        },
-      };
-    });
-
-    // Add new log entry
-    const newLog = {
-      id: Date.now(),
-      subjectKey: formSubject,
-      subjectName: selectedSubjectData.name.split(' ')[0],
-      className: `Grade ${formClass}`,
-      unitTitle: unitObj.title,
-      date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      progress: Number(formProgress),
-      message: formMessage,
-      homework: formHomework,
-      teacherName: selectedSubjectData.teacher.split('(')[0].trim(),
-    };
-
-    setProgressLogs((prev) => [newLog, ...prev]);
     setShowProgressModal(false);
     setFormMessage('');
     setFormHomework('');

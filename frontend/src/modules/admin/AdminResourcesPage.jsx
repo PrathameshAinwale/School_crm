@@ -1,227 +1,413 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { adminService } from '../../services/adminService';
 import {
   LuBoxes,
   LuSearch,
-  LuEye,
   LuX,
+  LuTrash2,
+  LuLoader,
+  LuCheck,
   LuCircleCheck,
+  LuPlus,
   LuMapPin,
 } from 'react-icons/lu';
 
-const SCHOOL_RESOURCES = [
-  { id: 'RES-01', name: 'Smart Interactive Classrooms', category: 'Academic Infrastructure', totalUnits: 52, activeUnits: 48, inMaintenance: 4, utilization: 92.3, location: 'Academic Blocks A, B, C', incharge: 'Mrs. Deepa Krishnan (IT Head)', specs: '75-inch 4K Smart Interactive Touch Displays, Dual OS, Digital Whiteboard', status: 'Operational' },
-  { id: 'RES-02', name: 'Science Labs (Physics, Chem, Bio)', category: 'Laboratory Facilities', totalUnits: 6, activeUnits: 6, inMaintenance: 0, utilization: 100.0, location: 'Science Block 2nd Floor', incharge: 'Dr. Ananya Sen / Mr. Rajesh Mehra', specs: 'Fully equipped practical apparatus, fume hoods, digital sensors, safety showers', status: 'Operational' },
-  { id: 'RES-03', name: 'Robotics & STEM Tinkering Lab', category: 'Innovation & Tech', totalUnits: 2, activeUnits: 2, inMaintenance: 0, utilization: 95.0, location: 'Tech Hub Floor 3', incharge: 'Mr. Vikram Rathore (PGT Physics)', specs: '3D Printers, Arduino/Raspberry Pi Kits, LEGO Mindstorms, AI Vision Kits', status: 'Operational' },
-  { id: 'RES-04', name: 'Computer Centers & IT Labs', category: 'Innovation & Tech', totalUnits: 4, activeUnits: 4, inMaintenance: 0, utilization: 98.0, location: 'IT Center Building D', incharge: 'Mrs. Deepa Krishnan', specs: '240 Intel Core i7 Workstations, Gigabit LAN, 1 Gbps Fiber Leased Line', status: 'Operational' },
-  { id: 'RES-05', name: 'Central Library & Digital Repository', category: 'Library & Research', totalUnits: 1, activeUnits: 1, inMaintenance: 0, utilization: 96.0, location: 'Central Building 1st Floor', incharge: 'Mrs. Rekha Joshi (Chief Librarian)', specs: '18,400 Physical Books, 12,000+ E-Journals, RFID Kiosks, Kindle Stations', status: 'Operational' },
-  { id: 'RES-06', name: 'Sports Complex & Athletic Grounds', category: 'Athletics & Physical Ed', totalUnits: 8, activeUnits: 7, inMaintenance: 1, utilization: 90.0, location: 'Campus South Grounds', incharge: 'Mr. Suresh Kumar (Sports Head)', specs: '400m Synthetic Track, FIFA Turf Football Ground, 2 Basketball Courts, Olympic Pool', status: 'Operational' },
-  { id: 'RES-07', name: 'Main Institutional Auditorium', category: 'Auditorium & Events', totalUnits: 1, activeUnits: 1, inMaintenance: 0, utilization: 88.0, location: 'Main Block Ground Floor', incharge: 'Mr. Rajesh Sharma (CAO)', specs: '1,200 Seating Capacity, Dolby Digital Surround Sound, Stage Rigging, LED Backdrop', status: 'Operational' },
-  { id: 'RES-08', name: 'Medical Infirmary & Emergency Clinic', category: 'Health & Medical', totalUnits: 1, activeUnits: 1, inMaintenance: 0, utilization: 95.0, location: 'Admin Block Ground Floor', incharge: 'Ms. Neha Kulkarni (Head Nurse)', specs: '6 Hospital Beds, Defibrillator, Oxygen Concentrators, Emergency SOS Link', status: 'Operational' },
-  { id: 'RES-09', name: 'Performing Arts & Music Studio', category: 'Creative & Cultural', totalUnits: 3, activeUnits: 3, inMaintenance: 0, utilization: 89.0, location: 'Cultural Center Wing B', incharge: 'Ms. Sunita Rao', specs: 'Acoustic Soundproofing, Pianos, Classical & Western Instruments, Recording Suite', status: 'Operational' },
-  { id: 'RES-10', name: 'Solar Energy Grid & Generator Backup', category: 'Campus Utility', totalUnits: 1, activeUnits: 1, inMaintenance: 0, utilization: 100.0, location: 'Rooftop Blocks A-D', incharge: 'Mr. Harish Chandra', specs: '150 kW Rooftop Solar Power Plant, 2x 250 kVA Silent Diesel Gensets', status: 'Operational' },
-];
-
 export default function AdminResourcesPage() {
-  const [resources] = useState(SCHOOL_RESOURCES);
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
-  const [selectedResource, setSelectedResource] = useState(null);
 
-  const filtered = resources.filter((res) => {
-    const matchesSearch =
-      res.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      res.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      res.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      res.incharge.toLowerCase().includes(searchQuery.toLowerCase());
+  // Modals
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [deleteTargetResource, setDeleteTargetResource] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
 
-    const matchesCategory = categoryFilter === 'ALL' || res.category === categoryFilter;
-
-    return matchesSearch && matchesCategory;
+  const [formData, setFormData] = useState({
+    name: '',
+    category: 'Laboratory',
+    total_quantity: 1,
+    available_quantity: 1,
+    condition: 'Good',
+    location_room: '',
+    unit_cost: '',
+    status: 'Available',
   });
 
-  const categories = ['ALL', ...Array.from(new Set(resources.map((r) => r.category)))];
-  const totalUnitsCount = resources.reduce((acc, r) => acc + r.totalUnits, 0);
-  const activeUnitsCount = resources.reduce((acc, r) => acc + r.activeUnits, 0);
+  const loadResources = async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+      if (categoryFilter && categoryFilter !== 'ALL') params.category = categoryFilter;
+
+      const res = await adminService.getResources(params);
+      if (res.success) {
+        const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setResources(list);
+      }
+    } catch (err) {
+      console.error('Failed to load resources:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadResources();
+  }, [categoryFilter]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    loadResources();
+  };
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleAddSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = await adminService.createResource(formData);
+      if (res.success) {
+        setShowAddModal(false);
+        setFormData({
+          name: '',
+          category: 'Laboratory',
+          total_quantity: 1,
+          available_quantity: 1,
+          condition: 'Good',
+          location_room: '',
+          unit_cost: '',
+          status: 'Available',
+        });
+        loadResources();
+        showToast('Resource asset added successfully!');
+      }
+    } catch (err) {
+      showToast(err.data?.message || err.message || 'Failed to add resource.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTargetResource) return;
+    try {
+      await adminService.deleteResource(deleteTargetResource.id);
+      setDeleteTargetResource(null);
+      loadResources();
+      showToast('Resource item deleted successfully.');
+    } catch {
+      showToast('Failed to delete resource.');
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* Clean Standard Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
-            <LuBoxes className="w-5 h-5" />
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-scale-up border border-slate-700">
+          <LuCircleCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-600 text-white flex items-center justify-center shadow-md shadow-cyan-500/20">
+            <LuBoxes className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-800">School Resources & Facilities</h1>
-            <p className="text-xs text-gray-400">Classrooms, scientific laboratories, sports grounds, and campus infrastructure</p>
+            <h1 className="text-xl font-bold text-slate-800">School Resources & Asset Inventory</h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Track scientific laboratory apparatus, IT equipment, sports items, and classroom furniture
+            </p>
           </div>
         </div>
 
-        <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 self-start sm:self-auto">
-          <LuCircleCheck className="w-4 h-4" /> 94.2% Overall Campus Utilization
-        </span>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 text-white font-semibold text-xs rounded-xl shadow-md shadow-cyan-500/20 transition-all flex items-center gap-2 self-start sm:self-auto shrink-0"
+        >
+          <LuPlus className="w-4 h-4" /> Add New Asset Item
+        </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Facility Units</span>
-          <p className="text-2xl font-bold text-gray-800 mt-1">{totalUnitsCount}</p>
-          <p className="text-xs text-gray-400 mt-0.5">Across Campus</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-emerald-100 bg-emerald-50/20 shadow-sm">
-          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Active Operational</span>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">{activeUnitsCount}</p>
-          <p className="text-xs text-emerald-700 font-medium mt-0.5">In Current Use</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-          <span className="text-[10px] font-bold text-primary-700 uppercase tracking-wider">Smart Classrooms</span>
-          <p className="text-2xl font-bold text-primary-600 mt-1">52 Units</p>
-          <p className="text-xs text-gray-400 mt-0.5">4K Touch Panels</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Science & IT Labs</span>
-          <p className="text-2xl font-bold text-gray-800 mt-1">12 Labs</p>
-          <p className="text-xs text-gray-400 mt-0.5">100% Operational</p>
-        </div>
-      </div>
-
-      {/* Search & Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="relative flex-1">
-          <LuSearch className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      {/* Filter & Search */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
+        <form onSubmit={handleSearchSubmit} className="relative w-full md:w-80">
+          <LuSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search resources, labs, classrooms, in-charge..."
+            placeholder="Search by asset name, code, room location..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all font-medium"
           />
-        </div>
+        </form>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 w-full md:w-auto">
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="py-2 px-3 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-cyan-500"
           >
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c === 'ALL' ? 'All Facility Categories' : c}
-              </option>
-            ))}
+            <option value="ALL">All Categories</option>
+            <option value="Laboratory">Laboratory</option>
+            <option value="IT & Computers">IT & Computers</option>
+            <option value="Sports Equipment">Sports Equipment</option>
+            <option value="Audio-Visual">Audio-Visual</option>
+            <option value="Library">Library</option>
+            <option value="Classroom Furniture">Classroom Furniture</option>
           </select>
         </div>
       </div>
 
-      {/* Resource Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((res) => (
-          <div
-            key={res.id}
-            onClick={() => setSelectedResource(res)}
-            className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-300 transition-all cursor-pointer flex flex-col justify-between group"
-          >
-            <div>
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-600">
-                  {res.category}
-                </span>
-                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  {res.status}
-                </span>
-              </div>
-
-              <h3 className="font-bold text-gray-800 text-sm group-hover:text-primary-600 transition-colors mt-1">
-                {res.name}
-              </h3>
-              <p className="text-xs text-gray-400 font-mono mt-0.5">{res.id}</p>
-
-              {/* Progress */}
-              <div className="mt-3 space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-500">Utilization Rate</span>
-                  <span className="font-bold text-primary-700">{res.utilization}%</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-primary-600"
-                    style={{ width: `${res.utilization}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100 mt-3 space-y-1 text-xs text-gray-600">
-                <p className="flex items-center gap-1.5">
-                  <LuMapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  <span className="truncate">{res.location}</span>
-                </p>
-                <p className="text-[11px] text-gray-500 truncate">In-Charge: {res.incharge}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-              <span>Units: <strong>{res.activeUnits} / {res.totalUnits}</strong> active</span>
-              <span className="text-primary-600 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                Details →
-              </span>
-            </div>
+      {/* Resources Table */}
+      {loading ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+          <LuLoader className="w-8 h-8 animate-spin text-cyan-600 mx-auto mb-3" />
+          <p className="text-xs text-slate-500 font-medium">Loading inventory from database...</p>
+        </div>
+      ) : resources.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
+          <div className="w-16 h-16 bg-cyan-50 text-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <LuBoxes className="w-8 h-8" />
           </div>
-        ))}
-      </div>
+          <h3 className="text-base font-bold text-slate-800 mb-1">No Resource Assets Registered</h3>
+          <p className="text-xs text-slate-400 max-w-md mx-auto mb-6">
+            There are currently no items in the inventory database.
+          </p>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold text-xs rounded-xl transition-colors inline-flex items-center gap-2 shadow-sm"
+          >
+            <LuPlus className="w-4 h-4" /> Add First Item
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                <tr>
+                  <th className="px-5 py-3.5">Asset Code & Item</th>
+                  <th className="px-5 py-3.5">Category</th>
+                  <th className="px-5 py-3.5">Quantity (Total / Avail)</th>
+                  <th className="px-5 py-3.5">Condition</th>
+                  <th className="px-5 py-3.5">Location / Room</th>
+                  <th className="px-5 py-3.5">Status</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                {resources.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="font-bold text-slate-800">{item.name}</div>
+                      <div className="text-[11px] text-cyan-700 font-mono font-bold">{item.resource_code}</div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold text-[11px]">
+                        {item.category}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="font-semibold text-slate-800">
+                        {item.available_quantity} / {item.total_quantity} Units
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="text-slate-700 font-medium">{item.condition}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-1.5 text-slate-600">
+                        <LuMapPin className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+                        <span>{item.location_room || 'General Storage'}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 ${
+                        item.status === 'Available'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          item.status === 'Available' ? 'bg-emerald-500' : 'bg-amber-500'
+                        }`}></span>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        onClick={() => setDeleteTargetResource(item)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                      >
+                        <LuTrash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-      {/* RESOURCE DETAIL MODAL */}
-      {selectedResource && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-gray-900/50 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white w-full max-w-lg rounded-xl shadow-xl overflow-hidden flex flex-col animate-slide-up border border-gray-200">
-            <div className="bg-white border-b border-gray-200 p-5 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-gray-800">{selectedResource.name}</h3>
-                <p className="text-xs text-gray-400">{selectedResource.category} • {selectedResource.id}</p>
+      {/* Add Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-xl w-full my-8 overflow-hidden animate-scale-up">
+            <div className="bg-gradient-to-r from-cyan-600 to-blue-600 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
+                  <LuBoxes className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base">Add Resource Item</h3>
+                  <p className="text-cyan-100 text-xs">Record new equipment or inventory asset</p>
+                </div>
               </div>
               <button
-                onClick={() => setSelectedResource(null)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                onClick={() => setShowAddModal(false)}
+                className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center text-white transition-colors"
               >
                 <LuX className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-5 space-y-3 text-xs overflow-y-auto max-h-[70vh]">
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Total Units / Capacity:</span>
-                  <strong className="text-gray-800">{selectedResource.totalUnits} Units ({selectedResource.activeUnits} Active)</strong>
+            <form onSubmit={handleAddSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Item / Equipment Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g. Compound Microscopes (1000x)"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-cyan-500"
+                  />
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Campus Location:</span>
-                  <strong className="text-gray-800">{selectedResource.location}</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Assigned In-Charge:</span>
-                  <strong className="text-gray-800">{selectedResource.incharge}</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Utilization:</span>
-                  <strong className="text-primary-700">{selectedResource.utilization}%</strong>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="Laboratory">Laboratory</option>
+                    <option value="IT & Computers">IT & Computers</option>
+                    <option value="Sports Equipment">Sports Equipment</option>
+                    <option value="Audio-Visual">Audio-Visual</option>
+                    <option value="Library">Library</option>
+                    <option value="Classroom Furniture">Classroom Furniture</option>
+                  </select>
                 </div>
               </div>
 
-              <div className="p-3 bg-white border border-gray-200 rounded-lg">
-                <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px] block mb-1">Equipment & Infrastructure Specs</span>
-                <p className="text-gray-700">{selectedResource.specs}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Total Quantity</label>
+                  <input
+                    type="number"
+                    required
+                    value={formData.total_quantity}
+                    onChange={(e) => setFormData({ ...formData, total_quantity: parseInt(e.target.value) || 0, available_quantity: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Condition</label>
+                  <select
+                    value={formData.condition}
+                    onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="Good">Good</option>
+                    <option value="Needs Repair">Needs Repair</option>
+                    <option value="Damaged">Damaged</option>
+                    <option value="Discarded">Discarded</option>
+                  </select>
+                </div>
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Location / Room</label>
+                  <input
+                    type="text"
+                    value={formData.location_room}
+                    onChange={(e) => setFormData({ ...formData, location_room: e.target.value })}
+                    placeholder="e.g. Science Lab 1 (Room 301)"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Unit Cost (₹)</label>
+                  <input
+                    type="number"
+                    value={formData.unit_cost}
+                    onChange={(e) => setFormData({ ...formData, unit_cost: e.target.value })}
+                    placeholder="8500"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl shadow-md shadow-cyan-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
+                  {submitting ? 'Adding...' : 'Add Item'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      {deleteTargetResource && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center animate-scale-up">
+            <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <LuTrash2 className="w-6 h-6" />
             </div>
-
-            <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end">
+            <h3 className="text-base font-bold text-slate-800 mb-1">Remove Asset Item?</h3>
+            <p className="text-xs text-slate-500 mb-6">
+              Are you sure you want to remove <strong>{deleteTargetResource.name}</strong>?
+            </p>
+            <div className="flex gap-2 justify-center">
               <button
-                onClick={() => setSelectedResource(null)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-semibold"
+                onClick={() => setDeleteTargetResource(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors"
               >
-                Close
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-colors shadow-sm"
+              >
+                Yes, Remove
               </button>
             </div>
           </div>

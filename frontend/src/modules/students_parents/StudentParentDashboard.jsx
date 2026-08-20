@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WelcomeCard from '../../components/Dashboard/WelcomeCard';
 import StatCard from '../../components/Dashboard/StatCard';
+import { studentParentService } from '../../services/studentParentService';
 import {
   studentParentStats,
   studentSyllabusProgress,
@@ -40,28 +41,79 @@ export default function StudentParentDashboard() {
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
 
-  // Top 3 Syllabus items
-  const topSyllabus = studentSyllabusProgress.slice(0, 3);
-
-  // Top 3 Calendar cards
-  const topCalendarEvents = studentSchoolCalendar.slice(0, 3);
-
-  // Top 3 Timetable periods
-  const topTimetablePeriods = studentPeriodTimetable.slice(0, 3);
-
-  // Near deadline assignments only
-  const urgentAssignments = studentAssignmentsList.filter(
-    (a) => a.status === 'Pending' || a.priority === 'High' || a.priority === 'Medium'
+  // Dynamic Data States
+  const [statsData, setStatsData] = useState(studentParentStats);
+  const [topSyllabus, setTopSyllabus] = useState(studentSyllabusProgress.slice(0, 3));
+  const [topCalendarEvents, setTopCalendarEvents] = useState(studentSchoolCalendar.slice(0, 3));
+  const [topTimetablePeriods, setTopTimetablePeriods] = useState(studentPeriodTimetable.slice(0, 3));
+  const [urgentAssignments, setUrgentAssignments] = useState(
+    studentAssignmentsList.filter(
+      (a) => a.status === 'Pending' || a.priority === 'High' || a.priority === 'Medium'
+    )
   );
+
+  useEffect(() => {
+    studentParentService.getDashboardStats()
+      .then((res) => {
+        if (res?.data) {
+          const d = res.data;
+          if (d.stats && d.stats.length > 0) {
+            setStatsData(d.stats.map(s => ({
+              label: s.title,
+              value: s.value,
+              trend: s.change,
+              trendUp: s.trend === 'up',
+              sub: s.subtext,
+            })));
+          }
+          if (d.topSyllabus && d.topSyllabus.length > 0) {
+            setTopSyllabus(d.topSyllabus.map(s => ({
+              subject: s.subject,
+              progress: s.progress,
+              teacher: s.teacher,
+              nextTopic: s.currentChapter || 'In Progress',
+            })));
+          }
+          if (d.topCalendarEvents && d.topCalendarEvents.length > 0) {
+            setTopCalendarEvents(d.topCalendarEvents.map(e => ({
+              date: e.date_label || e.month_label,
+              event: e.title,
+              type: e.event_type || 'Event',
+              time: e.time_slot || 'Full Day',
+            })));
+          }
+          if (d.todayTimetable && d.todayTimetable.length > 0) {
+            setTopTimetablePeriods(d.todayTimetable.slice(0, 3).map(p => ({
+              period: p.period_name || ('Period ' + p.period_number),
+              subject: p.subject,
+              teacher: p.teacher_name,
+              time: p.time_slot,
+              room: p.room,
+            })));
+          }
+          if (d.urgentAssignments && d.urgentAssignments.length > 0) {
+            setUrgentAssignments(d.urgentAssignments.map(a => ({
+              id: a.id,
+              subject: a.subject_name || a.subject || 'Academic',
+              title: a.title,
+              dueDate: a.due_date,
+              status: a.status || 'Pending',
+              priority: a.priority || 'High',
+            })));
+          }
+        }
+      })
+      .catch((err) => console.log('Loaded mock fallback dashboard data:', err));
+  }, []);
 
   // Auto-swipe timer for mobile (advances every 3.5s)
   useEffect(() => {
     if (isPaused) return;
     const interval = setInterval(() => {
-      setActiveKpiIndex((prev) => (prev + 1) % studentParentStats.length);
+      setActiveKpiIndex((prev) => (prev + 1) % statsData.length);
     }, 3500);
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [isPaused, statsData.length]);
 
   // Touch Swipe Handlers for mobile
   const handleTouchStart = (e) => {
@@ -80,11 +132,9 @@ export default function StudentParentDashboard() {
     }
     const distance = touchStartX.current - touchEndX.current;
     if (distance > 45) {
-      // Swiped left -> Next
-      setActiveKpiIndex((prev) => (prev + 1) % studentParentStats.length);
+      setActiveKpiIndex((prev) => (prev + 1) % statsData.length);
     } else if (distance < -45) {
-      // Swiped right -> Prev
-      setActiveKpiIndex((prev) => (prev - 1 + studentParentStats.length) % studentParentStats.length);
+      setActiveKpiIndex((prev) => (prev - 1 + statsData.length) % statsData.length);
     }
     touchStartX.current = null;
     touchEndX.current = null;
@@ -103,7 +153,7 @@ export default function StudentParentDashboard() {
       {/* Welcome Banner */}
       <WelcomeCard />
 
-      {/* Main KPI Row: Auto-Swipeable Carousel on Mobile (< sm), Grid on Tablet & Desktop (>= sm) */}
+      {/* Main KPI Row: Auto-Swipeable Carousel on Mobile, Grid on Desktop */}
       <div className="relative">
         {/* Mobile View: Swipeable + Auto-sliding Container */}
         <div
@@ -118,9 +168,9 @@ export default function StudentParentDashboard() {
             className="flex transition-transform duration-500 ease-out"
             style={{ transform: `translateX(-${activeKpiIndex * 100}%)` }}
           >
-            {studentParentStats.map((stat, i) => (
+            {statsData.map((stat, i) => (
               <div
-                key={stat.label}
+                key={stat.label + i}
                 onClick={() => handleKpiClick(i)}
                 className="w-full shrink-0 px-0.5 cursor-pointer"
               >
@@ -130,8 +180,8 @@ export default function StudentParentDashboard() {
                     value={stat.value}
                     trend={stat.trend}
                     trendUp={stat.trendUp}
-                    icon={statIcons[i]}
-                    color={statColors[i]}
+                    icon={statIcons[i % statIcons.length]}
+                    color={statColors[i % statColors.length]}
                   />
                   {stat.sub && (
                     <div className="px-4 py-2.5 -mt-2 bg-white rounded-b-xl border-x border-b border-gray-100 text-[11px] text-gray-500 font-medium flex items-center justify-between shadow-xs">
@@ -144,9 +194,9 @@ export default function StudentParentDashboard() {
             ))}
           </div>
 
-          {/* Mobile Carousel Indicators (Dots) */}
+          {/* Mobile Carousel Indicators */}
           <div className="flex items-center justify-center gap-2 mt-2.5">
-            {studentParentStats.map((_, idx) => (
+            {statsData.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => {
@@ -165,11 +215,11 @@ export default function StudentParentDashboard() {
           </div>
         </div>
 
-        {/* Desktop / Tablet View (>= sm): Standard 4-Column Grid */}
+        {/* Desktop / Tablet View */}
         <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {studentParentStats.map((stat, i) => (
+          {statsData.map((stat, i) => (
             <div
-              key={stat.label}
+              key={stat.label + i}
               onClick={() => handleKpiClick(i)}
               className="cursor-pointer group"
             >
@@ -179,8 +229,8 @@ export default function StudentParentDashboard() {
                   value={stat.value}
                   trend={stat.trend}
                   trendUp={stat.trendUp}
-                  icon={statIcons[i]}
-                  color={statColors[i]}
+                  icon={statIcons[i % statIcons.length]}
+                  color={statColors[i % statColors.length]}
                 />
                 {stat.sub && (
                   <div className="px-5 pb-3 -mt-2 bg-white rounded-b-xl border-x border-b border-gray-100 text-xs text-gray-500 font-medium flex items-center justify-between">
@@ -194,9 +244,9 @@ export default function StudentParentDashboard() {
         </div>
       </div>
 
-      {/* Grid: 1. Syllabus (Top 3) & 2. School Calendar (3 Info Cards) */}
+      {/* Grid: 1. Syllabus & 2. School Calendar */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-        {/* 1. Syllabus & Subject (Top 3) */}
+        {/* 1. Syllabus & Subject */}
         <div
           onClick={() => navigate('/syllabus')}
           className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-sm hover:border-primary-300 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
@@ -211,11 +261,11 @@ export default function StudentParentDashboard() {
                   <h3 className="text-sm font-bold text-gray-800 group-hover:text-primary-600 transition-colors flex items-center gap-1">
                     Syllabus & Progress <LuChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-primary-600 shrink-0" />
                   </h3>
-                  <p className="text-[11px] text-gray-400">Top 3 Core Subjects • Class X-A</p>
+                  <p className="text-[11px] text-gray-400">Core Subjects • Curriculum Coverage</p>
                 </div>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 shrink-0">
-                Top 3
+                Top {topSyllabus.length}
               </span>
             </div>
 
@@ -252,7 +302,7 @@ export default function StudentParentDashboard() {
           </div>
         </div>
 
-        {/* 2. School Calendar (3 Information Cards) */}
+        {/* 2. School Calendar */}
         <div
           onClick={() => navigate('/calendar')}
           className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
@@ -267,11 +317,11 @@ export default function StudentParentDashboard() {
                   <h3 className="text-sm font-bold text-gray-800 group-hover:text-emerald-700 transition-colors flex items-center gap-1">
                     School Calendar & Exams <LuChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-600 shrink-0" />
                   </h3>
-                  <p className="text-[11px] text-gray-400">Next 3 Scheduled School Dates</p>
+                  <p className="text-[11px] text-gray-400">Upcoming Scheduled School Dates</p>
                 </div>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 shrink-0">
-                3 Events
+                {topCalendarEvents.length} Events
               </span>
             </div>
 
@@ -282,7 +332,7 @@ export default function StudentParentDashboard() {
                   className="p-3 rounded-xl bg-gray-50/80 border border-gray-100 flex flex-col gap-1.5 group-hover:bg-emerald-50/20 transition-colors"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${calendarTypeStyles[cal.type]}`}>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${calendarTypeStyles[cal.type] || 'bg-blue-50 text-blue-700 border-blue-200'}`}>
                       {cal.type}
                     </span>
                     <span className="text-xs font-bold text-primary-700">
@@ -305,9 +355,9 @@ export default function StudentParentDashboard() {
         </div>
       </div>
 
-      {/* Grid: 3. School Period Timetable (3 Periods) & 4. Assignments (Near Deadline Only) */}
+      {/* Grid: 3. Timetable & 4. Assignments */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-        {/* 3. School Period Timetable (3 Periods) */}
+        {/* 3. School Period Timetable */}
         <div
           onClick={() => navigate('/timetable')}
           className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-sm hover:border-primary-300 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
@@ -322,11 +372,11 @@ export default function StudentParentDashboard() {
                   <h3 className="text-sm font-bold text-gray-800 group-hover:text-primary-600 transition-colors flex items-center gap-1">
                     Period Timetable <LuChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-primary-600 shrink-0" />
                   </h3>
-                  <p className="text-[11px] text-gray-400">Class X-A • Today's Schedule</p>
+                  <p className="text-[11px] text-gray-400">Today's Class Schedule</p>
                 </div>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 shrink-0">
-                3 Periods
+                {topTimetablePeriods.length} Periods
               </span>
             </div>
 
@@ -361,7 +411,7 @@ export default function StudentParentDashboard() {
           </div>
         </div>
 
-        {/* 4. Assignments (Near to Deadline Only) */}
+        {/* 4. Assignments */}
         <div
           onClick={() => navigate('/assignment')}
           className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-sm hover:border-amber-300 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"

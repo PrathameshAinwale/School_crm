@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { studentParentService } from '../../services/studentParentService';
 import {
   LuBell,
   LuArrowLeft,
@@ -8,9 +9,10 @@ import {
   LuFileText,
   LuCalendar,
   LuUser,
+  LuLoader,
 } from 'react-icons/lu';
 
-const noticesData = [
+const fallbackNoticesData = [
   {
     id: 1,
     title: 'Registration Open for Inter-School STEM & Robotics Innovation Expo 2026',
@@ -64,11 +66,29 @@ export default function NoticesPage() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [notices, setNotices] = useState(fallbackNoticesData);
+  const [loading, setLoading] = useState(true);
 
-  const filteredNotices = noticesData.filter((n) => {
+  useEffect(() => {
+    setLoading(true);
+    studentParentService.getNotices({
+      category: selectedCategory === 'All' ? '' : selectedCategory,
+      search: searchQuery,
+    })
+      .then((res) => {
+        if (res?.data && res.data.length > 0) {
+          setNotices(res.data);
+        }
+      })
+      .catch((err) => console.log('Loaded fallback notices:', err))
+      .finally(() => setLoading(false));
+  }, [selectedCategory, searchQuery]);
+
+  const filteredNotices = notices.filter((n) => {
     const matchesCategory = selectedCategory === 'All' || n.category === selectedCategory;
     const matchesSearch = n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          n.desc.toLowerCase().includes(searchQuery.toLowerCase());
+                          (n.desc && n.desc.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                          (n.sender && n.sender.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
@@ -89,7 +109,7 @@ export default function NoticesPage() {
           </div>
         </div>
         <span className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700">
-          {noticesData.length} Active Circulars
+          {filteredNotices.length} Active Circulars
         </span>
       </div>
 
@@ -133,7 +153,7 @@ export default function NoticesPage() {
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${categoryBadgeStyles[n.category]}`}>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${categoryBadgeStyles[n.category] || 'bg-blue-50 text-blue-700 border-blue-200'}`}>
                     {n.category}
                   </span>
                   {n.priority === 'Urgent' && (
@@ -159,7 +179,10 @@ export default function NoticesPage() {
               </span>
 
               {n.attachment && (
-                <button className="text-primary-600 hover:text-primary-800 font-semibold inline-flex items-center gap-1.5 self-start sm:self-auto text-xs">
+                <button
+                  onClick={() => alert(`Downloading circular ${n.attachment}...`)}
+                  className="text-primary-600 hover:text-primary-800 font-semibold inline-flex items-center gap-1.5 self-start sm:self-auto text-xs"
+                >
                   <LuDownload className="w-3.5 h-3.5" /> Download Attached Circular ({n.attachment})
                 </button>
               )}

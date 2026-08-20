@@ -1,10 +1,10 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { authService } from '../services/authService';
 
 const AuthContext = createContext(null);
 
 const ROLES = {
   ADMIN: 'admin',
-  OWNER: 'owner',
   TEACHER: 'teacher',
   STUDENT_PARENT: 'student_parent',
   HR: 'hr',
@@ -12,78 +12,101 @@ const ROLES = {
 
 const ROLE_LABELS = {
   [ROLES.ADMIN]: 'Administrator',
-  [ROLES.OWNER]: 'School Owner',
   [ROLES.TEACHER]: 'Teacher',
   [ROLES.STUDENT_PARENT]: 'Student / Parent',
   [ROLES.HR]: 'HR Manager',
 };
 
-const DEFAULT_USERS = {
-  [ROLES.ADMIN]: {
-    name: 'Rajesh Kumar',
-    email: 'admin@eduflow.com',
-    role: ROLES.ADMIN,
-    avatar: null,
-    school: 'Delhi Public Academy',
-  },
-  [ROLES.OWNER]: {
-    name: 'Priya Sharma',
-    email: 'owner@eduflow.com',
-    role: ROLES.OWNER,
-    avatar: null,
-    school: 'Delhi Public Academy',
-  },
-  [ROLES.TEACHER]: {
-    name: 'Ananya Singh',
-    email: 'teacher@eduflow.com',
-    role: ROLES.TEACHER,
-    avatar: null,
-    school: 'Delhi Public Academy',
-  },
-  [ROLES.STUDENT_PARENT]: {
-    name: 'Arjun Patel',
-    email: 'student@eduflow.com',
-    role: ROLES.STUDENT_PARENT,
-    avatar: null,
-    school: 'Delhi Public Academy',
-  },
-  [ROLES.HR]: {
-    name: 'Meera Gupta',
-    email: 'hr@eduflow.com',
-    role: ROLES.HR,
-    avatar: null,
-    school: 'Delhi Public Academy',
-  },
-};
-
 export function AuthProvider({ children }) {
-  const [currentRole, setCurrentRole] = useState(ROLES.ADMIN);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
 
-  const user = DEFAULT_USERS[currentRole];
+  const [token, setToken] = useState(() => localStorage.getItem('auth_token'));
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('auth_token'));
+  const [loading, setLoading] = useState(false);
 
-  const login = (role) => {
-    setCurrentRole(role);
-    setIsAuthenticated(true);
+  const currentRole = user?.role || ROLES.ADMIN;
+
+  // Verify token on mount if available
+  useEffect(() => {
+    if (token) {
+      authService.me()
+        .then((res) => {
+          if (res.user) {
+            setUser(res.user);
+            localStorage.setItem('user', JSON.stringify(res.user));
+            setIsAuthenticated(true);
+          }
+        })
+        .catch(() => {
+          // Token expired or invalid
+          logout();
+        });
+    }
+  }, []);
+
+  const login = async (identifier, password) => {
+    setLoading(true);
+    try {
+      const res = await authService.login(identifier, password);
+      if (res.success && res.token) {
+        setUser(res.user);
+        setToken(res.token);
+        setIsAuthenticated(true);
+        return { success: true, user: res.user };
+      }
+      return { success: false, message: res.message || 'Login failed' };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.data?.message || err.message || 'Unable to connect to the backend server. Please ensure the server is running.',
+      };
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const logout = () => {
-    setIsAuthenticated(false);
+  const changePassword = async (currentPassword, newPassword, newPasswordConfirmation) => {
+    const res = await authService.changePassword(currentPassword, newPassword, newPasswordConfirmation);
+    if (res.success && res.user) {
+      const updatedUser = { ...user, ...res.user, must_change_password: false };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+    return res;
   };
 
-  const switchRole = (role) => {
-    setCurrentRole(role);
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch {
+      // ignore
+    } finally {
+      setUser(null);
+      setToken(null);
+      setIsAuthenticated(false);
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+    }
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        token,
         currentRole,
         isAuthenticated,
+        loading,
         login,
         logout,
-        switchRole,
+        changePassword,
         ROLES,
         ROLE_LABELS,
       }}

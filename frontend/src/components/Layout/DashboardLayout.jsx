@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import MustChangePasswordModal from '../Auth/MustChangePasswordModal';
 
 export default function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -44,6 +45,9 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Force Change Password Modal */}
+      <MustChangePasswordModal />
     </div>
   );
 }

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WelcomeCard from '../../components/Dashboard/WelcomeCard';
+import { hrService } from '../../services/hrService';
 import {
   LuBanknote,
   LuUsers,
@@ -8,72 +9,103 @@ import {
   LuArrowRight,
   LuCalendarDays,
   LuSparkles,
+  LuRefreshCw,
+  LuCalendar,
+  LuMapPin,
+  LuPlus,
 } from 'react-icons/lu';
 
 export default function HRDashboard() {
   const navigate = useNavigate();
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // 3 Primary Daily HR Priority Cards
+  const fetchDashboard = async () => {
+    try {
+      const res = await hrService.getHRDashboard();
+      if (res?.success && res.data) {
+        setDashboardData(res.data);
+      }
+    } catch (err) {
+      console.log('Error fetching HR dashboard, using fallback:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchDashboard();
+  };
+
+  // Dynamic cards built from live backend response
+  const cardsConfig = dashboardData?.cards;
+
   const dailyCards = [
     {
       id: 'attendance',
-      title: "Today's Staff Attendance",
-      badge: '268 / 280 Present',
+      title: cardsConfig?.attendance?.title || "Today's Staff Attendance",
+      badge: cardsConfig?.attendance?.badge || '24 / 26 Present',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       icon: LuUsers,
       iconBg: 'bg-emerald-50 text-emerald-600',
-      highlight: '95.7% Campus Turnout',
-      time: 'Live Check-ins Active',
-      subtext: '8 unexcused absences • 4 approved leaves',
+      highlight: cardsConfig?.attendance?.highlight || '92.3% Campus Turnout',
+      time: cardsConfig?.attendance?.time || 'Live Check-ins Active',
+      subtext: cardsConfig?.attendance?.subtext || '1 unexcused absence • 1 approved leave',
       actionText: 'View Staff Attendance',
       path: '/hr/staff-attendance',
     },
     {
       id: 'salary',
-      title: 'Salary & Payroll Cycle',
-      badge: 'August 2026',
+      title: cardsConfig?.salary?.title || 'Salary & Payroll Cycle',
+      badge: cardsConfig?.salary?.badge || 'August 2026',
       badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
       icon: LuBanknote,
       iconBg: 'bg-blue-50 text-blue-600',
-      highlight: '₹15.2 Lakhs Processed',
-      time: '280 Employees Calculated',
-      subtext: 'Attendance-linked deductions applied',
+      highlight: cardsConfig?.salary?.highlight || '₹15.2 Lakhs Processed',
+      time: cardsConfig?.salary?.time || '8 Employees Calculated',
+      subtext: cardsConfig?.salary?.subtext || 'Attendance-linked deductions applied',
       actionText: 'Manage Staff Salary & Slips',
       path: '/salary',
     },
     {
       id: 'leaves',
-      title: 'Staff Leaves & Approvals',
-      badge: '4 Pending Review',
+      title: cardsConfig?.leaves?.title || 'Staff Leaves & Approvals',
+      badge: cardsConfig?.leaves?.badge || '2 Pending Review',
       badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
       icon: LuClock,
       iconBg: 'bg-amber-50 text-amber-600',
-      highlight: '4 Requests Awaiting Decision',
-      time: 'Teaching & Support Faculty',
-      subtext: 'CL, SL & Duty leave requests',
+      highlight: cardsConfig?.leaves?.highlight || '2 Requests Awaiting Decision',
+      time: cardsConfig?.leaves?.time || 'Teaching & Support Faculty',
+      subtext: cardsConfig?.leaves?.subtext || 'Casual, Medical & Duty leave requests',
       actionText: 'Review Staff Leaves',
       path: '/hr/staff-leaves',
     },
     {
       id: 'trainings',
-      title: 'Faculty Trainings & Muster',
-      badge: '4 Active Workshops',
+      title: cardsConfig?.trainings?.title || 'Faculty Trainings & Muster',
+      badge: cardsConfig?.trainings?.badge || '3 Active Workshops',
       badgeColor: 'bg-primary-50 text-primary-700 border-primary-200',
       icon: LuUsers,
       iconBg: 'bg-primary-50 text-primary-600',
-      highlight: '88% Attendance Rate',
-      time: 'Assigned & Notified',
-      subtext: 'Targeted faculty pedagogy sessions',
+      highlight: cardsConfig?.trainings?.highlight || '94% Attendance Rate',
+      time: cardsConfig?.trainings?.time || 'Assigned & Notified',
+      subtext: cardsConfig?.trainings?.subtext || 'Targeted faculty pedagogy sessions',
       actionText: 'Plan & Track Trainings',
       path: '/trainings',
     },
   ];
 
-  // Upcoming School Events
-  const upcomingEvents = [
-    { title: 'Annual Faculty Pedagogical & AI Workshop', date: 'Aug 22, 2026', time: '09:00 AM', venue: 'Main Auditorium' },
-    { title: 'Inter-School Sports Championship Meet', date: 'Aug 26, 2026', time: '08:30 AM', venue: 'Athletics Ground' },
-    { title: 'Science & Robotics Innovation Expo', date: 'Sep 02, 2026', time: '10:00 AM', venue: 'Tinkering Lab' },
+  const upcomingEvents = dashboardData?.upcomingEvents || [
+    { id: 1, title: 'Annual Faculty Pedagogical & AI Workshop', date: 'Aug 22, 2026', time: '09:00 AM', venue: 'Main Auditorium' },
+    { id: 2, title: 'Inter-School Sports Championship Meet', date: 'Aug 26, 2026', time: '08:30 AM', venue: 'Athletics Ground' },
+    { id: 3, title: 'Science & Robotics Innovation Expo', date: 'Sep 02, 2026', time: '10:00 AM', venue: 'Tinkering Lab' },
   ];
 
   return (
@@ -81,13 +113,20 @@ export default function HRDashboard() {
       {/* Welcome Banner */}
       <WelcomeCard />
 
-      {/* Primary 3 Daily Information Cards */}
+      {/* Primary 4 Daily Information Cards */}
       <div>
         <div className="flex items-center justify-between mb-3.5">
           <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
             <LuSparkles className="w-4 h-4 text-primary-600" />
             Today's HR Key Priorities
           </h2>
+          <button
+            onClick={handleRefresh}
+            className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-600 flex items-center gap-1.5 transition-colors"
+          >
+            <LuRefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            Sync Realtime
+          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -152,27 +191,29 @@ export default function HRDashboard() {
           </div>
           <button
             onClick={() => navigate('/school-events')}
-            className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1"
+            className="text-xs font-bold text-primary-700 hover:text-primary-800 flex items-center gap-1"
           >
             Manage Events <LuArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {upcomingEvents.map((evt, idx) => (
-            <div
-              key={idx}
-              onClick={() => navigate('/school-events')}
-              className="p-4 rounded-2xl bg-gray-50/80 border border-gray-100 space-y-1.5 hover:border-gray-300 transition-colors cursor-pointer"
-            >
-              <span className="text-[10px] font-bold text-primary-700 bg-primary-50 px-2 py-0.5 rounded">
-                {evt.date} • {evt.time}
+          {upcomingEvents.map((event, idx) => (
+            <div key={event.id || idx} className="p-4 rounded-2xl bg-gray-50/60 border border-gray-100 space-y-2">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-gray-200 text-gray-700">
+                {event.category || 'Event'}
               </span>
-              <p className="text-xs font-bold text-gray-900 leading-snug pt-1">{evt.title}</p>
-              <p className="text-[11px] text-gray-500 flex items-center justify-between pt-1 border-t border-gray-200/60">
-                <span>Venue:</span>
-                <span className="font-semibold text-gray-800">{evt.venue}</span>
-              </p>
+              <h4 className="text-sm font-bold text-gray-800 line-clamp-1">{event.title}</h4>
+              <div className="flex items-center gap-3 text-xs text-gray-500 pt-1">
+                <span className="flex items-center gap-1 font-medium">
+                  <LuCalendar className="w-3.5 h-3.5 text-gray-400" />
+                  {event.date}
+                </span>
+                <span className="flex items-center gap-1 font-medium">
+                  <LuMapPin className="w-3.5 h-3.5 text-gray-400" />
+                  {event.venue}
+                </span>
+              </div>
             </div>
           ))}
         </div>

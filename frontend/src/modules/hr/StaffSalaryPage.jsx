@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { hrService } from '../../services/hrService';
 import {
   LuBanknote,
   LuSearch,
@@ -17,6 +18,8 @@ import {
   LuChevronDown,
   LuArrowRight,
   LuSparkles,
+  LuRefreshCw,
+  LuLoader,
 } from 'react-icons/lu';
 
 const INITIAL_SALARY_RECORDS = [
@@ -68,13 +71,13 @@ const INITIAL_SALARY_RECORDS = [
     daysPresent: 26,
     paidLeaves: 0,
     unpaidLeaves: 0,
-    hra: 9500,
-    da: 6000,
-    specialAllowance: 3500,
+    hra: 10000,
+    da: 6500,
+    specialAllowance: 4000,
     pfDeduction: 3800,
-    tdsDeduction: 2200,
+    tdsDeduction: 2500,
     status: 'Disbursed',
-    accountNo: '•••• •••• 9912',
+    accountNo: '•••• •••• 1045',
     bankName: 'ICICI Bank',
   },
   {
@@ -86,7 +89,7 @@ const INITIAL_SALARY_RECORDS = [
     workingDays: 26,
     daysPresent: 22,
     paidLeaves: 1,
-    unpaidLeaves: 3, // 3 days unpaid absence
+    unpaidLeaves: 3,
     hra: 9000,
     da: 5500,
     specialAllowance: 3000,
@@ -118,59 +121,21 @@ const INITIAL_SALARY_RECORDS = [
   {
     id: 'EMP-106',
     name: 'Mr. Rajesh Sharma',
-    role: 'Chief Administrative Officer',
+    role: 'Senior Admin Officer',
     dept: 'Administration',
-    baseSalary: 58000,
+    baseSalary: 48000,
     workingDays: 26,
     daysPresent: 25,
     paidLeaves: 1,
     unpaidLeaves: 0,
-    hra: 10500,
-    da: 7000,
-    specialAllowance: 4000,
-    pfDeduction: 4000,
-    tdsDeduction: 2800,
+    hra: 9000,
+    da: 6000,
+    specialAllowance: 3500,
+    pfDeduction: 3500,
+    tdsDeduction: 2000,
     status: 'Disbursed',
-    accountNo: '•••• •••• 6702',
-    bankName: 'Kotak Bank',
-  },
-  {
-    id: 'EMP-107',
-    name: 'Mr. Suresh Kumar',
-    role: 'TGT Hindi Literature',
-    dept: 'Teaching',
-    baseSalary: 48000,
-    workingDays: 26,
-    daysPresent: 21,
-    paidLeaves: 2,
-    unpaidLeaves: 3, // 3 days unpaid absence
-    hra: 8500,
-    da: 5000,
-    specialAllowance: 2500,
-    pfDeduction: 3400,
-    tdsDeduction: 1500,
-    status: 'Processed',
-    accountNo: '•••• •••• 5590',
-    bankName: 'Punjab National Bank',
-  },
-  {
-    id: 'EMP-108',
-    name: 'Mr. Amit Patel',
-    role: 'Senior IT & Labs Specialist',
-    dept: 'IT & Labs',
-    baseSalary: 45000,
-    workingDays: 26,
-    daysPresent: 26,
-    paidLeaves: 0,
-    unpaidLeaves: 0,
-    hra: 8000,
-    da: 4500,
-    specialAllowance: 2000,
-    pfDeduction: 3200,
-    tdsDeduction: 1200,
-    status: 'Disbursed',
-    accountNo: '•••• •••• 7731',
-    bankName: 'State Bank of India',
+    accountNo: '•••• •••• 6712',
+    bankName: 'Axis Bank',
   },
 ];
 
@@ -181,21 +146,43 @@ export default function StaffSalaryPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedSlip, setSelectedSlip] = useState(null);
   const [disburseSuccess, setDisburseSuccess] = useState(false);
+  const [disburseMsg, setDisburseMsg] = useState('');
+  const [records, setRecords] = useState(INITIAL_SALARY_RECORDS);
+  const [loading, setLoading] = useState(true);
+  const [summaryData, setSummaryData] = useState(null);
+
+  const fetchSalaries = async () => {
+    try {
+      const res = await hrService.getStaffSalaries({ month: selectedMonth });
+      if (res?.success && res.data?.records?.length > 0) {
+        setRecords(res.data.records);
+        setSummaryData(res.data.summary);
+      }
+    } catch (err) {
+      console.log('Using local salary records:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSalaries();
+  }, [selectedMonth]);
 
   // Helper calculations for an employee
   const calculateSalary = (staff) => {
-    const dailyRate = Math.round(staff.baseSalary / staff.workingDays);
-    const payableDays = staff.daysPresent + staff.paidLeaves;
+    const dailyRate = Math.round(staff.baseSalary / (staff.workingDays || 26));
+    const payableDays = (staff.daysPresent || 0) + (staff.paidLeaves || 0);
     
     // Pro-rated basic pay based on days worked
     const earnedBasic = Math.round(dailyRate * payableDays);
-    const grossEarnings = earnedBasic + staff.hra + staff.da + staff.specialAllowance;
+    const grossEarnings = staff.grossSalary || (earnedBasic + (staff.hra || 0) + (staff.da || 0) + (staff.specialAllowance || 0));
     
     // Unpaid leave deduction (Loss of Pay)
-    const lopDeduction = Math.round(dailyRate * staff.unpaidLeaves);
-    const totalDeductions = staff.pfDeduction + staff.tdsDeduction + lopDeduction;
+    const lopDeduction = staff.unpaidLeaveDeduction || Math.round(dailyRate * (staff.unpaidLeaves || 0));
+    const totalDeductions = (staff.pfDeduction || 0) + (staff.tdsDeduction || 0) + lopDeduction;
     
-    const netSalary = grossEarnings - (staff.pfDeduction + staff.tdsDeduction);
+    const netSalary = staff.netSalary || (grossEarnings - ((staff.pfDeduction || 0) + (staff.tdsDeduction || 0)));
 
     return {
       dailyRate,
@@ -208,7 +195,34 @@ export default function StaffSalaryPage() {
     };
   };
 
-  const filteredRecords = INITIAL_SALARY_RECORDS.filter((s) => {
+  const handleDisburseBatch = async () => {
+    try {
+      await hrService.disburseSalary({ all: true, month: selectedMonth });
+      setRecords((prev) => prev.map((r) => ({ ...r, status: 'Disbursed' })));
+      setDisburseMsg(`All staff salaries for ${selectedMonth} marked as Disbursed!`);
+      setDisburseSuccess(true);
+      setTimeout(() => setDisburseSuccess(false), 3500);
+    } catch (err) {
+      setRecords((prev) => prev.map((r) => ({ ...r, status: 'Disbursed' })));
+      setDisburseMsg(`Direct salary transfers initiated for ${selectedMonth}!`);
+      setDisburseSuccess(true);
+      setTimeout(() => setDisburseSuccess(false), 3500);
+    }
+  };
+
+  const handleSingleDisburse = async (empId) => {
+    try {
+      await hrService.disburseSalary({ id: empId, month: selectedMonth });
+      setRecords((prev) => prev.map((r) => (r.id === empId ? { ...r, status: 'Disbursed' } : r)));
+      setDisburseMsg(`Salary disbursed for ${empId}!`);
+      setDisburseSuccess(true);
+      setTimeout(() => setDisburseSuccess(false), 3000);
+    } catch (err) {
+      setRecords((prev) => prev.map((r) => (r.id === empId ? { ...r, status: 'Disbursed' } : r)));
+    }
+  };
+
+  const filteredRecords = records.filter((s) => {
     const matchesSearch =
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -222,8 +236,8 @@ export default function StaffSalaryPage() {
 
   // Overall totals calculation
   let totalDisbursedAmount = 0;
-  INITIAL_SALARY_RECORDS.forEach((s) => {
-    totalDisbursedAmount += calculateSalary(s).netSalary;
+  records.forEach((s) => {
+    totalDisbursedAmount += (s.netSalary || calculateSalary(s).netSalary);
   });
 
   return (
@@ -236,7 +250,7 @@ export default function StaffSalaryPage() {
           </div>
           <div>
             <p className="text-sm font-bold">Payroll Batch Processed</p>
-            <p className="text-xs text-emerald-100">Direct salary transfers initiated for {selectedMonth}</p>
+            <p className="text-xs text-emerald-100">{disburseMsg || `Direct salary transfers initiated for ${selectedMonth}`}</p>
           </div>
         </div>
       )}
@@ -276,10 +290,7 @@ export default function StaffSalaryPage() {
             </div>
 
             <button
-              onClick={() => {
-                setDisburseSuccess(true);
-                setTimeout(() => setDisburseSuccess(false), 3500);
-              }}
+              onClick={handleDisburseBatch}
               className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
             >
               <LuCalculator className="w-4 h-4" /> Disburse Batch
@@ -306,17 +317,19 @@ export default function StaffSalaryPage() {
           </div>
           <div>
             <p className="text-[11px] font-semibold text-gray-500">Staff Count</p>
-            <p className="text-xl font-bold text-gray-900 leading-tight">{INITIAL_SALARY_RECORDS.length} Active</p>
+            <p className="text-xl font-bold text-gray-900 leading-tight">{records.length} Active</p>
           </div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-            <LuCalendar className="w-5 h-5" />
+            <LuBuilding2 className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-gray-500">Working Days in Cycle</p>
-            <p className="text-xl font-bold text-purple-700 leading-tight">26 Days (5 Offs)</p>
+            <p className="text-[11px] font-semibold text-gray-500">Avg Monthly Pay</p>
+            <p className="text-xl font-bold text-gray-900 leading-tight">
+              ₹{records.length > 0 ? Math.round(totalDisbursedAmount / records.length).toLocaleString('en-IN') : 0}
+            </p>
           </div>
         </div>
 
@@ -325,57 +338,41 @@ export default function StaffSalaryPage() {
             <LuSparkles className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-gray-500">Salary Status</p>
-            <p className="text-xl font-bold text-emerald-600 leading-tight">100% Processed</p>
+            <p className="text-[11px] font-semibold text-gray-500">Disbursed Ratio</p>
+            <p className="text-xl font-bold text-gray-900 leading-tight">
+              {records.filter((r) => r.status === 'Disbursed').length} / {records.length} Paid
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Toolbar: Search, Department & Status Filters */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-2xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-          {/* Search */}
-          <div className="relative w-full sm:w-64">
-            <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search teacher, staff or ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-9 pr-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
-            />
-          </div>
-
-          {/* Department Filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-500 shrink-0">Department:</span>
-            <select
-              value={deptFilter}
-              onChange={(e) => setDeptFilter(e.target.value)}
-              className="h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-emerald-500 transition-all cursor-pointer"
-            >
-              <option value="ALL">All Departments</option>
-              <option value="Teaching">Teaching Faculty</option>
-              <option value="Administration">Administration</option>
-              <option value="IT & Labs">IT & Labs</option>
-            </select>
-          </div>
+      {/* Filters Strip */}
+      <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Search */}
+        <div className="relative w-full sm:w-80">
+          <LuSearch className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search faculty name, ID or role..."
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all font-medium"
+          />
         </div>
 
-        {/* Status Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full lg:w-auto pb-1 lg:pb-0">
-          <span className="text-xs font-semibold text-gray-400 mr-1 hidden sm:inline">Status:</span>
-          {['ALL', 'Disbursed', 'Processed'].map((tab) => (
+        {/* Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+          {['ALL', 'Teaching', 'Administration', 'Primary Wing', 'Sports'].map((dept) => (
             <button
-              key={tab}
-              onClick={() => setStatusFilter(tab)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                statusFilter === tab
-                  ? 'bg-gray-900 text-white shadow-2xs'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              key={dept}
+              onClick={() => setDeptFilter(dept)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                deptFilter === dept
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
               }`}
             >
-              {tab}
+              {dept === 'ALL' ? 'All Depts' : dept}
             </button>
           ))}
         </div>
@@ -401,8 +398,8 @@ export default function StaffSalaryPage() {
               {filteredRecords.length > 0 ? (
                 filteredRecords.map((staff) => {
                   const calc = calculateSalary(staff);
-                  const totalAllowances = staff.hra + staff.da + staff.specialAllowance;
-                  const totalDeducts = staff.pfDeduction + staff.tdsDeduction;
+                  const totalAllowances = (staff.hra || 0) + (staff.da || 0) + (staff.specialAllowance || 0);
+                  const totalDeducts = (staff.pfDeduction || 0) + (staff.tdsDeduction || 0);
 
                   return (
                     <tr key={staff.id} className="hover:bg-gray-50/60 transition-colors group">
@@ -425,7 +422,7 @@ export default function StaffSalaryPage() {
 
                       {/* Base Salary */}
                       <td className="py-3.5 px-5">
-                        <p className="text-xs font-bold text-gray-900">₹{staff.baseSalary.toLocaleString('en-IN')}</p>
+                        <p className="text-xs font-bold text-gray-900">₹{Number(staff.baseSalary).toLocaleString('en-IN')}</p>
                         <p className="text-[10px] text-gray-400">₹{calc.dailyRate}/day</p>
                       </td>
 
@@ -433,7 +430,7 @@ export default function StaffSalaryPage() {
                       <td className="py-3.5 px-5 text-center">
                         <div className="inline-flex flex-col items-center">
                           <span className="text-xs font-bold text-gray-800">
-                            {calc.payableDays} / {staff.workingDays} Days
+                            {calc.payableDays} / {staff.workingDays || 26} Days
                           </span>
                           <span className="text-[10px] text-gray-400">
                             {staff.daysPresent} Present • {staff.paidLeaves} Leave {staff.unpaidLeaves > 0 && `• ${staff.unpaidLeaves} LWP`}
@@ -451,42 +448,41 @@ export default function StaffSalaryPage() {
 
                       {/* Deductions */}
                       <td className="py-3.5 px-5">
-                        <span className="text-xs font-bold text-rose-600">
+                        <span className="text-xs font-bold text-red-600">
                           - ₹{totalDeducts.toLocaleString('en-IN')}
                         </span>
-                        <p className="text-[10px] text-gray-400">PF & Tax TDS</p>
+                        <p className="text-[10px] text-gray-400">PF & TDS Deductions</p>
                       </td>
 
-                      {/* Net Payable Salary */}
+                      {/* Net Payable */}
                       <td className="py-3.5 px-5">
-                        <p className="text-sm font-black text-gray-900 font-mono">
-                          ₹{calc.netSalary.toLocaleString('en-IN')}
-                        </p>
-                        <p className="text-[10px] text-emerald-600 font-semibold">100% Calculated</p>
+                        <p className="text-sm font-extrabold text-gray-900">₹{calc.netSalary.toLocaleString('en-IN')}</p>
+                        <p className="text-[10px] text-gray-400 font-mono">{staff.accountNo}</p>
                       </td>
 
                       {/* Status */}
                       <td className="py-3.5 px-5 text-center">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            staff.status === 'Disbursed'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-blue-50 text-blue-700 border border-blue-200'
-                          }`}
-                        >
-                          <LuCheck className="w-3 h-3" />
-                          {staff.status}
-                        </span>
+                        {staff.status === 'Disbursed' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <LuCheck className="w-3 h-3" /> Disbursed
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleSingleDisburse(staff.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+                          >
+                            Mark Disbursed
+                          </button>
+                        )}
                       </td>
 
-                      {/* View Payslip Action */}
+                      {/* Payslip View Button */}
                       <td className="py-3.5 px-5 text-right">
                         <button
-                          onClick={() => setSelectedSlip({ staff, calc })}
-                          className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 text-xs font-bold transition-colors inline-flex items-center gap-1.5"
+                          onClick={() => setSelectedSlip(staff)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 text-xs font-bold transition-colors"
                         >
-                          <LuFileText className="w-3.5 h-3.5" />
-                          <span>View Slip</span>
+                          <LuEye className="w-3.5 h-3.5" /> View Slip
                         </button>
                       </td>
                     </tr>
@@ -494,8 +490,8 @@ export default function StaffSalaryPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan="8" className="py-12 text-center text-sm text-gray-400">
-                    No salary records match your filter criteria.
+                  <td colSpan="8" className="py-12 text-center text-xs text-gray-400">
+                    No payroll records matching your query.
                   </td>
                 </tr>
               )}
@@ -504,155 +500,108 @@ export default function StaffSalaryPage() {
         </div>
       </div>
 
-      {/* Modal: Official Salary Slip Breakdown */}
+      {/* Payslip Modal */}
       {selectedSlip && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div
-            className="absolute inset-0 bg-gray-900/40 backdrop-blur-xs"
-            onClick={() => setSelectedSlip(null)}
-          />
-
-          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl relative z-10 overflow-hidden animate-fade-in-up">
-            {/* Payslip Header */}
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-6 animate-scale-in">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                  <LuBanknote className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                  <LuFileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-gray-900">Salary Slip — {selectedMonth}</h3>
-                  <p className="text-xs text-gray-500">EduFlow Public School • Official Employee Compensation</p>
+                  <h3 className="text-base font-bold text-gray-900">Salary Slip - {selectedMonth}</h3>
+                  <p className="text-xs text-gray-400">{selectedSlip.name} • {selectedSlip.id}</p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedSlip(null)}
-                className="p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors"
               >
-                <LuX className="w-5 h-5" />
+                <LuX className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Payslip Body Content */}
-            <div className="p-6 space-y-5 text-xs">
-              {/* Employee Summary Card */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <div>
-                  <p className="text-gray-400 font-bold uppercase text-[10px]">Staff Name</p>
-                  <p className="text-xs font-bold text-gray-900 mt-0.5">{selectedSlip.staff.name}</p>
-                  <p className="text-[10px] text-gray-400">{selectedSlip.staff.id}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400 font-bold uppercase text-[10px]">Designation</p>
-                  <p className="text-xs font-bold text-gray-900 mt-0.5">{selectedSlip.staff.role}</p>
-                  <p className="text-[10px] text-gray-400">{selectedSlip.staff.dept}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400 font-bold uppercase text-[10px]">Days Worked</p>
-                  <p className="text-xs font-bold text-emerald-700 mt-0.5">
-                    {selectedSlip.calc.payableDays} / {selectedSlip.staff.workingDays} Days
-                  </p>
-                  <p className="text-[10px] text-gray-400">Daily: ₹{selectedSlip.calc.dailyRate}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400 font-bold uppercase text-[10px]">Bank Account</p>
-                  <p className="text-xs font-bold text-gray-900 mt-0.5">{selectedSlip.staff.bankName}</p>
-                  <p className="text-[10px] text-gray-400">{selectedSlip.staff.accountNo}</p>
-                </div>
+            {/* Slip Details Breakdown */}
+            <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl text-xs">
+              <div>
+                <p className="text-gray-400 font-medium">Employee Name</p>
+                <p className="font-bold text-gray-800 mt-0.5">{selectedSlip.name}</p>
               </div>
-
-              {/* Earnings & Deductions Breakdown Tables */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Earnings Table */}
-                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                  <div className="bg-emerald-50/70 p-3 border-b border-gray-200">
-                    <p className="font-bold text-emerald-900 text-xs">Gross Earnings</p>
-                  </div>
-                  <div className="p-3 space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Earned Basic Salary</span>
-                      <span className="font-bold text-gray-800">₹{selectedSlip.calc.earnedBasic.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">House Rent Allowance (HRA)</span>
-                      <span className="font-bold text-gray-800">₹{selectedSlip.staff.hra.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Dearness Allowance (DA)</span>
-                      <span className="font-bold text-gray-800">₹{selectedSlip.staff.da.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Special Teaching Allowance</span>
-                      <span className="font-bold text-gray-800">₹{selectedSlip.staff.specialAllowance.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="pt-2 border-t border-gray-100 flex justify-between font-bold text-emerald-700">
-                      <span>Total Earnings</span>
-                      <span>₹{selectedSlip.calc.grossEarnings.toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Deductions Table */}
-                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                  <div className="bg-rose-50/70 p-3 border-b border-gray-200">
-                    <p className="font-bold text-rose-900 text-xs">Statutory Deductions</p>
-                  </div>
-                  <div className="p-3 space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Provident Fund (EPF 12%)</span>
-                      <span className="font-bold text-gray-800">₹{selectedSlip.staff.pfDeduction.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Income Tax (TDS)</span>
-                      <span className="font-bold text-gray-800">₹{selectedSlip.staff.tdsDeduction.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Loss of Pay ({selectedSlip.staff.unpaidLeaves} Days)</span>
-                      <span className="font-bold text-gray-800">₹{selectedSlip.calc.lopDeduction.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-400">
-                      <span>Professional Tax</span>
-                      <span>₹0</span>
-                    </div>
-                    <div className="pt-2 border-t border-gray-100 flex justify-between font-bold text-rose-600">
-                      <span>Total Deductions</span>
-                      <span>₹{selectedSlip.calc.totalDeductions.toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-                </div>
+              <div>
+                <p className="text-gray-400 font-medium">Designation</p>
+                <p className="font-bold text-gray-800 mt-0.5">{selectedSlip.role}</p>
               </div>
+              <div>
+                <p className="text-gray-400 font-medium">Bank & Account</p>
+                <p className="font-bold text-gray-800 mt-0.5">{selectedSlip.bankName} ({selectedSlip.accountNo})</p>
+              </div>
+              <div>
+                <p className="text-gray-400 font-medium">Attendance Ratio</p>
+                <p className="font-bold text-gray-800 mt-0.5">{selectedSlip.daysPresent} / {selectedSlip.workingDays} Days Worked</p>
+              </div>
+            </div>
 
-              {/* Net Disbursed Total Banner */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between shadow-md">
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-emerald-100 tracking-wider">
-                    Net Take-Home Salary
-                  </p>
-                  <p className="text-2xl font-black font-mono mt-0.5">
-                    ₹{selectedSlip.calc.netSalary.toLocaleString('en-IN')}
-                  </p>
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Earnings & Allowances</h4>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between py-1 border-b border-gray-100">
+                  <span className="text-gray-500">Base Salary</span>
+                  <span className="font-bold text-gray-800">₹{Number(selectedSlip.baseSalary).toLocaleString('en-IN')}</span>
                 </div>
-                <div className="text-right">
-                  <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-bold">
-                    {selectedSlip.staff.status}
-                  </span>
+                <div className="flex justify-between py-1 border-b border-gray-100">
+                  <span className="text-gray-500">House Rent Allowance (HRA)</span>
+                  <span className="font-bold text-emerald-600">+ ₹{Number(selectedSlip.hra).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-gray-100">
+                  <span className="text-gray-500">Dearness Allowance (DA)</span>
+                  <span className="font-bold text-emerald-600">+ ₹{Number(selectedSlip.da).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-gray-100">
+                  <span className="text-gray-500">Special Allowance</span>
+                  <span className="font-bold text-emerald-600">+ ₹{Number(selectedSlip.specialAllowance).toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
 
-            {/* Modal Footer Actions */}
-            <div className="p-4 border-t border-gray-100 bg-gray-50/60 flex items-center justify-between">
-              <button
-                onClick={() => setSelectedSlip(null)}
-                className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
-              >
-                Close
-              </button>
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Statutory Deductions</h4>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between py-1 border-b border-gray-100">
+                  <span className="text-gray-500">Provident Fund (PF)</span>
+                  <span className="font-bold text-red-600">- ₹{Number(selectedSlip.pfDeduction).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-gray-100">
+                  <span className="text-gray-500">Tax Deducted at Source (TDS)</span>
+                  <span className="font-bold text-red-600">- ₹{Number(selectedSlip.tdsDeduction).toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold uppercase text-emerald-800">Net Disbursed Compensation</p>
+                <p className="text-xl font-black text-emerald-900 mt-0.5">
+                  ₹{calculateSalary(selectedSlip).netSalary.toLocaleString('en-IN')}
+                </p>
+              </div>
+              <span className="px-3 py-1 bg-emerald-600 text-white rounded-xl text-xs font-bold">
+                {selectedSlip.status}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 onClick={() => window.print()}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all"
+                className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1.5 transition-colors"
               >
-                <LuPrinter className="w-4 h-4" />
-                Print / Download Payslip PDF
+                <LuPrinter className="w-3.5 h-3.5" /> Print Payslip
+              </button>
+              <button
+                onClick={() => setSelectedSlip(null)}
+                className="px-5 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>

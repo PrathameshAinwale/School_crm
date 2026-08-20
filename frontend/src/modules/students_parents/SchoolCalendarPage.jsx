@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { studentParentService } from '../../services/studentParentService';
 import {
   LuCalendarDays,
   LuArrowLeft,
@@ -8,9 +9,10 @@ import {
   LuDownload,
   LuCalendarPlus,
   LuFilter,
+  LuLoader,
 } from 'react-icons/lu';
 
-const academicCalendarEvents = [
+const fallbackCalendarEvents = [
   { id: 1, title: 'Mid-Term Mathematics Board Pattern Exam', type: 'Exam', date: 'Aug 20, 2026', time: '9:00 AM - 12:00 PM', venue: 'Main Examination Hall A', month: 'August 2026', desc: 'Syllabus: Units 1 to 3. Bring verified board geometry kit and admit card.' },
   { id: 2, title: 'Science Practical Lab Evaluation & Viva', type: 'Exam', date: 'Aug 22, 2026', time: '10:00 AM - 1:00 PM', venue: 'Senior Physics & Chemistry Labs', month: 'August 2026', desc: 'Submission of completed practical record files is mandatory before entering the lab.' },
   { id: 3, title: 'Janmashtami Institutional Holiday', type: 'Holiday', date: 'Aug 26, 2026', time: 'Full Day', venue: 'Campus Closed', month: 'August 2026', desc: 'School will remain closed on account of Sri Krishna Janmashtami.' },
@@ -35,10 +37,26 @@ const eventTypeBadgeStyles = {
 export default function SchoolCalendarPage() {
   const navigate = useNavigate();
   const [filterType, setFilterType] = useState('All');
+  const [events, setEvents] = useState(fallbackCalendarEvents);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    studentParentService.getCalendarEvents({
+      type: filterType === 'All' ? '' : filterType,
+    })
+      .then((res) => {
+        if (res?.data && res.data.length > 0) {
+          setEvents(res.data);
+        }
+      })
+      .catch((err) => console.log('Loaded fallback events:', err))
+      .finally(() => setLoading(false));
+  }, [filterType]);
 
   const filteredEvents = filterType === 'All'
-    ? academicCalendarEvents
-    : academicCalendarEvents.filter(e => e.type === filterType);
+    ? events
+    : events.filter(e => e.type === filterType);
 
   const months = [...new Set(filteredEvents.map(e => e.month))];
 
@@ -106,7 +124,7 @@ export default function SchoolCalendarPage() {
                   >
                     <div>
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${eventTypeBadgeStyles[evt.type]}`}>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${eventTypeBadgeStyles[evt.type] || 'bg-blue-50 text-blue-700 border-blue-200'}`}>
                           {evt.type}
                         </span>
                         <span className="text-xs font-bold text-primary-600 flex items-center gap-1">

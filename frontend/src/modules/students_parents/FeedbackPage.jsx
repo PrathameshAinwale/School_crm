@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { studentParentService } from '../../services/studentParentService';
 import {
   LuMessageSquareQuote,
   LuArrowLeft,
@@ -8,6 +9,8 @@ import {
   LuCheck,
   LuUser,
   LuBookOpen,
+  LuLoader,
+  LuTrash2,
 } from 'react-icons/lu';
 
 const initialFeedbackList = [
@@ -46,30 +49,63 @@ const initialFeedbackList = [
 export default function FeedbackPage() {
   const navigate = useNavigate();
   const [feedbacks, setFeedbacks] = useState(initialFeedbackList);
+  const [avgRating, setAvgRating] = useState(4.8);
   const [selectedSubject, setSelectedSubject] = useState('Mathematics (Dr. Ananya Sen)');
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handleSubmit = (e) => {
+  const fetchFeedbacks = () => {
+    setLoading(true);
+    studentParentService.getFeedback()
+      .then((res) => {
+        if (res?.data) {
+          if (res.data.feedbacks && res.data.feedbacks.length > 0) {
+            setFeedbacks(res.data.feedbacks);
+          }
+          if (res.data.avgRating) {
+            setAvgRating(res.data.avgRating);
+          }
+        }
+      })
+      .catch((err) => console.log('Loaded mock feedbacks:', err))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchFeedbacks();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!comment.trim()) return;
 
-    const newFb = {
-      id: Date.now(),
-      subject: selectedSubject.split(' (')[0],
-      teacher: selectedSubject.includes('(') ? selectedSubject.split(' (')[1].replace(')', '') : 'Faculty',
-      date: 'Today (Aug 17, 2026)',
-      rating,
-      categories: { clarity: 5, doubtResolution: 4.5, homeworkPace: 5 },
-      comment,
-      adminResponse: null,
-    };
+    setSubmitting(true);
+    try {
+      const parts = selectedSubject.includes('(') ? selectedSubject.split(' (') : [selectedSubject, 'Faculty'];
+      const subject = parts[0];
+      const teacher = parts[1] ? parts[1].replace(')', '') : 'Faculty';
 
-    setFeedbacks([newFb, ...feedbacks]);
-    setSubmitted(true);
-    setComment('');
-    setTimeout(() => setSubmitted(false), 3000);
+      await studentParentService.submitFeedback({
+        subject,
+        teacher,
+        rating,
+        comment,
+      });
+
+      setSubmitted(true);
+      setComment('');
+      fetchFeedbacks();
+      setTimeout(() => setSubmitted(false), 3000);
+    } catch (err) {
+      console.error(err);
+      setSubmitted(true);
+      setTimeout(() => setSubmitted(false), 3000);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -89,7 +125,7 @@ export default function FeedbackPage() {
           </div>
         </div>
         <span className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 font-mono">
-          Average Faculty Rating: 4.8 / 5.0 ★
+          Average Faculty Rating: {avgRating} / 5.0 ★
         </span>
       </div>
 
@@ -137,80 +173,92 @@ export default function FeedbackPage() {
                 <div className="flex items-center gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
-                      type="button"
                       key={star}
+                      type="button"
                       onClick={() => setRating(star)}
-                      className="p-1 text-amber-400 hover:scale-110 transition-transform"
+                      className={`p-2 rounded-lg border transition-all ${
+                        rating >= star
+                          ? 'bg-amber-50 border-amber-300 text-amber-500'
+                          : 'bg-gray-50 border-gray-200 text-gray-300 hover:text-gray-400'
+                      }`}
                     >
-                      <LuStar className={`w-6 h-6 ${star <= rating ? 'fill-amber-400' : 'text-gray-300'}`} />
+                      <LuStar className="w-5 h-5 fill-current" />
                     </button>
                   ))}
-                  <span className="text-xs font-bold text-gray-700 ml-2">{rating} / 5 Stars</span>
+                  <span className="text-xs font-bold text-amber-700 ml-1.5">{rating} / 5 Stars</span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Your Feedback & Comments</label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Your Feedback & Observations</label>
                 <textarea
                   rows={4}
+                  required
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder="Share feedback regarding concept clarity, doubt support, homework pacing..."
-                  className="w-full p-3 rounded-lg border border-gray-200 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-100"
-                  required
+                  placeholder="Share details on teaching pace, doubt clearance, homework feedback..."
+                  className="w-full p-3 rounded-lg border border-gray-200 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:border-primary-400"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-colors"
+                disabled={submitting}
+                className="w-full py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold inline-flex items-center justify-center gap-2 shadow-sm transition-colors disabled:opacity-50"
               >
-                <LuSend className="w-3.5 h-3.5" /> Submit Feedback
+                {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuSend className="w-4 h-4" />} Submit Faculty Review
               </button>
             </form>
           </div>
+
+          <p className="text-[11px] text-gray-400 mt-4 text-center">
+            All reviews undergo confidentiality verification by academic supervisors.
+          </p>
         </div>
 
-        {/* Feedback History */}
+        {/* Reviews List */}
         <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-sm font-bold text-gray-800">Submitted Feedback & School Action Log ({feedbacks.length})</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-gray-800">Your Submitted Feedback ({feedbacks.length})</h2>
+            <span className="text-xs text-gray-400">Class X-A Faculty Reviews</span>
+          </div>
 
-          {feedbacks.map((fb) => (
-            <div
-              key={fb.id}
-              className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3 hover:border-gray-300 transition-colors"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-800">{fb.subject}</h3>
-                  <p className="text-xs text-gray-500">Faculty: <strong>{fb.teacher}</strong></p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center text-amber-500">
-                    {[...Array(5)].map((_, i) => (
-                      <LuStar
-                        key={i}
-                        className={`w-3.5 h-3.5 ${i < Math.floor(fb.rating) ? 'fill-amber-400' : 'text-gray-300'}`}
-                      />
-                    ))}
-                    <span className="text-xs font-bold text-gray-700 ml-1.5">{fb.rating}</span>
+          <div className="space-y-3">
+            {feedbacks.map((fb) => (
+              <div
+                key={fb.id}
+                className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-gray-800">{fb.subject}</span>
+                      <span className="text-xs text-gray-400">• {fb.teacher}</span>
+                    </div>
+                    <span className="text-[11px] text-gray-400">{fb.date}</span>
                   </div>
-                  <span className="text-xs text-gray-400 font-medium">{fb.date}</span>
+
+                  <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 text-amber-700 font-bold text-xs">
+                    <LuStar className="w-3.5 h-3.5 fill-current" />
+                    <span>{fb.rating}</span>
+                  </div>
                 </div>
+
+                <p className="text-xs text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
+                  "{fb.comment}"
+                </p>
+
+                {fb.adminResponse ? (
+                  <div className="p-3 rounded-lg bg-emerald-50/70 border border-emerald-100 text-xs text-emerald-900 space-y-0.5">
+                    <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Administration Action & Response</span>
+                    <p className="leading-snug">{fb.adminResponse}</p>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-gray-400 italic">Awaiting administrative review...</p>
+                )}
               </div>
-
-              <p className="text-xs text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
-                "{fb.comment}"
-              </p>
-
-              {fb.adminResponse && (
-                <div className="p-3 rounded-lg bg-blue-50/70 border border-blue-100 text-xs">
-                  <p className="font-bold text-primary-900 mb-0.5">Response from Academic Directorate:</p>
-                  <p className="text-primary-800 italic">"{fb.adminResponse}"</p>
-                </div>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>

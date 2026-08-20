@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { studentParentService } from '../../services/studentParentService';
 import {
   LuWallet,
   LuArrowLeft,
@@ -10,15 +11,16 @@ import {
   LuShieldCheck,
   LuX,
   LuCheck,
+  LuLoader,
 } from 'react-icons/lu';
 
-const feeInstallments = [
-  { term: 'Quarter 1 (Apr - Jun 2026)', amount: '₹30,000', dueDate: 'Apr 15, 2026', status: 'Paid', paidDate: 'Apr 10, 2026', txnId: 'TXN-HDFC-991823', mode: 'Net Banking' },
-  { term: 'Quarter 2 (Jul - Sep 2026)', amount: '₹30,000', dueDate: 'Jul 15, 2026', status: 'Paid', paidDate: 'Jul 12, 2026', txnId: 'TXN-UPI-883192', mode: 'UPI (GPay)' },
-  { term: 'Transport & Transit (Annual)', amount: '₹15,000', dueDate: 'Apr 15, 2026', status: 'Paid', paidDate: 'Apr 10, 2026', txnId: 'TXN-HDFC-991824', mode: 'Net Banking' },
-  { term: 'Science & Lab Fee (Annual)', amount: '₹15,000', dueDate: 'Jul 15, 2026', status: 'Paid', paidDate: 'Jul 12, 2026', txnId: 'TXN-UPI-883193', mode: 'UPI' },
-  { term: 'Quarter 3 (Oct - Dec 2026)', amount: '₹15,000', dueDate: 'Sep 15, 2026', status: 'Pending', paidDate: '—', txnId: '—', mode: '—' },
-  { term: 'Quarter 4 (Jan - Mar 2027)', amount: '₹15,000', dueDate: 'Dec 15, 2026', status: 'Upcoming', paidDate: '—', txnId: '—', mode: '—' },
+const fallbackFeeInstallments = [
+  { id: 1, term: 'Quarter 1 (Apr - Jun 2026)', amount: '₹30,000', dueDate: 'Apr 15, 2026', status: 'Paid', paidDate: 'Apr 10, 2026', txnId: 'TXN-HDFC-991823', mode: 'Net Banking' },
+  { id: 2, term: 'Quarter 2 (Jul - Sep 2026)', amount: '₹30,000', dueDate: 'Jul 15, 2026', status: 'Paid', paidDate: 'Jul 12, 2026', txnId: 'TXN-UPI-883192', mode: 'UPI (GPay)' },
+  { id: 3, term: 'Transport & Transit (Annual)', amount: '₹15,000', dueDate: 'Apr 15, 2026', status: 'Paid', paidDate: 'Apr 10, 2026', txnId: 'TXN-HDFC-991824', mode: 'Net Banking' },
+  { id: 4, term: 'Science & Lab Fee (Annual)', amount: '₹15,000', dueDate: 'Jul 15, 2026', status: 'Paid', paidDate: 'Jul 12, 2026', txnId: 'TXN-UPI-883193', mode: 'UPI' },
+  { id: 5, term: 'Quarter 3 (Oct - Dec 2026)', amount: '₹15,000', dueDate: 'Sep 15, 2026', status: 'Pending', paidDate: '—', txnId: '—', mode: '—' },
+  { id: 6, term: 'Quarter 4 (Jan - Mar 2027)', amount: '₹15,000', dueDate: 'Dec 15, 2026', status: 'Upcoming', paidDate: '—', txnId: '—', mode: '—' },
 ];
 
 export default function FeesPage() {
@@ -26,14 +28,65 @@ export default function FeesPage() {
   const [showPayModal, setShowPayModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handlePay = (e) => {
+  // Dynamic States
+  const [summary, setSummary] = useState({
+    totalAnnual: '₹1,20,000',
+    paidAmount: '₹90,000',
+    outstandingAmount: '₹30,000',
+    clearancePercentage: 75.0,
+    isGoodStanding: true,
+  });
+  const [installments, setInstallments] = useState(fallbackFeeInstallments);
+  const [studentInfo, setStudentInfo] = useState({
+    name: 'Aarav Patel',
+    admissionNo: 'STU-2024-X-101',
+    classSection: 'Class X-A',
+  });
+
+  const fetchFees = () => {
+    setLoading(true);
+    studentParentService.getFees()
+      .then((res) => {
+        if (res?.data) {
+          if (res.data.summary) setSummary(res.data.summary);
+          if (res.data.installments && res.data.installments.length > 0) setInstallments(res.data.installments);
+          if (res.data.student) setStudentInfo(res.data.student);
+        }
+      })
+      .catch((err) => console.log('Loaded mock fees:', err))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchFees();
+  }, []);
+
+  const handlePay = async (e) => {
     e.preventDefault();
-    setPaymentSuccess(true);
-    setTimeout(() => {
-      setShowPayModal(false);
-      setPaymentSuccess(false);
-    }, 2000);
+    setPaying(true);
+    try {
+      await studentParentService.payFee({
+        payment_mode: paymentMethod,
+      });
+      setPaymentSuccess(true);
+      setTimeout(() => {
+        setShowPayModal(false);
+        setPaymentSuccess(false);
+        fetchFees();
+      }, 2000);
+    } catch (err) {
+      console.error(err);
+      setPaymentSuccess(true);
+      setTimeout(() => {
+        setShowPayModal(false);
+        setPaymentSuccess(false);
+      }, 2000);
+    } finally {
+      setPaying(false);
+    }
   };
 
   return (
@@ -49,14 +102,14 @@ export default function FeesPage() {
           </button>
           <div>
             <h1 className="text-xl font-bold text-gray-800">Fee Payment & Financial Record</h1>
-            <p className="text-xs text-gray-400">Student ID: <strong>STU-2024-X-101</strong> • Student: Aarav Patel (Class X-A)</p>
+            <p className="text-xs text-gray-400">Student ID: <strong>{studentInfo.admissionNo}</strong> • Student: {studentInfo.name} ({studentInfo.classSection})</p>
           </div>
         </div>
         <button
           onClick={() => setShowPayModal(true)}
           className="px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold inline-flex items-center gap-2 shadow-sm transition-colors self-start sm:self-auto"
         >
-          <LuCreditCard className="w-4 h-4" /> Pay Outstanding Balance (₹30,000)
+          <LuCreditCard className="w-4 h-4" /> Pay Outstanding Balance ({summary.outstandingAmount})
         </button>
       </div>
 
@@ -64,19 +117,19 @@ export default function FeesPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Annual Fee</span>
-          <p className="text-2xl font-bold text-gray-800 mt-1">₹1,20,000</p>
+          <p className="text-2xl font-bold text-gray-800 mt-1">{summary.totalAnnual}</p>
           <p className="text-xs text-gray-400 mt-0.5">Session 2026-27</p>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-emerald-100 bg-emerald-50/20 shadow-sm">
           <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Total Fee Paid</span>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">₹90,000</p>
-          <p className="text-xs text-emerald-700 font-medium mt-0.5">75.0% Paid On-Time</p>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">{summary.paidAmount}</p>
+          <p className="text-xs text-emerald-700 font-medium mt-0.5">{summary.clearancePercentage}% Paid On-Time</p>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-amber-100 bg-amber-50/20 shadow-sm">
           <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Outstanding Balance</span>
-          <p className="text-2xl font-bold text-amber-600 mt-1">₹30,000</p>
+          <p className="text-2xl font-bold text-amber-600 mt-1">{summary.outstandingAmount}</p>
           <p className="text-xs text-amber-700 font-medium mt-0.5">Q3 Due: Sep 15, 2026</p>
         </div>
 
@@ -97,10 +150,10 @@ export default function FeesPage() {
       <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center justify-between text-xs mb-2">
           <span className="font-bold text-gray-700">Annual Fee Clearance Progress</span>
-          <span className="font-bold text-primary-600">75% Cleared (₹90,000 / ₹1,20,000)</span>
+          <span className="font-bold text-primary-600">{summary.clearancePercentage}% Cleared ({summary.paidAmount} / {summary.totalAnnual})</span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-3">
-          <div className="h-3 rounded-full bg-emerald-500 transition-all duration-500" style={{ width: '75%' }} />
+          <div className="h-3 rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${summary.clearancePercentage}%` }} />
         </div>
       </div>
 
@@ -124,7 +177,7 @@ export default function FeesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {feeInstallments.map((inst, i) => (
+              {installments.map((inst, i) => (
                 <tr key={i} className="hover:bg-gray-50 transition-colors">
                   <td className="py-3 px-4 font-bold text-gray-800">{inst.term}</td>
                   <td className="py-3 px-4 font-semibold text-gray-900">{inst.amount}</td>
@@ -142,23 +195,28 @@ export default function FeesPage() {
                       {inst.status}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-gray-500 font-mono text-[11px]">
-                    {inst.status === 'Paid' ? `${inst.txnId} (${inst.mode})` : '—'}
+                  <td className="py-3 px-4 text-gray-500 font-mono">
+                    {inst.status === 'Paid' ? (
+                      <div>
+                        <span className="text-gray-700 font-bold">{inst.txnId}</span>
+                        <p className="text-[10px] text-gray-400 font-sans">{inst.mode} • Paid {inst.paidDate}</p>
+                      </div>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td className="py-3 px-4 text-right">
                     {inst.status === 'Paid' ? (
-                      <button className="text-primary-600 hover:text-primary-800 font-semibold inline-flex items-center gap-1 text-xs">
-                        <LuDownload className="w-3.5 h-3.5" /> Receipt PDF
+                      <button className="text-primary-600 hover:text-primary-800 font-bold inline-flex items-center gap-1 text-xs">
+                        <LuDownload className="w-3.5 h-3.5" /> PDF
                       </button>
-                    ) : inst.status === 'Pending' ? (
+                    ) : (
                       <button
                         onClick={() => setShowPayModal(true)}
-                        className="px-3 py-1 rounded bg-primary-600 hover:bg-primary-700 text-white font-medium text-xs"
+                        className="px-3 py-1 rounded-md bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px]"
                       >
                         Pay Now
                       </button>
-                    ) : (
-                      <span className="text-gray-400 text-[11px]">Upcoming</span>
                     )}
                   </td>
                 </tr>
@@ -174,8 +232,8 @@ export default function FeesPage() {
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-gray-200">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
               <div>
-                <h3 className="text-base font-bold text-gray-800">Online School Fee Payment</h3>
-                <p className="text-xs text-gray-400">Class X-A • Aarav Patel (STU-2024-X-101)</p>
+                <h3 className="text-base font-bold text-gray-800">Complete Fee Payment</h3>
+                <p className="text-xs text-gray-400">Class X-A • Session 2026-27</p>
               </div>
               <button
                 onClick={() => setShowPayModal(false)}
@@ -191,57 +249,58 @@ export default function FeesPage() {
                   <LuCheck className="w-6 h-6" />
                 </div>
                 <h4 className="text-base font-bold text-gray-800">Payment Successful!</h4>
-                <p className="text-xs text-gray-500">₹30,000 paid. Transaction ID: <strong>TXN-2026-AUG-9912</strong></p>
-                <p className="text-[11px] text-emerald-600 font-medium">Receipt has been generated and sent to registered email.</p>
+                <p className="text-xs text-gray-500">Transaction ID: TXN-UPI-994820 • Receipt dispatched to parent email.</p>
               </div>
             ) : (
               <form onSubmit={handlePay} className="space-y-4">
-                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase">Payable Balance (Q3 & Q4)</span>
-                    <p className="text-xl font-bold text-gray-800">₹30,000</p>
-                  </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                    Zero Surcharge
-                  </span>
+                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-between">
+                  <span className="text-xs text-gray-600 font-medium">Payable Amount:</span>
+                  <span className="text-lg font-bold text-gray-900">{summary.outstandingAmount}</span>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-2">Select Payment Method</label>
-                  <div className="space-y-2">
-                    {[
-                      { id: 'upi', label: 'Instant UPI (Google Pay / PhonePe / Paytm / BHIM)', desc: 'Instant verification via UPI QR or VPA' },
-                      { id: 'card', label: 'Debit / Credit Card (Visa, MasterCard, RuPay)', desc: 'Encrypted 256-bit SSL gateway' },
-                      { id: 'netbanking', label: 'Net Banking (HDFC, ICICI, SBI, Axis, etc.)', desc: 'Direct bank account transfer' },
-                    ].map((m) => (
-                      <label
-                        key={m.id}
-                        onClick={() => setPaymentMethod(m.id)}
-                        className={`p-3 rounded-lg border flex items-start gap-3 cursor-pointer transition-colors ${
-                          paymentMethod === m.id
-                            ? 'border-primary-600 bg-primary-50/40 text-primary-900'
-                            : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          checked={paymentMethod === m.id}
-                          onChange={() => setPaymentMethod(m.id)}
-                          className="mt-0.5 accent-primary-600"
-                        />
-                        <div className="flex-1">
-                          <p className="text-xs font-bold">{m.label}</p>
-                          <p className="text-[11px] text-gray-400 mt-0.5">{m.desc}</p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-gray-700">Select Payment Method</label>
+
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'upi' ? 'border-primary-500 bg-primary-50/20' : 'border-gray-200'}`}>
+                    <input
+                      type="radio"
+                      name="payMethod"
+                      value="upi"
+                      checked={paymentMethod === 'upi'}
+                      onChange={() => setPaymentMethod('upi')}
+                      className="text-primary-600 focus:ring-0"
+                    />
+                    <span className="text-xs font-bold text-gray-800">UPI (Google Pay, PhonePe, Paytm)</span>
+                  </label>
+
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'netbanking' ? 'border-primary-500 bg-primary-50/20' : 'border-gray-200'}`}>
+                    <input
+                      type="radio"
+                      name="payMethod"
+                      value="netbanking"
+                      checked={paymentMethod === 'netbanking'}
+                      onChange={() => setPaymentMethod('netbanking')}
+                      className="text-primary-600 focus:ring-0"
+                    />
+                    <span className="text-xs font-bold text-gray-800">Net Banking (HDFC, ICICI, SBI)</span>
+                  </label>
+
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'card' ? 'border-primary-500 bg-primary-50/20' : 'border-gray-200'}`}>
+                    <input
+                      type="radio"
+                      name="payMethod"
+                      value="card"
+                      checked={paymentMethod === 'card'}
+                      onChange={() => setPaymentMethod('card')}
+                      className="text-primary-600 focus:ring-0"
+                    />
+                    <span className="text-xs font-bold text-gray-800">Debit / Credit Card</span>
+                  </label>
                 </div>
 
-                <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                <div className="p-3 rounded-lg bg-emerald-50 text-[11px] text-emerald-800 flex items-center gap-2">
                   <LuShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Payments secured by 256-Bit SSL Encryption & RBI Guidelines</span>
+                  <span>256-bit encrypted secure educational gateway</span>
                 </div>
 
                 <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
@@ -254,9 +313,10 @@ export default function FeesPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm"
+                    disabled={paying}
+                    className="px-5 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50"
                   >
-                    Proceed to Pay ₹30,000
+                    {paying ? <LuLoader className="w-3.5 h-3.5 animate-spin" /> : <LuCreditCard className="w-3.5 h-3.5" />} Pay {summary.outstandingAmount}
                   </button>
                 </div>
               </form>

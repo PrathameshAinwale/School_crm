@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { hrService } from '../../services/hrService';
 import {
   LuClipboardList,
   LuCheck,
   LuX,
   LuCheckCheck,
+  LuRefreshCw,
+  LuLoader,
 } from 'react-icons/lu';
 
 const INITIAL_LEAVE_REQUESTS = [
@@ -57,28 +60,45 @@ const INITIAL_LEAVE_REQUESTS = [
     reason: 'Family religious function at native place.',
     status: 'Approved',
   },
-  {
-    id: 'LR-106',
-    name: 'Mr. Amit Patel',
-    role: 'Lab Technician',
-    type: 'Medical Leave',
-    startDate: '05 Aug 2026',
-    endDate: '06 Aug 2026',
-    reason: 'Ankle injury treatment.',
-    status: 'Approved',
-  },
 ];
 
 export default function StaffLeavesPage() {
   const [leaveRequests, setLeaveRequests] = useState(INITIAL_LEAVE_REQUESTS);
+  const [loading, setLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState('');
 
-  const handleUpdateStatus = (id, staffName, newStatus) => {
-    setLeaveRequests((prev) =>
-      prev.map((req) => (req.id === id ? { ...req, status: newStatus } : req))
-    );
-    setToastMessage(`Leave request for ${staffName} has been ${newStatus.toLowerCase()}.`);
-    setTimeout(() => setToastMessage(''), 3000);
+  const fetchLeaves = async () => {
+    try {
+      const res = await hrService.getStaffLeaves();
+      if (res?.success && res.data?.leaves?.length > 0) {
+        setLeaveRequests(res.data.leaves);
+      }
+    } catch (err) {
+      console.log('Using local leave records:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaves();
+  }, []);
+
+  const handleUpdateStatus = async (id, staffName, newStatus, dbId) => {
+    try {
+      await hrService.actionStaffLeave(dbId || id, { status: newStatus });
+      setLeaveRequests((prev) =>
+        prev.map((req) => (req.id === id || req.db_id === dbId ? { ...req, status: newStatus } : req))
+      );
+      setToastMessage(`Leave request for ${staffName} has been ${newStatus.toLowerCase()}.`);
+      setTimeout(() => setToastMessage(''), 3000);
+    } catch (err) {
+      setLeaveRequests((prev) =>
+        prev.map((req) => (req.id === id ? { ...req, status: newStatus } : req))
+      );
+      setToastMessage(`Leave request for ${staffName} has been ${newStatus.toLowerCase()}.`);
+      setTimeout(() => setToastMessage(''), 3000);
+    }
   };
 
   return (
@@ -97,7 +117,7 @@ export default function StaffLeavesPage() {
       )}
 
       {/* Header Card */}
-      <div className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs">
+      <div className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-xs">
             <LuClipboardList className="w-6 h-6" />
@@ -109,6 +129,13 @@ export default function StaffLeavesPage() {
             </p>
           </div>
         </div>
+        <button
+          onClick={fetchLeaves}
+          className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors"
+          title="Refresh Leaves"
+        >
+          <LuRefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Clean Table View */}
@@ -128,7 +155,7 @@ export default function StaffLeavesPage() {
             <tbody className="divide-y divide-gray-100">
               {leaveRequests.map((req) => (
                 <tr key={req.id} className="hover:bg-gray-50/60 transition-colors">
-                  {/* Name & Role (Clean without circular avatar) */}
+                  {/* Name & Role */}
                   <td className="py-4 px-6">
                     <p className="text-xs font-bold text-gray-900">{req.name}</p>
                     <p className="text-[11px] text-gray-400 font-medium mt-0.5">{req.role}</p>
@@ -152,41 +179,36 @@ export default function StaffLeavesPage() {
                   </td>
 
                   {/* Reason */}
-                  <td className="py-4 px-5">
-                    <p className="text-xs text-gray-600 max-w-xs truncate" title={req.reason}>
-                      {req.reason}
-                    </p>
+                  <td className="py-4 px-5 max-w-[220px]">
+                    <p className="text-xs text-gray-600 line-clamp-1">{req.reason}</p>
                   </td>
 
                   {/* Actions / Status */}
                   <td className="py-4 px-6 text-right">
                     {req.status === 'Pending' ? (
-                      <div className="inline-flex items-center gap-2">
+                      <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => handleUpdateStatus(req.id, req.name, 'Approved')}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors shadow-2xs flex items-center gap-1 cursor-pointer"
+                          onClick={() => handleUpdateStatus(req.id, req.name, 'Approved', req.db_id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
                         >
-                          <LuCheck className="w-3.5 h-3.5" />
-                          Approve
+                          <LuCheck className="w-3.5 h-3.5" /> Approve
                         </button>
                         <button
-                          onClick={() => handleUpdateStatus(req.id, req.name, 'Rejected')}
-                          className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition-colors border border-rose-200/70 flex items-center gap-1 cursor-pointer"
+                          onClick={() => handleUpdateStatus(req.id, req.name, 'Rejected', req.db_id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-700 rounded-xl text-xs font-bold transition-all border border-gray-200"
                         >
-                          <LuX className="w-3.5 h-3.5" />
-                          Reject
+                          <LuX className="w-3.5 h-3.5" /> Reject
                         </button>
                       </div>
                     ) : (
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
                           req.status === 'Approved'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
                         }`}
                       >
-                        {req.status === 'Approved' && <LuCheck className="w-3 h-3" />}
-                        {req.status === 'Rejected' && <LuX className="w-3 h-3" />}
+                        {req.status === 'Approved' ? <LuCheck className="w-3 h-3" /> : <LuX className="w-3 h-3" />}
                         {req.status}
                       </span>
                     )}

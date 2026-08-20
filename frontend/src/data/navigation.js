@@ -1,11 +1,11 @@
 import {
   LuLayoutDashboard,
+  LuUser,
   LuUsers,
   LuGraduationCap,
   LuBookOpen,
   LuCalendarDays,
   LuClipboardList,
-  LuDollarSign,
   LuSettings,
   LuChartBar,
   LuBuilding2,
@@ -49,15 +49,6 @@ const navigation = {
     { label: 'School vehicles', path: '/school-vehicles', icon: LuBus },
     { label: 'School resources', path: '/school-resources', icon: LuBoxes },
   ],
-  owner: [
-    { label: 'Dashboard', path: '/dashboard', icon: LuLayoutDashboard },
-    { label: 'Staff', path: '/staff', icon: LuUsers },
-    { label: 'Expenses', path: '/expenses', icon: LuReceipt },
-    { label: 'Student count', path: '/student-count', icon: LuGraduationCap },
-    { label: 'Vault (Documents)', path: '/vault', icon: LuFolderLock },
-    { label: 'Performance Analytics', path: '/analytics', icon: LuChartBar },
-    { label: 'Notices & Events', path: '/notices', icon: LuBell },
-  ],
   teacher: [
     {
       label: 'Student',
@@ -65,6 +56,7 @@ const navigation = {
       icon: LuUsers,
       children: [
         { label: 'Dashboard', path: '/dashboard', icon: LuLayoutDashboard },
+        { label: 'Create Timetable', path: '/teacher/timetable', icon: LuClock },
         { label: 'Student Attendance', path: '/teacher/student-attendance', icon: LuClipboardList },
         { label: 'Student records', path: '/student-records', icon: LuGraduationCap },
         { label: 'Syllabus', path: '/syllabus', icon: LuBookOpen },
@@ -78,6 +70,8 @@ const navigation = {
       type: 'group',
       icon: LuUserCog,
       children: [
+        { label: "Today's Schedule", path: '/teacher/schedule', icon: LuCalendarClock },
+        { label: 'My Profile', path: '/profile', icon: LuUser },
         { label: 'Attendance', path: '/teacher/attendance', icon: LuTimer },
         { label: 'Leave Balance', path: '/teacher/leave-balance', icon: LuFileText },
         { label: 'Apply for Leave', path: '/teacher/apply-leave', icon: LuClipboardList },

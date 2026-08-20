@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WelcomeCard from '../../components/Dashboard/WelcomeCard';
+import { studentParentService } from '../../services/studentParentService';
 import {
   LuCalendarClock,
   LuClipboardCheck,
@@ -16,74 +17,108 @@ import {
   LuMapPin,
   LuBell,
   LuChevronRight,
+  LuRefreshCw,
+  LuAward,
+  LuCheckCheck,
 } from 'react-icons/lu';
 
 export default function TeacherDashboard() {
   const navigate = useNavigate();
 
-  // 3 Primary Daily Action Cards for the Teacher
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchDashboardData = async () => {
+    try {
+      const res = await studentParentService.getTeacherDashboard();
+      if (res?.success && res.data) {
+        setDashboardData(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch teacher dashboard data:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchDashboardData();
+  };
+
+  const scheduleCard = dashboardData?.cards?.schedule;
+  const attendanceCard = dashboardData?.cards?.attendance;
+  const assignmentsCard = dashboardData?.cards?.assignments;
+  const todayLectures = dashboardData?.todayLectures || [];
+  const notices = dashboardData?.notices || [];
+  const teacher = dashboardData?.teacher;
+
+  // Real-time Key Priorities Cards
   const dailyCards = [
     {
       id: 'schedule',
       title: "Today's Schedule",
-      badge: '5 Classes Today',
+      badge: scheduleCard?.badge || `${scheduleCard?.totalClasses || 0} Classes Today`,
       badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
       icon: LuCalendarClock,
       iconBg: 'bg-blue-50 text-blue-600',
-      highlight: 'Next: Grade 10-A (Maths)',
-      time: '09:30 AM - 10:15 AM',
-      room: 'Room 204',
-      subtext: '4 classes remaining today • 1 Free Period',
-      actionText: 'View Full Timetable',
-      path: '/calendar',
+      highlight: scheduleCard?.highlight || "Today's Timetable Synced",
+      time: scheduleCard?.time || '08:00 AM - 01:00 PM',
+      room: scheduleCard?.room || 'Room 301',
+      subtext: scheduleCard?.subtext || 'Daily schedule synced with Timetable',
+      actionText: 'View Full Schedule',
+      path: '/teacher/schedule',
     },
     {
       id: 'attendance',
       title: 'Class Attendance',
-      badge: 'Grade 10-A',
+      badge: attendanceCard?.badge || `${teacher?.classTeacherFor || 'Class 10'} Homeroom`,
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       icon: LuClipboardCheck,
       iconBg: 'bg-emerald-50 text-emerald-600',
-      highlight: '28 / 32 Students Present',
-      time: 'Marked for Today',
-      room: '90.6% Turnout',
-      subtext: '4 students absent • Notes recorded',
-      actionText: 'Manage Student Attendance',
+      highlight: attendanceCard?.highlight || '30 / 32 Students Present',
+      time: attendanceCard?.isMarked ? 'Marked for Today' : 'Today (Pending)',
+      room: attendanceCard?.turnoutRate || '93.8% Turnout',
+      subtext: attendanceCard?.subtext || 'Live attendance status for homeroom',
+      actionText: 'Mark / Review Attendance',
       path: '/teacher/student-attendance',
     },
     {
       id: 'assignments',
       title: 'Active Assignments',
-      badge: '3 Active Sets',
+      badge: assignmentsCard?.badge || '3 Active Sets',
       badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
       icon: LuClipboardList,
       iconBg: 'bg-amber-50 text-amber-600',
-      highlight: '12 Pending Evaluations',
-      time: 'Due Tomorrow: Set 4.2',
-      room: 'Grade 10-A & 10-B',
-      subtext: '28 submissions received awaiting review',
+      highlight: assignmentsCard?.highlight || '12 Pending Evaluations',
+      time: assignmentsCard?.time || 'Due Soon: Set 4',
+      room: `${teacher?.classTeacherFor || 'Class 10'} & Grade 9`,
+      subtext: assignmentsCard?.subtext || 'Student submissions awaiting grading',
       actionText: 'Review Submissions',
       path: '/assignments',
     },
   ];
 
-  // Quick Daily Schedule Preview (Next 3 upcoming items)
-  const todayLectures = [
-    { period: 'Period 1', time: '08:30 - 09:15 AM', class: 'Grade 9-A', subject: 'Mathematics', room: 'Room 102', status: 'Completed' },
-    { period: 'Period 2', time: '09:30 - 10:15 AM', class: 'Grade 10-A', subject: 'Mathematics (Standard)', room: 'Room 204', status: 'Next Up' },
-    { period: 'Period 3', time: '10:30 - 11:15 AM', class: 'Grade 10-B', subject: 'Mathematics (Trigonometry)', room: 'Room 206', status: 'Upcoming' },
-  ];
-
-  // Quick notices for teachers
-  const dailyNotices = [
-    { id: 1, title: 'Staff Briefing on Term 1 Assessments', time: 'Today at 03:30 PM', room: 'Conference Hall' },
-    { id: 2, title: 'Science Fair Project Submissions Open', time: 'Deadline: Friday', room: 'Lab 3' },
-  ];
-
   return (
     <div className="space-y-6 animate-fade-in pb-12 max-w-7xl mx-auto">
-      {/* Welcome Banner */}
-      <WelcomeCard />
+      {/* Welcome Banner with Refresh Action */}
+      <div className="relative">
+        <WelcomeCard />
+        <button
+          onClick={handleRefresh}
+          className="absolute top-4 right-4 z-20 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md text-white border border-white/20 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs"
+          title="Refresh realtime data"
+        >
+          <LuRefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+          <span>{refreshing ? 'Syncing...' : 'Sync Realtime'}</span>
+        </button>
+      </div>
 
       {/* Primary 3 Daily Information Cards */}
       <div>
@@ -92,7 +127,11 @@ export default function TeacherDashboard() {
             <LuSparkles className="w-4 h-4 text-primary-600" />
             Today's Key Priorities
           </h2>
-          <span className="text-xs text-gray-400 font-medium">Click any card to open details</span>
+          {teacher?.classTeacherFor && (
+            <span className="text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-3 py-1 rounded-full flex items-center gap-1">
+              <LuAward className="w-3.5 h-3.5" /> Class Teacher: {teacher.classTeacherFor}
+            </span>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -151,7 +190,7 @@ export default function TeacherDashboard() {
 
       {/* Two Clean Detail Sections Below */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Today's Lecture Schedule Timeline */}
+        {/* Left 2 Cols: Today's Lecture Schedule Timeline (Real-time from Timetable) */}
         <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
             <div className="flex items-center gap-2.5">
@@ -160,95 +199,111 @@ export default function TeacherDashboard() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-gray-900">Today's Class Schedule</h3>
-                <p className="text-xs text-gray-400">Class periods and assigned rooms</p>
+                <p className="text-xs text-gray-400">Realtime period timetable for {dashboardData?.todayInfo?.dayName || 'Today'}</p>
               </div>
             </div>
             <button
-              onClick={() => navigate('/calendar')}
+              onClick={() => navigate('/teacher/schedule')}
               className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1"
             >
               Full Schedule <LuChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="space-y-3">
-            {todayLectures.map((item, idx) => (
-              <div
-                key={idx}
-                onClick={() => navigate('/calendar')}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
-                  item.status === 'Next Up'
-                    ? 'bg-primary-50/40 border-primary-200 hover:bg-primary-50/70 shadow-2xs'
-                    : item.status === 'Completed'
-                    ? 'bg-gray-50/60 border-gray-100 opacity-75'
-                    : 'bg-white border-gray-200/80 hover:bg-gray-50'
-                }`}
+          {loading ? (
+            <div className="py-12 text-center text-xs text-gray-400">Loading daily schedule...</div>
+          ) : todayLectures.length === 0 ? (
+            <div className="py-10 text-center">
+              <p className="text-xs font-bold text-gray-500">No lectures scheduled for today.</p>
+              <button
+                onClick={() => navigate('/teacher/timetable')}
+                className="mt-2 text-xs font-bold text-primary-600 underline"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <span className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                    item.status === 'Next Up'
-                      ? 'bg-primary-600 text-white shadow-2xs'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {idx + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs font-bold text-gray-900 truncate">{item.class} • {item.subject}</p>
-                      {item.status === 'Next Up' && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-100 text-primary-700 uppercase tracking-wider">
-                          Live Next
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2">
-                      <span>{item.time}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1 font-semibold text-gray-700">
-                        <LuMapPin className="w-3 h-3 text-gray-400" /> {item.room}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-
-                <span
-                  className={`text-[11px] font-bold px-2.5 py-1 rounded-lg shrink-0 ${
-                    item.status === 'Completed'
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : item.status === 'Next Up'
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-600'
+                Open Timetable Builder
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {todayLectures.map((item, idx) => (
+                <div
+                  key={item.id || idx}
+                  onClick={() => navigate('/teacher/schedule')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                    idx === 0
+                      ? 'bg-primary-50/40 border-primary-200 hover:bg-primary-50/70 shadow-2xs'
+                      : 'bg-white border-gray-200/80 hover:bg-gray-50'
                   }`}
                 >
-                  {item.status}
-                </span>
-              </div>
-            ))}
-          </div>
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <span className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                      idx === 0
+                        ? 'bg-primary-600 text-white shadow-2xs'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {idx + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-bold text-gray-900 truncate">
+                          {item.class} • {item.subject}
+                        </p>
+                        {idx === 0 && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-100 text-primary-700 uppercase tracking-wider">
+                            Live Next
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2">
+                        <span>{item.time}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1 font-semibold text-gray-700">
+                          <LuMapPin className="w-3 h-3 text-gray-400" /> {item.room}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`text-[11px] font-bold px-2.5 py-1 rounded-lg shrink-0 ${
+                      idx === 0
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {idx === 0 ? 'Next Up' : 'Upcoming'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right 1 Col: Daily Staff Announcements & Quick Actions */}
         <div className="space-y-5">
-          {/* Quick Notice Board */}
+          {/* Quick Notice Board from live Notices */}
           <div className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <LuBell className="w-4 h-4 text-primary-600" />
-                Staff Notices Today
+                Staff Notices & Circulars
               </h3>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </div>
 
             <div className="space-y-3">
-              {dailyNotices.map((notice) => (
-                <div key={notice.id} className="p-3.5 rounded-2xl bg-gray-50/80 border border-gray-100 space-y-1">
-                  <p className="text-xs font-bold text-gray-800 leading-snug">{notice.title}</p>
-                  <p className="text-[11px] text-gray-500 flex items-center justify-between pt-1">
-                    <span>{notice.time}</span>
-                    <span className="text-primary-700 font-semibold">{notice.room}</span>
-                  </p>
-                </div>
-              ))}
+              {notices.length === 0 ? (
+                <p className="text-xs text-gray-400 py-3">No active staff notices.</p>
+              ) : (
+                notices.map((notice) => (
+                  <div key={notice.id} className="p-3.5 rounded-2xl bg-gray-50/80 border border-gray-100 space-y-1">
+                    <p className="text-xs font-bold text-gray-800 leading-snug">{notice.title}</p>
+                    <p className="text-[11px] text-gray-500 flex items-center justify-between pt-1">
+                      <span>{notice.date}</span>
+                      <span className="text-primary-700 font-semibold">{notice.category || 'Official'}</span>
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -262,7 +317,7 @@ export default function TeacherDashboard() {
                 Curriculum Tracker
               </span>
               <h4 className="text-base font-bold mt-1">Update Syllabus Progress</h4>
-              <p className="text-xs text-primary-100 mt-1">Log today's topics and chapters</p>
+              <p className="text-xs text-primary-100 mt-1">Log today's units & syllabus metrics</p>
             </div>
             <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <LuBookOpen className="w-5 h-5 text-white" />
