@@ -66,9 +66,9 @@ class AttendanceController extends Controller
                     'department' => $teacher->department,
                     'phone' => $teacher->phone,
                     'email' => $teacher->email,
-                    'status' => $att ? $att->status : 'Present', // default present if not marked
-                    'check_in_time' => $checkInFormatted ?: ($att && $att->check_in_time ? $att->check_in_time : null),
-                    'check_out_time' => $checkOutFormatted ?: ($att && $att->check_out_time ? $att->check_out_time : null),
+                    'status' => $att ? $att->status : 'Not Marked',
+                    'check_in_time' => $checkInFormatted ?: ($att && $att->check_in_time ? $att->check_in_time : '—'),
+                    'check_out_time' => $checkOutFormatted ?: ($att && $att->check_out_time ? $att->check_out_time : '—'),
                     'work_duration' => $workDuration,
                     'remarks' => $att ? $att->remarks : null,
                     'is_marked' => (bool) $att,
@@ -77,10 +77,11 @@ class AttendanceController extends Controller
 
             // Summary counts for staff
             $total = $records->count();
-            $present = $records->where('status', 'Present')->count();
-            $absent = $records->where('status', 'Absent')->count();
-            $late = $records->where('status', 'Late')->count();
-            $leave = $records->where('status', 'Leave')->count();
+            $markedRecords = $records->where('is_marked', true);
+            $present = $markedRecords->where('status', 'Present')->count();
+            $absent = $markedRecords->where('status', 'Absent')->count();
+            $late = $markedRecords->where('status', 'Late')->count();
+            $leave = $markedRecords->where('status', 'Leave')->count();
             $rate = $total > 0 ? round(($present / $total) * 100, 1) : 0;
 
             return response()->json([

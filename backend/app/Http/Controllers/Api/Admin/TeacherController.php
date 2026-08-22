@@ -65,12 +65,25 @@ class TeacherController extends Controller
             'assigned_subjects' => 'nullable|array',
             'assigned_classes' => 'nullable|array',
             'class_teacher_class' => 'nullable|string|max:100',
+            'class_teacher_division' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'emergency_contact' => 'nullable|string',
             'status' => 'nullable|string|in:Active,On Leave,Inactive',
         ]);
 
         return DB::transaction(function () use ($request) {
+            // If assigning as Class Teacher, unassign any existing teacher for this class/division
+            if ($request->filled('class_teacher_class')) {
+                $existingQuery = Teacher::where('class_teacher_class', $request->class_teacher_class);
+                if ($request->filled('class_teacher_division')) {
+                    $existingQuery->where('class_teacher_division', $request->class_teacher_division);
+                }
+                $existingQuery->update([
+                    'class_teacher_class' => null,
+                    'class_teacher_division' => null,
+                ]);
+            }
+
             // 1. Generate unique teacher ID if not provided
             $count = Teacher::count() + 1;
             $teacherId = 'TCH-' . str_pad($count, 3, '0', STR_PAD_LEFT);
@@ -133,6 +146,7 @@ class TeacherController extends Controller
                 'assigned_subjects' => $request->assigned_subjects ?? [],
                 'assigned_classes' => $request->assigned_classes ?? [],
                 'class_teacher_class' => $request->class_teacher_class,
+                'class_teacher_division' => $request->class_teacher_division,
                 'address' => $request->address,
                 'emergency_contact' => $request->emergency_contact,
                 'status' => $request->status ?? 'Active',
@@ -186,17 +200,31 @@ class TeacherController extends Controller
             'assigned_subjects' => 'nullable|array',
             'assigned_classes' => 'nullable|array',
             'class_teacher_class' => 'nullable|string|max:100',
+            'class_teacher_division' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'emergency_contact' => 'nullable|string',
             'status' => 'nullable|string|in:Active,On Leave,Inactive',
         ]);
 
         return DB::transaction(function () use ($request, $teacher) {
+            // If assigning/changing class teacher assignment, unassign any other teacher holding it
+            if ($request->filled('class_teacher_class')) {
+                $existingQuery = Teacher::where('class_teacher_class', $request->class_teacher_class)
+                    ->where('id', '!=', $teacher->id);
+                if ($request->filled('class_teacher_division')) {
+                    $existingQuery->where('class_teacher_division', $request->class_teacher_division);
+                }
+                $existingQuery->update([
+                    'class_teacher_class' => null,
+                    'class_teacher_division' => null,
+                ]);
+            }
+
             $teacher->update($request->only([
                 'first_name', 'last_name', 'email', 'phone', 'gender',
                 'date_of_birth', 'joining_date', 'department', 'qualification',
                 'experience', 'salary', 'assigned_subjects', 'assigned_classes',
-                'class_teacher_class',
+                'class_teacher_class', 'class_teacher_division',
                 'address', 'emergency_contact', 'status'
             ]));
 

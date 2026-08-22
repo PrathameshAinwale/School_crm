@@ -152,14 +152,18 @@ export default function StaffSalaryPage() {
   const [summaryData, setSummaryData] = useState(null);
 
   const fetchSalaries = async () => {
+    setLoading(true);
     try {
       const res = await hrService.getStaffSalaries({ month: selectedMonth });
-      if (res?.success && res.data?.records?.length > 0) {
-        setRecords(res.data.records);
-        setSummaryData(res.data.summary);
+      const salaryList = res?.data?.salaries || res?.salaries || res?.data?.records;
+      if (salaryList && Array.isArray(salaryList) && salaryList.length > 0) {
+        setRecords(salaryList);
+        if (res.data?.summary) {
+          setSummaryData(res.data.summary);
+        }
       }
     } catch (err) {
-      console.log('Using local salary records:', err);
+      console.log('Error loading salary records:', err);
     } finally {
       setLoading(false);
     }
@@ -178,15 +182,16 @@ export default function StaffSalaryPage() {
     const earnedBasic = Math.round(dailyRate * payableDays);
     const grossEarnings = staff.grossSalary || (earnedBasic + (staff.hra || 0) + (staff.da || 0) + (staff.specialAllowance || 0));
     
-    // Unpaid leave deduction (Loss of Pay)
-    const lopDeduction = staff.unpaidLeaveDeduction || Math.round(dailyRate * (staff.unpaidLeaves || 0));
+    // Deductions
+    const lopDays = Math.max(0, (staff.workingDays || 26) - payableDays);
+    const lopDeduction = staff.unpaidLeaveDeduction || (lopDays * dailyRate);
     const totalDeductions = (staff.pfDeduction || 0) + (staff.tdsDeduction || 0) + lopDeduction;
-    
-    const netSalary = staff.netSalary || (grossEarnings - ((staff.pfDeduction || 0) + (staff.tdsDeduction || 0)));
+    const netSalary = Math.max(0, grossEarnings - totalDeductions);
 
     return {
       dailyRate,
       payableDays,
+      lopDays,
       earnedBasic,
       grossEarnings,
       lopDeduction,
@@ -197,9 +202,9 @@ export default function StaffSalaryPage() {
 
   const handleDisburseBatch = async () => {
     try {
-      await hrService.disburseSalary({ all: true, month: selectedMonth });
+      const res = await hrService.disburseSalary({ disburse_all: true, month: selectedMonth });
       setRecords((prev) => prev.map((r) => ({ ...r, status: 'Disbursed' })));
-      setDisburseMsg(`All staff salaries for ${selectedMonth} marked as Disbursed!`);
+      setDisburseMsg(res?.message || `All staff salaries for ${selectedMonth} marked as Disbursed!`);
       setDisburseSuccess(true);
       setTimeout(() => setDisburseSuccess(false), 3500);
     } catch (err) {
@@ -212,9 +217,9 @@ export default function StaffSalaryPage() {
 
   const handleSingleDisburse = async (empId) => {
     try {
-      await hrService.disburseSalary({ id: empId, month: selectedMonth });
+      const res = await hrService.disburseSalary({ employee_ids: [empId], month: selectedMonth });
       setRecords((prev) => prev.map((r) => (r.id === empId ? { ...r, status: 'Disbursed' } : r)));
-      setDisburseMsg(`Salary disbursed for ${empId}!`);
+      setDisburseMsg(res?.message || `Salary disbursed for ${empId}!`);
       setDisburseSuccess(true);
       setTimeout(() => setDisburseSuccess(false), 3000);
     } catch (err) {

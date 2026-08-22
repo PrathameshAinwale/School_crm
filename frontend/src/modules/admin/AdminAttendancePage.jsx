@@ -13,6 +13,7 @@ import {
   LuUserCheck,
   LuUserX,
   LuBuilding2,
+  LuFilter,
 } from 'react-icons/lu';
 
 export default function AdminAttendancePage() {
@@ -22,6 +23,7 @@ export default function AdminAttendancePage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState('ALL');
+  const [selectedStatus, setSelectedStatus] = useState('ALL');
 
   const loadAttendance = async () => {
     setLoading(true);
@@ -58,6 +60,9 @@ export default function AdminAttendancePage() {
 
   const filteredRecords = records.filter((r) => {
     if (selectedDept !== 'ALL' && r.department !== selectedDept) {
+      return false;
+    }
+    if (selectedStatus !== 'ALL' && (r.status || '').toLowerCase() !== selectedStatus.toLowerCase()) {
       return false;
     }
     if (searchQuery.trim()) {
@@ -196,6 +201,24 @@ export default function AdminAttendancePage() {
                   {dept}
                 </option>
               ))}
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 w-full sm:w-auto">
+            <LuFilter className="w-3.5 h-3.5 text-slate-400" />
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="bg-transparent text-xs font-semibold text-slate-700 py-1 pr-2 focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="Present">Present</option>
+              <option value="Absent">Absent</option>
+              <option value="Late">Late</option>
+              <option value="Half Day">Half Day</option>
+              <option value="On Leave">On Leave</option>
+              <option value="Not Marked">Not Marked</option>
             </select>
           </div>
         </div>

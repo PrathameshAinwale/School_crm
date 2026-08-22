@@ -14,6 +14,7 @@ class Syllabus extends Model
     protected $fillable = [
         'school_class_id',
         'class_name',
+        'division',
         'subject_key',
         'subject_name',
         'subject_code',

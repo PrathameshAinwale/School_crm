@@ -25,14 +25,22 @@ const STANDARD_CLASSES = [
 ];
 
 const DIVISIONS = [
+  { id: 'Div A', name: 'Division A (Saffron)' },
+  { id: 'Div B', name: 'Division B (White)' },
+  { id: 'Div C', name: 'Division C (Green)' },
+  { id: 'Div D', name: 'Division D' },
   { id: 'Saffron (A)', name: 'Division Saffron (A)' },
   { id: 'White (B)', name: 'Division White (B)' },
   { id: 'Green (C)', name: 'Division Green (C)' },
 ];
 
 export default function ClassAttendancePage() {
-  const [selectedClass, setSelectedClass] = useState('Class 10');
-  const [selectedDivision, setSelectedDivision] = useState('Saffron (A)');
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedDivision, setSelectedDivision] = useState('');
+  const [classList, setClassList] = useState(STANDARD_CLASSES);
+  const [teacherInfo, setTeacherInfo] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [records, setRecords] = useState([]);
   const [summary, setSummary] = useState({ total: 0, present: 0, absent: 0, late: 0, attendance_rate: 0 });
@@ -41,7 +49,51 @@ export default function ClassAttendancePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
 
+  // 1. Initial Load: Auto-resolve teacher's assigned class & division
+  useEffect(() => {
+    const initClassAttendance = async () => {
+      setLoading(true);
+      try {
+        // Load classes
+        const classesRes = await adminService.getClasses();
+        if (classesRes.success && classesRes.data && classesRes.data.length > 0) {
+          setClassList(classesRes.data.map((c) => c.name));
+        }
+
+        // Load teacher profile
+        const profileRes = await adminService.getTeacherProfile();
+        if (profileRes.success && profileRes.data) {
+          const t = profileRes.data;
+          setTeacherInfo(t);
+
+          const defaultClass =
+            t.class_teacher_class ||
+            (Array.isArray(t.assigned_classes) && t.assigned_classes[0]) ||
+            'Class 10';
+
+          const defaultDiv = t.class_teacher_division || 'Div A';
+
+          setSelectedClass(defaultClass);
+          setSelectedDivision(defaultDiv);
+          setIsInitialized(true);
+        } else {
+          setSelectedClass('Class 10');
+          setSelectedDivision('Div A');
+          setIsInitialized(true);
+        }
+      } catch (err) {
+        console.error('Failed to init class attendance:', err);
+        setSelectedClass('Class 10');
+        setSelectedDivision('Div A');
+        setIsInitialized(true);
+      }
+    };
+
+    initClassAttendance();
+  }, []);
+
   const loadAttendance = async () => {
+    if (!selectedClass) return;
     setLoading(true);
     try {
       const res = await adminService.getAttendance({
@@ -65,8 +117,10 @@ export default function ClassAttendancePage() {
   };
 
   useEffect(() => {
-    loadAttendance();
-  }, [selectedClass, selectedDivision, selectedDate]);
+    if (isInitialized && selectedClass) {
+      loadAttendance();
+    }
+  }, [selectedClass, selectedDivision, selectedDate, isInitialized]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -246,9 +300,9 @@ export default function ClassAttendancePage() {
               onChange={(e) => setSelectedClass(e.target.value)}
               className="bg-transparent text-xs font-bold text-slate-700 py-1 pr-2 focus:outline-none cursor-pointer"
             >
-              {STANDARD_CLASSES.map((cls) => (
+              {classList.map((cls) => (
                 <option key={cls} value={cls}>
-                  {cls}
+                  {cls} {teacherInfo?.class_teacher_class === cls ? '★' : ''}
                 </option>
               ))}
             </select>

@@ -30,8 +30,27 @@ import {
   LuAward,
 } from 'react-icons/lu';
 
+const ALL_DEFAULT_CLASSES = [
+  { name: 'Class 12', label: 'Class 12 (Grade 12th)' },
+  { name: 'Class 11', label: 'Class 11 (Grade 11th)' },
+  { name: 'Class 10', label: 'Class 10 (Grade 10th)' },
+  { name: 'Class 9', label: 'Class 9 (Grade 9th)' },
+  { name: 'Class 8', label: 'Class 8 (Grade 8th)' },
+  { name: 'Class 7', label: 'Class 7 (Grade 7th)' },
+  { name: 'Class 6', label: 'Class 6 (Grade 6th)' },
+  { name: 'Class 5', label: 'Class 5 (Grade 5th)' },
+  { name: 'Class 4', label: 'Class 4 (Grade 4th)' },
+  { name: 'Class 3', label: 'Class 3 (Grade 3rd)' },
+  { name: 'Class 2', label: 'Class 2 (Grade 2nd)' },
+  { name: 'Class 1', label: 'Class 1 (Grade 1st)' },
+  { name: 'UKG', label: 'UKG (Upper Kindergarten)' },
+  { name: 'LKG', label: 'LKG (Lower Kindergarten)' },
+  { name: 'Nursery', label: 'Nursery' },
+];
+
 export default function ManageTeachersPage() {
   const [teachers, setTeachers] = useState([]);
+  const [classList, setClassList] = useState(ALL_DEFAULT_CLASSES);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState('ALL');
@@ -43,6 +62,7 @@ export default function ManageTeachersPage() {
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [deleteTargetTeacher, setDeleteTargetTeacher] = useState(null);
   const [credentialsModalData, setCredentialsModalData] = useState(null);
+  const [overwriteModalData, setOverwriteModalData] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -60,6 +80,7 @@ export default function ManageTeachersPage() {
     assigned_subjects: '',
     assigned_classes: '',
     class_teacher_class: '',
+    class_teacher_division: 'Div A',
     address: '',
     emergency_contact: '',
     status: 'Active',
@@ -80,6 +101,7 @@ export default function ManageTeachersPage() {
     assigned_subjects: '',
     assigned_classes: '',
     class_teacher_class: '',
+    class_teacher_division: 'Div A',
     address: '',
     emergency_contact: '',
     status: 'Active',
@@ -93,15 +115,40 @@ export default function ManageTeachersPage() {
         department: selectedDept,
         status: selectedStatus,
       });
-      if (res.success && res.data) {
-        setTeachers(res.data.data || res.data || []);
+      if (res && res.success && res.data) {
+        const list = Array.isArray(res.data)
+          ? res.data
+          : (res.data.data && Array.isArray(res.data.data) ? res.data.data : []);
+        setTeachers(list);
+      } else {
+        setTeachers([]);
       }
     } catch (err) {
       console.error('Failed to load teachers:', err);
+      setTeachers([]);
     } finally {
       setLoading(false);
     }
   };
+
+  const loadClasses = async () => {
+    try {
+      const res = await adminService.getClasses();
+      if (res.success && res.data && res.data.length > 0) {
+        const fetched = res.data.map((c) => ({
+          name: c.name,
+          label: `${c.name} (${c.code || c.name})`,
+        }));
+        setClassList(fetched);
+      }
+    } catch (err) {
+      console.log('Using default classes list:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadClasses();
+  }, []);
 
   useEffect(() => {
     loadTeachers();
@@ -128,8 +175,34 @@ export default function ManageTeachersPage() {
     }
   };
 
-  const handleAddSubmit = async (e) => {
-    e.preventDefault();
+  const findExistingClassTeacher = (className, division, excludeTeacherId = null) => {
+    if (!className) return null;
+    return teachers.find((t) => {
+      if (excludeTeacherId && t.id === excludeTeacherId) return false;
+      if (t.class_teacher_class !== className) return false;
+      if (division && t.class_teacher_division && t.class_teacher_division !== division) return false;
+      return true;
+    });
+  };
+
+  const handleAddSubmit = async (e, force = false) => {
+    if (e) e.preventDefault();
+
+    // Check if another teacher is already class teacher for this class & division
+    if (!force && formData.class_teacher_class) {
+      const existing = findExistingClassTeacher(formData.class_teacher_class, formData.class_teacher_division);
+      if (existing) {
+        setOverwriteModalData({
+          actionType: 'add',
+          targetClass: formData.class_teacher_class,
+          targetDivision: formData.class_teacher_division || 'Div A',
+          currentTeacherName: existing.full_name || `${existing.first_name} ${existing.last_name || ''}`.trim(),
+          newTeacherName: `${formData.first_name} ${formData.last_name || ''}`.trim() || 'New Faculty Member',
+        });
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const finalDept = (isCustomDept ? customDept : formData.department)?.trim();
@@ -143,12 +216,13 @@ export default function ManageTeachersPage() {
         ...formData,
         department: finalDept,
         class_teacher_class: formData.class_teacher_class || null,
+        class_teacher_division: formData.class_teacher_class ? (formData.class_teacher_division || 'Div A') : null,
         assigned_subjects: formData.assigned_subjects
-          ? formData.assigned_subjects.split(',').map((s) => s.trim())
+          ? formData.assigned_subjects.split(',').map((s) => s.trim()).filter(Boolean)
           : [],
-        assigned_classes: formData.assigned_classes
-          ? formData.assigned_classes.split(',').map((c) => c.trim())
-          : [],
+        assigned_classes: formData.class_teacher_class
+          ? [formData.class_teacher_class]
+          : (formData.assigned_classes ? formData.assigned_classes.split(',').map((c) => c.trim()).filter(Boolean) : []),
       };
 
       const res = await adminService.createTeacher(payload);
@@ -169,6 +243,7 @@ export default function ManageTeachersPage() {
           assigned_subjects: '',
           assigned_classes: '',
           class_teacher_class: '',
+          class_teacher_division: 'Div A',
           address: '',
           emergency_contact: '',
           status: 'Active',
@@ -202,26 +277,44 @@ export default function ManageTeachersPage() {
       assigned_subjects: Array.isArray(teacher.assigned_subjects) ? teacher.assigned_subjects.join(', ') : '',
       assigned_classes: Array.isArray(teacher.assigned_classes) ? teacher.assigned_classes.join(', ') : '',
       class_teacher_class: teacher.class_teacher_class || '',
+      class_teacher_division: teacher.class_teacher_division || 'Div A',
       address: teacher.address || '',
       emergency_contact: teacher.emergency_contact || '',
       status: teacher.status || 'Active',
     });
   };
 
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
+  const handleEditSubmit = async (e, force = false) => {
+    if (e) e.preventDefault();
     if (!editingTeacher) return;
+
+    // Check if another teacher is already class teacher for this class & division
+    if (!force && editFormData.class_teacher_class) {
+      const existing = findExistingClassTeacher(editFormData.class_teacher_class, editFormData.class_teacher_division, editingTeacher.id);
+      if (existing) {
+        setOverwriteModalData({
+          actionType: 'edit',
+          targetClass: editFormData.class_teacher_class,
+          targetDivision: editFormData.class_teacher_division || 'Div A',
+          currentTeacherName: existing.full_name || `${existing.first_name} ${existing.last_name || ''}`.trim(),
+          newTeacherName: `${editFormData.first_name} ${editFormData.last_name || ''}`.trim() || editingTeacher.full_name,
+        });
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const payload = {
         ...editFormData,
         class_teacher_class: editFormData.class_teacher_class || null,
+        class_teacher_division: editFormData.class_teacher_class ? (editFormData.class_teacher_division || 'Div A') : null,
         assigned_subjects: editFormData.assigned_subjects
-          ? editFormData.assigned_subjects.split(',').map((s) => s.trim())
+          ? editFormData.assigned_subjects.split(',').map((s) => s.trim()).filter(Boolean)
           : [],
-        assigned_classes: editFormData.assigned_classes
-          ? editFormData.assigned_classes.split(',').map((c) => c.trim())
-          : [],
+        assigned_classes: editFormData.class_teacher_class
+          ? [editFormData.class_teacher_class]
+          : (editFormData.assigned_classes ? editFormData.assigned_classes.split(',').map((c) => c.trim()).filter(Boolean) : []),
       };
 
       await adminService.updateTeacher(editingTeacher.id, payload);
@@ -350,7 +443,7 @@ export default function ManageTeachersPage() {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
                 <tr>
-                  <th className="px-5 py-3.5">Staff Name & ID</th>
+                  <th className="px-5 py-3.5">Faculty Member</th>
                   <th className="px-5 py-3.5">Class Teacher Role</th>
                   <th className="px-5 py-3.5">Department</th>
                   <th className="px-5 py-3.5">Contact Info</th>
@@ -369,7 +462,7 @@ export default function ManageTeachersPage() {
                         </div>
                         <div>
                           <div className="font-bold text-slate-800">{teacher.first_name} {teacher.last_name || ''}</div>
-                          <div className="text-[11px] text-primary-600 font-mono font-semibold">{teacher.teacher_id}</div>
+                          <div className="text-[11px] text-slate-400 font-medium">{teacher.department || 'Academic Faculty'}</div>
                         </div>
                       </div>
                     </td>
@@ -541,25 +634,44 @@ export default function ManageTeachersPage() {
               </div>
 
               {/* Class Teacher Assignment */}
-              <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 space-y-2">
+              <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 space-y-3">
                 <div className="flex items-center gap-2">
                   <LuAward className="w-4 h-4 text-purple-600" />
                   <label className="text-xs font-bold text-purple-900">Assign as Class Teacher (Homeroom In-Charge)</label>
                 </div>
-                <select
-                  value={formData.class_teacher_class}
-                  onChange={(e) => setFormData({ ...formData, class_teacher_class: e.target.value })}
-                  className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500"
-                >
-                  <option value="">None (Subject Teacher Only)</option>
-                  <option value="Class 10">Class 10 (Grade 10th)</option>
-                  <option value="Class 9">Class 9 (Grade 9th)</option>
-                  <option value="Class 8">Class 8 (Grade 8th)</option>
-                  <option value="Class 7">Class 7 (Grade 7th)</option>
-                  <option value="Class 6">Class 6 (Grade 6th)</option>
-                </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-purple-800 mb-1">Class / Grade</label>
+                    <select
+                      value={formData.class_teacher_class}
+                      onChange={(e) => setFormData({ ...formData, class_teacher_class: e.target.value })}
+                      className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 cursor-pointer"
+                    >
+                      <option value="">None (Subject Teacher Only)</option>
+                      {classList.map((cls) => (
+                        <option key={cls.name} value={cls.name}>
+                          {cls.label || cls.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-purple-800 mb-1">Division / Section</label>
+                    <select
+                      value={formData.class_teacher_division}
+                      onChange={(e) => setFormData({ ...formData, class_teacher_division: e.target.value })}
+                      disabled={!formData.class_teacher_class}
+                      className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option value="Div A">Div A (Division A)</option>
+                      <option value="Div B">Div B (Division B)</option>
+                      <option value="Div C">Div C (Division C)</option>
+                      <option value="Div D">Div D (Division D)</option>
+                    </select>
+                  </div>
+                </div>
                 <p className="text-[11px] text-purple-700">
-                  Teachers assigned as Class Teacher will manage class attendance, syllabus progress, and weekly period timetables.
+                  Teachers assigned as Class Teacher will manage class attendance, syllabus progress, and weekly period timetables for the selected division.
                 </p>
               </div>
 
@@ -718,25 +830,44 @@ export default function ManageTeachersPage() {
               </div>
 
               {/* Class Teacher Assignment */}
-              <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 space-y-2">
+              <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 space-y-3">
                 <div className="flex items-center gap-2">
                   <LuAward className="w-4 h-4 text-purple-600" />
                   <label className="text-xs font-bold text-purple-900">Assign as Class Teacher (Homeroom In-Charge)</label>
                 </div>
-                <select
-                  value={editFormData.class_teacher_class}
-                  onChange={(e) => setEditFormData({ ...editFormData, class_teacher_class: e.target.value })}
-                  className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500"
-                >
-                  <option value="">None (Subject Teacher Only)</option>
-                  <option value="Class 10">Class 10 (Grade 10th)</option>
-                  <option value="Class 9">Class 9 (Grade 9th)</option>
-                  <option value="Class 8">Class 8 (Grade 8th)</option>
-                  <option value="Class 7">Class 7 (Grade 7th)</option>
-                  <option value="Class 6">Class 6 (Grade 6th)</option>
-                </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-purple-800 mb-1">Class / Grade</label>
+                    <select
+                      value={editFormData.class_teacher_class}
+                      onChange={(e) => setEditFormData({ ...editFormData, class_teacher_class: e.target.value })}
+                      className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 cursor-pointer"
+                    >
+                      <option value="">None (Subject Teacher Only)</option>
+                      {classList.map((cls) => (
+                        <option key={cls.name} value={cls.name}>
+                          {cls.label || cls.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-purple-800 mb-1">Division / Section</label>
+                    <select
+                      value={editFormData.class_teacher_division}
+                      onChange={(e) => setEditFormData({ ...editFormData, class_teacher_division: e.target.value })}
+                      disabled={!editFormData.class_teacher_class}
+                      className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option value="Div A">Div A (Division A)</option>
+                      <option value="Div B">Div B (Division B)</option>
+                      <option value="Div C">Div C (Division C)</option>
+                      <option value="Div D">Div D (Division D)</option>
+                    </select>
+                  </div>
+                </div>
                 <p className="text-[11px] text-purple-700">
-                  Assigning a teacher to Class 10th will enable them to create and manage the weekly timetable for that class.
+                  Assigning a teacher to this class will enable them to create and manage the weekly timetable for that division.
                 </p>
               </div>
 
@@ -854,9 +985,6 @@ export default function ManageTeachersPage() {
                     <h2 className="text-xl font-bold">
                       {selectedTeacher.first_name} {selectedTeacher.last_name || ''}
                     </h2>
-                    <span className="px-2.5 py-0.5 rounded-md bg-white/25 text-white font-mono text-xs font-bold">
-                      {selectedTeacher.teacher_id}
-                    </span>
                     {selectedTeacher.class_teacher_class && (
                       <span className="px-2.5 py-0.5 rounded-md bg-purple-400/40 text-white font-bold text-xs border border-white/30">
                         Class Teacher: {selectedTeacher.class_teacher_class}
@@ -996,6 +1124,76 @@ export default function ManageTeachersPage() {
                 className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs rounded-xl transition-colors"
               >
                 Close Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overwrite Class Teacher Confirmation Modal */}
+      {overwriteModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-amber-200 animate-scale-up space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-2xs">
+                <LuCircleAlert className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Overwrite Class Teacher?</h3>
+                <p className="text-xs text-slate-500">
+                  {overwriteModalData.targetClass} ({overwriteModalData.targetDivision}) is already assigned
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs text-slate-700 space-y-2.5">
+              <div className="flex items-center justify-between border-b border-amber-200/80 pb-2">
+                <span className="font-semibold text-slate-500">Target Class:</span>
+                <span className="font-bold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded-lg">
+                  {overwriteModalData.targetClass} ({overwriteModalData.targetDivision})
+                </span>
+              </div>
+              <div className="flex items-center justify-between border-b border-amber-200/80 pb-2">
+                <span className="font-semibold text-slate-500">Current In-Charge:</span>
+                <span className="font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                  {overwriteModalData.currentTeacherName}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-500">New In-Charge:</span>
+                <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  {overwriteModalData.newTeacherName}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              <strong>{overwriteModalData.currentTeacherName}</strong> is currently assigned as the Class Teacher for this class. Do you want to overwrite and reassign this class to <strong>{overwriteModalData.newTeacherName}</strong>?
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setOverwriteModalData(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                Cancel / Keep Existing
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const action = overwriteModalData.actionType;
+                  setOverwriteModalData(null);
+                  if (action === 'add') {
+                    handleAddSubmit(null, true);
+                  } else {
+                    handleEditSubmit(null, true);
+                  }
+                }}
+                disabled={submitting}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors shadow-xs cursor-pointer"
+              >
+                Yes, Overwrite & Assign
               </button>
             </div>
           </div>

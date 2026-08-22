@@ -24,7 +24,9 @@ class TimetableController extends Controller
 
         if ($user) {
             if ($user->role === 'teacher') {
-                $teacher = Teacher::where('user_id', $user->id)->first();
+                $teacher = Teacher::where('user_id', $user->id)
+                    ->orWhere('email', $user->email)
+                    ->first();
             } else {
                 $student = Student::with(['schoolClass', 'section'])->where('user_id', $user->id)->first();
             }
@@ -43,18 +45,23 @@ class TimetableController extends Controller
             $className = 'Class 10';
         }
 
-        $division = $request->input('division', 'Div A');
+        $division = $request->input('division', ($teacher && $teacher->class_teacher_division ? $teacher->class_teacher_division : 'Div A'));
         $sectionName = $student && $student->section ? $student->section->name : 'Saffron A';
 
         // Find Class Teacher assigned to this class
-        $classTeacherObj = Teacher::where('class_teacher_class', $className)
-            ->orWhereJsonContains('assigned_classes', $className)
-            ->first();
+        $classTeacherObj = Teacher::where('class_teacher_class', $className);
+        if ($division) {
+            $classTeacherObj->where(function($q) use ($division) {
+                $q->where('class_teacher_division', $division)
+                  ->orWhereNull('class_teacher_division');
+            });
+        }
+        $classTeacherObj = $classTeacherObj->first();
 
-        $classTeacherName = $classTeacherObj ? $classTeacherObj->full_name : 'Dr. Shruti Sen';
+        $classTeacherName = $classTeacherObj ? $classTeacherObj->full_name : ($teacher ? $teacher->full_name : 'Class In-Charge');
 
         $query = Timetable::where('class_name', $className);
-        if ($request->filled('division')) {
+        if ($division) {
             $query->where('division', $division);
         }
         $allPeriods = $query->orderBy('period_number', 'asc')->get();
@@ -81,9 +88,14 @@ class TimetableController extends Controller
         }
 
         // Available classes list
-        $classesList = SchoolClass::orderBy('name')->pluck('name')->toArray();
-        if (empty($classesList)) {
-            $classesList = ['Class 10', 'Class 9', 'Class 8', 'Class 7', 'Class 6'];
+        $classesList = SchoolClass::orderBy('id')->pluck('name')->toArray();
+        if (empty($classesList) || count($classesList) < 5) {
+            $classesList = [
+                'Nursery', 'LKG', 'UKG',
+                'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
+                'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
+                'Class 11', 'Class 12'
+            ];
         }
 
         return response()->json([
@@ -96,11 +108,12 @@ class TimetableController extends Controller
                 'classTeacher' => $classTeacherName,
                 'timetable' => $grouped,
                 'availableClasses' => $classesList,
-                'availableDivisions' => ['Div A', 'Div B', 'Div C'],
+                'availableDivisions' => ['Div A', 'Div B', 'Div C', 'Div D'],
                 'teacherInfo' => $teacher ? [
                     'id' => $teacher->id,
                     'name' => $teacher->full_name,
                     'classTeacherFor' => $teacher->class_teacher_class,
+                    'classTeacherDivision' => $teacher->class_teacher_division ?: 'Div A',
                     'assignedClasses' => $teacher->assigned_classes,
                 ] : null,
             ],

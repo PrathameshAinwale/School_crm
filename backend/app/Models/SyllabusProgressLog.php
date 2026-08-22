@@ -13,6 +13,7 @@ class SyllabusProgressLog extends Model
         'syllabus_id',
         'subject_name',
         'class_name',
+        'division',
         'unit_title',
         'log_date',
         'progress_percentage',

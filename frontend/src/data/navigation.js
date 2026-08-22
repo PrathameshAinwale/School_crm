@@ -81,6 +81,7 @@ const navigation = {
   ],
   student_parent: [
     { label: 'Dashboard', path: '/dashboard', icon: LuLayoutDashboard },
+    { label: 'My Profile', path: '/profile', icon: LuUser },
     { label: 'Attendance', path: '/attendance', icon: LuClipboardList },
     { label: 'Syllabus', path: '/syllabus', icon: LuBookOpen },
     { label: 'School Calendar', path: '/calendar', icon: LuCalendarDays },
@@ -111,6 +112,7 @@ const navigation = {
       type: 'group',
       icon: LuUserCog,
       children: [
+        { label: 'My Profile', path: '/hr/profile', icon: LuUser },
         { label: 'My Attendance', path: '/hr/attendance', icon: LuTimer },
         { label: 'Leave Balance', path: '/hr/leave-balance', icon: LuFileText },
         { label: 'Apply for Leave', path: '/hr/apply-leave', icon: LuClipboardList },

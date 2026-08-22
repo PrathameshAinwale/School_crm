@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/adminService';
 import { useAuth } from '../../context/AuthContext';
-import TeacherProfilePage from '../teacher/TeacherProfilePage';
 import {
   LuUser,
   LuPhone,
@@ -78,13 +77,6 @@ const DEFAULT_PROFILE = {
 
 export default function ProfilePage() {
   const { user, currentRole } = useAuth();
-  const role = (user?.role || currentRole || '').toLowerCase();
-
-  // If authenticated user is a teacher, render TeacherProfilePage
-  if (role === 'teacher') {
-    return <TeacherProfilePage />;
-  }
-
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState(DEFAULT_PROFILE);
   const [loading, setLoading] = useState(true);

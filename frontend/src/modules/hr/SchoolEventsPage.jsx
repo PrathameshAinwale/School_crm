@@ -101,13 +101,15 @@ export default function SchoolEventsPage() {
   const [newDescription, setNewDescription] = useState('');
 
   const fetchEvents = async () => {
+    setLoading(true);
     try {
       const res = await hrService.getSchoolEvents();
-      if (res?.success && res.data?.length > 0) {
-        setEvents(res.data);
+      const eventsList = res?.data?.events || res?.events || (Array.isArray(res?.data) ? res.data : null);
+      if (eventsList && Array.isArray(eventsList) && eventsList.length > 0) {
+        setEvents(eventsList);
       }
     } catch (err) {
-      console.log('Using local events:', err);
+      console.log('Error fetching events:', err);
     } finally {
       setLoading(false);
     }
@@ -121,20 +123,6 @@ export default function SchoolEventsPage() {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    const newEventObj = {
-      id: `EVT-0${events.length + 1}`,
-      title: newTitle,
-      category: newCategory,
-      date: newDate || '2026-08-25',
-      time: newTime || '09:00 AM - 01:00 PM',
-      venue: newVenue || 'School Auditorium',
-      audience: newAudience || 'All Staff & Students',
-      coordinator: newCoordinator || 'HR Coordinator',
-      speaker: '',
-      status: 'Upcoming',
-      description: newDescription || 'Official event details and schedule.',
-    };
-
     try {
       await hrService.createSchoolEvent({
         title: newTitle,
@@ -146,23 +134,51 @@ export default function SchoolEventsPage() {
         coordinator: newCoordinator || 'HR Head',
         description: newDescription,
       });
+      fetchEvents();
+      setToastMessage('New school event created and published.');
+      setTimeout(() => setToastMessage(''), 3000);
+      setShowAddModal(false);
+      // Reset
+      setNewTitle('');
+      setNewDate('');
+      setNewTime('');
+      setNewVenue('');
+      setNewAudience('');
+      setNewCoordinator('');
+      setNewDescription('');
     } catch (err) {
-      console.log('Saved event locally:', err);
+      console.log('Error creating event:', err);
+      const newEventObj = {
+        id: `EVT-0${events.length + 1}`,
+        title: newTitle,
+        category: newCategory,
+        date: newDate || '25 Aug 2026',
+        time: newTime || '09:00 AM - 01:00 PM',
+        venue: newVenue || 'School Auditorium',
+        audience: newAudience || 'All Staff & Students',
+        coordinator: newCoordinator || 'HR Coordinator',
+        speaker: '',
+        status: 'Upcoming',
+        description: newDescription || 'Official event details and schedule.',
+      };
+      setEvents([newEventObj, ...events]);
+      setToastMessage('New school event published.');
+      setTimeout(() => setToastMessage(''), 3000);
+      setShowAddModal(false);
     }
+  };
 
-    setEvents((prev) => [newEventObj, ...prev]);
-    setShowAddModal(false);
-    setToastMessage(`Event "${newTitle}" published successfully to institutional calendar!`);
-    setTimeout(() => setToastMessage(''), 3500);
-
-    // Reset Form
-    setNewTitle('');
-    setNewDate('');
-    setNewTime('');
-    setNewVenue('');
-    setNewAudience('');
-    setNewCoordinator('');
-    setNewDescription('');
+  const handleDeleteEvent = async (id, dbId) => {
+    try {
+      await hrService.deleteSchoolEvent(dbId || id);
+      fetchEvents();
+      setToastMessage('School event removed.');
+      setTimeout(() => setToastMessage(''), 3000);
+    } catch (err) {
+      setEvents((prev) => prev.filter((e) => e.id !== id && e.db_id !== dbId));
+      setToastMessage('School event removed.');
+      setTimeout(() => setToastMessage(''), 3000);
+    }
   };
 
   const filteredEvents = events.filter((e) => {

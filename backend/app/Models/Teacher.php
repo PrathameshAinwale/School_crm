@@ -27,6 +27,7 @@ class Teacher extends Model
         'assigned_subjects',
         'assigned_classes',
         'class_teacher_class',
+        'class_teacher_division',
         'address',
         'emergency_contact',
         'status',

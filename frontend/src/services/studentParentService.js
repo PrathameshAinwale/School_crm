@@ -84,13 +84,31 @@ export const studentParentService = {
   },
 
   // Syllabus & Progress
-  getSyllabus() {
-    return apiRequest('/student/syllabus');
+  getSyllabus(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/student/syllabus${qs ? `?${qs}` : ''}`);
   },
   updateSyllabusProgress(data) {
     return apiRequest('/student/syllabus/progress', {
       method: 'POST',
       body: data,
+    });
+  },
+  addSyllabusUnit(data) {
+    return apiRequest('/student/syllabus/unit', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  updateSyllabusUnit(id, data) {
+    return apiRequest(`/student/syllabus/unit/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  deleteSyllabusProgressLog(id) {
+    return apiRequest(`/student/syllabus/progress/${id}`, {
+      method: 'DELETE',
     });
   },
 

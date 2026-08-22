@@ -202,8 +202,9 @@ export const adminService = {
       body: data,
     });
   },
-  getTeacherMyAttendance() {
-    return apiRequest('/teacher/my-attendance');
+  getTeacherMyAttendance(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/teacher/my-attendance${qs ? `?${qs}` : ''}`);
   },
   teacherPunch() {
     return apiRequest('/teacher/punch', {
@@ -216,6 +217,17 @@ export const adminService = {
   applyTeacherLeave(data) {
     return apiRequest('/teacher/leaves/apply', {
       method: 'POST',
+      body: data,
+    });
+  },
+
+  // HR Self Operations
+  getHrProfile() {
+    return apiRequest('/hr/profile');
+  },
+  updateHrProfile(data) {
+    return apiRequest('/hr/profile', {
+      method: 'PUT',
       body: data,
     });
   },

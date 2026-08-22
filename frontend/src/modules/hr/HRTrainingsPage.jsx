@@ -41,9 +41,11 @@ export default function HRTrainingsPage() {
   const [selectedSpecificTeachers, setSelectedSpecificTeachers] = useState([]);
 
   const fetchTrainings = async () => {
+    setLoading(true);
     try {
       const res = await hrService.getTrainings();
-      if (res?.success && res.data?.trainings?.length > 0) {
+      const trainingsList = res?.data?.trainings || res?.trainings;
+      if (trainingsList && Array.isArray(trainingsList) && trainingsList.length > 0) {
         // Map backend trainings ensuring attendees array
         const defaultAttendees = TEACHERS_LIST.map((t) => ({
           teacherId: t.id,
@@ -55,22 +57,22 @@ export default function HRTrainingsPage() {
           feedback: '',
         }));
 
-        const mapped = res.data.trainings.map((t) => ({
-          id: t.id,
-          db_id: t.db_id,
+        const mapped = trainingsList.map((t) => ({
+          id: t.training_id || t.id || `TRN-${t.id}`,
+          db_id: t.id || t.db_id,
           title: t.title,
           category: t.category,
-          trainer: t.trainer,
+          trainer: t.trainer_name || t.trainer || 'Faculty Trainer',
           trainerOrg: 'Institutional Training Wing',
-          date: t.date,
-          time: t.time || '10:00 AM - 01:00 PM',
+          date: t.date ? new Date(t.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Scheduled',
+          time: t.time_slot || t.time || '10:00 AM - 01:00 PM',
           venue: t.venue || 'Main Auditorium',
           mode: 'In-Person',
-          targetGroupName: t.targetGroup || 'All Faculty',
+          targetGroupName: t.target_audience || t.targetGroup || 'All Faculty',
           description: t.description || 'Pedagogical training session.',
           status: t.status || 'Scheduled',
-          attendees: Array.isArray(t.enrolledTeachers) && t.enrolledTeachers.length > 0
-            ? t.enrolledTeachers
+          attendees: Array.isArray(t.enrolled_teachers || t.enrolledTeachers) && (t.enrolled_teachers || t.enrolledTeachers).length > 0
+            ? (t.enrolled_teachers || t.enrolledTeachers)
             : defaultAttendees,
         }));
         setTrainings(mapped);

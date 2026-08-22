@@ -26,11 +26,10 @@ class TeacherSelfController extends Controller
         $user = $request->user();
         if (!$user) return null;
 
-        $teacher = Teacher::where('user_id', $user->id)->first();
-        if (!$teacher) {
-            // fallback: find active teacher
-            $teacher = Teacher::where('status', 'Active')->first();
-        }
+        $teacher = Teacher::where('user_id', $user->id)
+            ->orWhere('email', $user->email)
+            ->first();
+
         return $teacher;
     }
 
@@ -55,24 +54,27 @@ class TeacherSelfController extends Controller
             ->first();
 
         $isPunchedIn = false;
+        $isCompletedToday = false;
         $punchInTime = null;
         $punchOutTime = null;
         $elapsedSeconds = 0;
 
         if ($todayRecord && $todayRecord->check_in_time) {
-            $punchInTime = $todayRecord->check_in_time;
-            $punchOutTime = $todayRecord->check_out_time;
+            $punchInTime = Carbon::parse($todayRecord->check_in_time)->format('h:i A');
+            $punchOutTime = $todayRecord->check_out_time ? Carbon::parse($todayRecord->check_out_time)->format('h:i A') : null;
             $dateStr = is_string($todayRecord->date) ? $todayRecord->date : $todayRecord->date->toDateString();
 
             if ($todayRecord->check_out_time) {
-                // Already checked out
+                // Already checked out -> attendance completed for today
                 $isPunchedIn = false;
+                $isCompletedToday = true;
                 $in = Carbon::parse($dateStr . ' ' . $todayRecord->check_in_time);
                 $out = Carbon::parse($dateStr . ' ' . $todayRecord->check_out_time);
                 $elapsedSeconds = max(0, $out->diffInSeconds($in));
             } else {
                 // Currently punched in
                 $isPunchedIn = true;
+                $isCompletedToday = false;
                 $in = Carbon::parse($dateStr . ' ' . $todayRecord->check_in_time);
                 $elapsedSeconds = max(0, Carbon::now()->diffInSeconds($in));
             }
@@ -105,14 +107,72 @@ class TeacherSelfController extends Controller
                 ];
             });
 
-        // Calculate summary counts
-        $allMonth = StaffAttendance::where('teacher_id', $teacher->id)
-            ->whereMonth('date', Carbon::now()->month)
-            ->get();
+        // Monthly Heatmap Generator
+        $targetYear = (int) $request->input('year', Carbon::now()->year);
+        $targetMonth = (int) $request->input('month', Carbon::now()->month);
+        $startOfMonth = Carbon::createFromDate($targetYear, $targetMonth, 1)->startOfMonth();
+        $daysInMonth = $startOfMonth->daysInMonth;
+        $startDayOfWeek = ($startOfMonth->dayOfWeekIso - 1); // 0 for Monday .. 6 for Sunday
 
-        $presentDays = $allMonth->where('status', 'Present')->count();
-        $absentDays = $allMonth->where('status', 'Absent')->count();
-        $lateDays = $allMonth->where('status', 'Late')->count();
+        $monthStaffRecords = StaffAttendance::where('teacher_id', $teacher->id)
+            ->whereYear('date', $targetYear)
+            ->whereMonth('date', $targetMonth)
+            ->get()
+            ->keyBy(function ($item) {
+                $d = is_string($item->date) ? $item->date : $item->date->toDateString();
+                return Carbon::parse($d)->toDateString();
+            });
+
+        $heatmapDays = [];
+        $pCount = 0;
+        $aCount = 0;
+        $lCount = 0;
+        $hCount = 0;
+
+        for ($day = 1; $day <= $daysInMonth; $day++) {
+            $currDate = Carbon::createFromDate($targetYear, $targetMonth, $day);
+            $currDateStr = $currDate->toDateString();
+            $isSunday = $currDate->isSunday();
+            $isFuture = $currDate->isAfter(Carbon::today());
+            $isToday = $currDate->isToday();
+
+            $rec = $monthStaffRecords->get($currDateStr);
+            $status = 'Upcoming';
+            $checkIn = null;
+            $checkOut = null;
+
+            if ($isSunday) {
+                $status = 'Holiday';
+                $hCount++;
+            } elseif ($rec) {
+                $status = $rec->status ?: 'Present';
+                $checkIn = $rec->check_in_time ? Carbon::parse($rec->check_in_time)->format('h:i A') : null;
+                $checkOut = $rec->check_out_time ? Carbon::parse($rec->check_out_time)->format('h:i A') : null;
+                if ($status === 'Present') $pCount++;
+                elseif ($status === 'Absent') $aCount++;
+                elseif ($status === 'Late') $lCount++;
+                elseif ($status === 'Half Day') $pCount++;
+            } elseif ($isFuture) {
+                $status = 'Upcoming';
+            } elseif ($isToday) {
+                $status = 'Not Marked';
+            } else {
+                // Past working day without clock-in -> Marked as Absent
+                $status = 'Absent';
+                $aCount++;
+            }
+
+            $heatmapDays[] = [
+                'day' => $day,
+                'date' => $currDateStr,
+                'status' => $status,
+                'check_in' => $checkIn,
+                'check_out' => $checkOut,
+                'is_sunday' => $isSunday,
+                'is_today' => $isToday,
+                'is_future' => $isFuture,
+            ];
+        }
 
         return response()->json([
             'success' => true,
@@ -125,17 +185,32 @@ class TeacherSelfController extends Controller
             'today' => [
                 'date' => Carbon::today()->format('d M Y'),
                 'is_punched_in' => $isPunchedIn,
+                'is_completed_today' => $isCompletedToday,
                 'punch_in_time' => $punchInTime,
                 'punch_out_time' => $punchOutTime,
                 'elapsed_seconds' => $elapsedSeconds,
-                'status' => $todayRecord ? $todayRecord->status : 'Not Marked',
+                'status' => $todayRecord ? ($isCompletedToday ? 'Completed' : ($isPunchedIn ? 'Active' : $todayRecord->status)) : 'Not Marked',
             ],
             'summary' => [
-                'present_days' => $presentDays,
-                'absent_days' => $absentDays,
-                'late_days' => $lateDays,
+                'present_days' => $pCount,
+                'absent_days' => $aCount,
+                'late_days' => $lCount,
             ],
             'history' => $recentRecords,
+            'heatmap' => [
+                'month_name' => $startOfMonth->format('F Y'),
+                'month' => $targetMonth,
+                'year' => $targetYear,
+                'start_day_offset' => $startDayOfWeek,
+                'total_days' => $daysInMonth,
+                'days' => $heatmapDays,
+                'stats' => [
+                    'present' => $pCount,
+                    'absent' => $aCount,
+                    'late' => $lCount,
+                    'holiday' => $hCount,
+                ],
+            ],
         ]);
     }
 
@@ -150,14 +225,16 @@ class TeacherSelfController extends Controller
         }
 
         $today = Carbon::today()->toDateString();
-        $nowTime = Carbon::now()->toTimeString();
+        $now = Carbon::now();
+        $nowTime = $now->toTimeString();
+        $formattedNow = $now->format('h:i A');
 
         $record = StaffAttendance::where('teacher_id', $teacher->id)
             ->where('date', $today)
             ->first();
 
         if (!$record) {
-            // First punch in
+            // 1. First punch in of the day
             $record = StaffAttendance::create([
                 'teacher_id' => $teacher->id,
                 'date' => $today,
@@ -168,37 +245,37 @@ class TeacherSelfController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Checked in successfully at ' . Carbon::now()->format('h:i A'),
+                'message' => 'Clocked in successfully at ' . $formattedNow,
                 'is_punched_in' => true,
-                'check_in_time' => $nowTime,
+                'is_completed_today' => false,
+                'punch_in_time' => $formattedNow,
+                'punch_out_time' => null,
             ]);
         }
 
         if (!$record->check_out_time) {
-            // Punch out
+            // 2. Clock out for the day -> Completes attendance for today
             $record->update([
                 'check_out_time' => $nowTime,
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Checked out successfully at ' . Carbon::now()->format('h:i A'),
+                'message' => 'Clocked out successfully at ' . $formattedNow . '. Attendance marked for today.',
                 'is_punched_in' => false,
-                'check_out_time' => $nowTime,
-            ]);
-        } else {
-            // Re-punch in / reset check out
-            $record->update([
-                'check_out_time' => null,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Checked in again at ' . Carbon::now()->format('h:i A'),
-                'is_punched_in' => true,
-                'check_in_time' => $record->check_in_time,
+                'is_completed_today' => true,
+                'punch_in_time' => Carbon::parse($record->check_in_time)->format('h:i A'),
+                'punch_out_time' => $formattedNow,
             ]);
         }
+
+        // 3. Already clocked in and clocked out for today -> block further punching
+        return response()->json([
+            'success' => false,
+            'message' => 'Your attendance for today is already completed (Clocked In and Clocked Out). You cannot mark attendance again today.',
+            'is_punched_in' => false,
+            'is_completed_today' => true,
+        ], 400);
     }
 
     /**
@@ -372,11 +449,13 @@ class TeacherSelfController extends Controller
                 'department' => $teacher->department ?: 'General',
                 'qualification' => $teacher->qualification ?: 'B.Ed, Master of Education',
                 'experience' => $teacher->experience ?: '5+ Years Teaching Experience',
-                'salary' => $teacher->salary ? number_format($teacher->salary, 2) : '55,000.00',
-                'assigned_subjects' => $teacher->assigned_subjects ?: ['English', 'Grammar & Composition'],
-                'assigned_classes' => $teacher->assigned_classes ?: ['Class 10 (Saffron)', 'Class 9 (White)'],
-                'address' => $teacher->address ?: 'Flat 302, Green Avenue, Pune, Maharashtra',
-                'emergency_contact' => $teacher->emergency_contact ?: '+91 98765 00000',
+                'salary' => $teacher->salary ? number_format($teacher->salary, 2) : null,
+                'assigned_subjects' => $teacher->assigned_subjects ?: [],
+                'assigned_classes' => $teacher->assigned_classes ?: [],
+                'class_teacher_class' => $teacher->class_teacher_class,
+                'class_teacher_division' => $teacher->class_teacher_division,
+                'address' => $teacher->address ?: '',
+                'emergency_contact' => $teacher->emergency_contact ?: '',
                 'status' => $teacher->status ?: 'Active',
                 'avatar' => $user ? $user->avatar : null,
                 'stats' => [
@@ -420,8 +499,8 @@ class TeacherSelfController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Profile updated successfully in database.',
-            'data' => $teacher,
+            'message' => 'Profile updated successfully!',
+            'data' => $teacher->fresh(),
         ]);
     }
 
@@ -545,41 +624,47 @@ class TeacherSelfController extends Controller
         $nextLecture = $todayLectures->first();
 
         // 2. Class Attendance for Teacher's Class (Homeroom or primary class)
-        $homeroomClass = $teacher->class_teacher_class ?: 'Class 10';
-        $classModel = SchoolClass::where('name', $homeroomClass)->first();
-        $classId = $classModel ? $classModel->id : null;
+        $isClassTeacher = !empty($teacher->class_teacher_class);
+        $homeroomClass = $teacher->class_teacher_class;
+        $classDivision = $teacher->class_teacher_division ?: 'Div A';
 
-        $totalClassStudents = $classId
-            ? Student::where('school_class_id', $classId)->count()
-            : Student::count();
+        $totalClassStudents = 0;
+        $presentCount = 0;
+        $absentCount = 0;
+        $isAttendanceMarked = false;
+        $turnoutRate = 0;
 
-        if ($totalClassStudents === 0) $totalClassStudents = 32;
+        if ($isClassTeacher) {
+            $classModel = SchoolClass::where('name', $homeroomClass)->first();
+            $classId = $classModel ? $classModel->id : null;
 
-        $todayAttendanceRecords = $classId
-            ? StudentAttendance::where('school_class_id', $classId)->where('date', $today)->get()
-            : StudentAttendance::where('date', $today)->get();
+            $studentQuery = Student::where('status', 'Active');
+            if ($classId) {
+                $studentQuery->where('school_class_id', $classId);
+            }
+            $totalClassStudents = $studentQuery->count();
 
-        $presentCount = $todayAttendanceRecords->whereIn('status', ['Present', 'Late'])->count();
-        $absentCount = $todayAttendanceRecords->where('status', 'Absent')->count();
-        $isAttendanceMarked = $todayAttendanceRecords->count() > 0;
+            $todayAttendanceRecords = StudentAttendance::where('date', $today)
+                ->whereHas('student', function ($q) use ($classId, $homeroomClass) {
+                    if ($classId) {
+                        $q->where('school_class_id', $classId);
+                    }
+                })
+                ->get();
 
-        if (!$isAttendanceMarked) {
-            $presentCount = (int) round($totalClassStudents * 0.93);
-            $absentCount = $totalClassStudents - $presentCount;
+            $isAttendanceMarked = $todayAttendanceRecords->count() > 0;
+            if ($isAttendanceMarked) {
+                $presentCount = $todayAttendanceRecords->whereIn('status', ['Present', 'Late'])->count();
+                $absentCount = $todayAttendanceRecords->where('status', 'Absent')->count();
+                $turnoutRate = $totalClassStudents > 0 ? round(($presentCount / $totalClassStudents) * 100, 1) : 0;
+            }
         }
-
-        $turnoutRate = $totalClassStudents > 0 ? round(($presentCount / $totalClassStudents) * 100, 1) : 100;
 
         // 3. Assignments & Pending Evaluations
         $assignmentsCount = Assignment::where('teacher_id', $teacher->id)->count();
         $pendingSubmissions = AssignmentSubmission::whereHas('assignment', function ($q) use ($teacher) {
             $q->where('teacher_id', $teacher->id);
         })->where('status', 'submitted')->count();
-
-        if ($assignmentsCount === 0) {
-            $assignmentsCount = 3;
-            $pendingSubmissions = 12;
-        }
 
         $nearestDueAssignment = Assignment::where('teacher_id', $teacher->id)
             ->where('due_date', '>=', $today)
@@ -597,8 +682,9 @@ class TeacherSelfController extends Controller
                     'name' => $teacher->full_name,
                     'department' => $teacher->department,
                     'classTeacherFor' => $homeroomClass,
-                    'assignedClasses' => $teacher->assigned_classes ?: ['Class 10', 'Class 9'],
-                    'assignedSubjects' => $teacher->assigned_subjects ?: ['Mathematics'],
+                    'classTeacherDivision' => $classDivision,
+                    'assignedClasses' => $teacher->assigned_classes ?: [],
+                    'assignedSubjects' => $teacher->assigned_subjects ?: [],
                 ],
                 'todayInfo' => [
                     'dayName' => $dayOfWeek,
@@ -606,7 +692,7 @@ class TeacherSelfController extends Controller
                     'totalLectures' => $lecturesCount,
                     'nextLecture' => $nextLecture ? [
                         'period' => $nextLecture->period_name ?: 'Period ' . $nextLecture->period_number,
-                        'class' => $nextLecture->class_name ?: $homeroomClass,
+                        'class' => $nextLecture->class_name ?: ($homeroomClass ?: 'Class 10'),
                         'division' => $nextLecture->division ?: 'Div A',
                         'subject' => $nextLecture->subject,
                         'time' => $nextLecture->time_slot,
@@ -628,8 +714,9 @@ class TeacherSelfController extends Controller
                             : "Daily schedule synced with Timetable",
                     ],
                     'attendance' => [
-                        'className' => $homeroomClass,
-                        'badge' => $homeroomClass . " Homeroom",
+                        'className' => $homeroomClass ?: 'No Homeroom Assigned',
+                        'division' => $classDivision,
+                        'badge' => $isClassTeacher ? "{$homeroomClass} ({$classDivision}) Homeroom" : "Subject Teacher",
                         'totalStudents' => $totalClassStudents,
                         'presentCount' => $presentCount,
                         'absentCount' => $absentCount,

@@ -4,10 +4,11 @@ namespace App\Http\Controllers\Api\StudentParent;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Syllabus;
 use App\Models\SyllabusProgressLog;
-use App\Models\SyllabusUnit;
+use App\Models\Teacher;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -15,108 +16,195 @@ use Illuminate\Http\Request;
 class SyllabusController extends Controller
 {
     /**
-     * Get syllabus tree by subject and latest progress update logs.
+     * Get completed syllabus logs for the requested class & division.
      */
     public function index(Request $request)
     {
         $user = $request->user();
         $student = null;
+        $teacher = null;
+
         if ($user) {
-            $student = Student::with('schoolClass')->where('user_id', $user->id)->first();
+            if ($user->role === 'student_parent') {
+                $student = Student::with(['schoolClass', 'section'])->where('user_id', $user->id)->first();
+            } elseif ($user->role === 'teacher') {
+                $teacher = Teacher::where('user_id', $user->id)
+                    ->orWhere('email', $user->email)
+                    ->first();
+            }
         }
-        if (!$student) {
-            $student = Student::with('schoolClass')->first();
+
+        // Determine requested Class
+        if ($request->filled('class_name')) {
+            $className = $request->class_name;
+        } elseif ($student && $student->schoolClass) {
+            $className = $student->schoolClass->name;
+        } elseif ($teacher && $teacher->class_teacher_class) {
+            $className = $teacher->class_teacher_class;
+        } elseif ($teacher && !empty($teacher->assigned_classes)) {
+            $className = is_array($teacher->assigned_classes) ? $teacher->assigned_classes[0] : $teacher->assigned_classes;
+        } else {
+            $className = 'Class 10';
         }
 
-        $classId = $student ? $student->school_class_id : null;
-        $className = $student && $student->schoolClass ? $student->schoolClass->name : 'Class 10';
+        // Determine requested Division
+        if ($request->filled('division')) {
+            $division = $request->division;
+        } elseif ($student && $student->section) {
+            $secName = $student->section->name;
+            preg_match('/[A-D]/i', $secName, $m);
+            $division = isset($m[0]) ? 'Div ' . strtoupper($m[0]) : 'Div A';
+        } elseif ($teacher && $teacher->class_teacher_division) {
+            $division = $teacher->class_teacher_division;
+        } else {
+            $division = 'Div A';
+        }
 
-        $syllabuses = Syllabus::with(['units', 'progressLogs'])->get();
+        // Query completed syllabus logs for this class & division
+        $query = SyllabusProgressLog::where('class_name', $className)
+            ->where('division', $division);
 
-        $tree = [];
-        foreach ($syllabuses as $s) {
-            $tree[$s->subject_key] = [
-                'id' => $s->id,
-                'name' => $s->subject_name,
-                'code' => $s->subject_code,
-                'teacher' => $s->teacher_name,
-                'completion' => (int) $s->completion_percentage,
-                'units' => $s->units->map(function ($u) {
-                    return [
-                        'id' => $u->id,
-                        'unitNumber' => $u->unit_number,
-                        'title' => $u->title,
-                        'status' => $u->status,
-                        'progress' => (int) $u->progress_percentage,
-                        'lectures' => $u->lectures_info,
-                        'topics' => $u->topics ?: [],
-                    ];
-                }),
+        if ($request->filled('subject_name') && strtolower($request->subject_name) !== 'all') {
+            $query->where('subject_name', $request->subject_name);
+        }
+
+        $logs = $query->orderBy('log_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($log) use ($className, $division) {
+                return [
+                    'id' => $log->id,
+                    'subject' => $log->subject_name,
+                    'chapter_name' => $log->unit_title,
+                    'completed_date' => $log->log_date ? Carbon::parse($log->log_date)->format('Y-m-d') : Carbon::today()->toDateString(),
+                    'completed_date_formatted' => $log->log_date ? Carbon::parse($log->log_date)->format('d M Y') : 'Today',
+                    'topics_covered' => $log->message,
+                    'teacher_name' => $log->teacher_name,
+                    'class_name' => $className,
+                    'division' => $division,
+                    'created_at' => $log->created_at ? $log->created_at->format('d M Y, h:i A') : '',
+                ];
+            });
+
+        // Available classes in the school
+        $classesList = SchoolClass::orderBy('id')->pluck('name')->toArray();
+        if (empty($classesList) || count($classesList) < 5) {
+            $classesList = [
+                'Nursery', 'LKG', 'UKG',
+                'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
+                'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
+                'Class 11', 'Class 12'
             ];
         }
-
-        $progressLogs = SyllabusProgressLog::orderBy('log_date', 'desc')->get()->map(function ($log) {
-            return [
-                'id' => $log->id,
-                'subjectName' => $log->subject_name,
-                'className' => $log->class_name ?: 'Grade 10-A',
-                'unitTitle' => $log->unit_title,
-                'date' => Carbon::parse($log->log_date)->format('d M Y'),
-                'progress' => (int) $log->progress_percentage,
-                'message' => $log->message,
-                'teacherName' => $log->teacher_name,
-            ];
-        });
 
         return response()->json([
             'success' => true,
             'data' => [
-                'syllabus' => $tree,
-                'progressLogs' => $progressLogs,
+                'currentClass' => $className,
+                'currentDivision' => $division,
+                'availableClasses' => $classesList,
+                'availableDivisions' => ['Div A', 'Div B', 'Div C', 'Div D'],
+                'completedChapters' => $logs,
+                'teacherInfo' => $teacher ? [
+                    'id' => $teacher->id,
+                    'name' => $teacher->full_name,
+                    'classTeacherFor' => $teacher->class_teacher_class,
+                    'classTeacherDivision' => $teacher->class_teacher_division,
+                ] : null,
             ],
         ]);
     }
 
     /**
-     * Store new syllabus progress log (by teacher) and notify student/parent.
+     * Record a newly completed chapter and notify students/parents of that class & division.
      */
     public function storeLog(Request $request)
     {
         $request->validate([
-            'syllabus_id' => 'nullable|exists:syllabuses,id',
+            'class_name' => 'required|string|max:100',
+            'division' => 'required|string|max:50',
             'subject_name' => 'required|string|max:255',
-            'unit_title' => 'required|string|max:255',
-            'progress_percentage' => 'required|integer|min:0|max:100',
-            'message' => 'required|string|max:2000',
+            'chapter_name' => 'required|string|max:255',
+            'completed_date' => 'required|date',
+            'description' => 'required|string|max:3000',
             'teacher_name' => 'nullable|string|max:255',
         ]);
 
-        $teacher = $request->teacher_name ?: ($request->user() ? $request->user()->name : 'Dr. Ananya Sen');
-        $syllabus = null;
-        if ($request->filled('syllabus_id')) {
-            $syllabus = Syllabus::find($request->syllabus_id);
-        } else {
-            $syllabus = Syllabus::where('subject_name', 'like', "%{$request->subject_name}%")->first();
+        $teacher = $request->teacher_name ?: ($request->user() ? $request->user()->name : 'Faculty');
+        $className = $request->class_name;
+        $division = $request->division;
+        $completedDate = $request->completed_date;
+        $formattedDate = Carbon::parse($completedDate)->format('d M Y');
+
+        // Locate or create a base syllabus container if needed
+        $syllabus = Syllabus::where('class_name', $className)
+            ->where('division', $division)
+            ->where('subject_name', $request->subject_name)
+            ->first();
+
+        if (!$syllabus) {
+            $classModel = SchoolClass::where('name', $className)->first();
+            $syllabus = Syllabus::create([
+                'school_class_id' => $classModel ? $classModel->id : null,
+                'class_name' => $className,
+                'division' => $division,
+                'subject_key' => strtolower(substr(preg_replace('/[^a-zA-Z]/', '', $request->subject_name), 0, 10)),
+                'subject_name' => $request->subject_name,
+                'teacher_name' => $teacher,
+                'completion_percentage' => 100,
+            ]);
         }
 
+        // Save progress entry
         $log = SyllabusProgressLog::create([
-            'syllabus_id' => $syllabus ? $syllabus->id : 1,
+            'syllabus_id' => $syllabus->id,
             'subject_name' => $request->subject_name,
-            'class_name' => 'Grade 10-A',
-            'unit_title' => $request->unit_title,
-            'log_date' => Carbon::now()->toDateString(),
-            'progress_percentage' => $request->progress_percentage,
-            'message' => $request->message,
+            'class_name' => $className,
+            'division' => $division,
+            'unit_title' => $request->chapter_name,
+            'log_date' => $completedDate,
+            'progress_percentage' => 100,
+            'message' => $request->description,
             'teacher_name' => $teacher,
         ]);
 
-        // Dispatch notifications to all student/parent users
-        $studentUsers = User::where('role', 'student_parent')->get();
-        foreach ($studentUsers as $stUser) {
+        // Dispatch notifications to the students & parents of this specific Class & Division
+        $classModel = SchoolClass::where('name', $className)->first();
+
+        $studentsQuery = Student::where('status', 'Active');
+        if ($classModel) {
+            $studentsQuery->where('school_class_id', $classModel->id);
+        }
+
+        // Clean division letter (e.g., "Div A" -> "A")
+        preg_match('/[A-D]/i', $division, $divMatches);
+        $divLetter = $divMatches[0] ?? null;
+
+        if ($divLetter) {
+            $studentsQuery->whereHas('section', function ($secQ) use ($divLetter) {
+                $secQ->where('name', 'like', "%{$divLetter}%");
+            });
+        }
+
+        $targetStudents = $studentsQuery->get();
+        $targetUserIds = [];
+
+        foreach ($targetStudents as $student) {
+            if ($student->user_id) {
+                $targetUserIds[] = $student->user_id;
+            }
+        }
+
+        // If no direct student user_id found, notify student_parent accounts
+        if (empty($targetUserIds)) {
+            $targetUserIds = User::where('role', 'student_parent')->pluck('id')->toArray();
+        }
+
+        foreach (array_unique($targetUserIds) as $uId) {
             Notification::create([
-                'user_id' => $stUser->id,
-                'title' => "Syllabus Update: {$request->subject_name}",
-                'message' => "{$teacher} updated {$request->unit_title} ({$request->progress_percentage}% completed). {$request->message}",
+                'user_id' => $uId,
+                'title' => "Syllabus Completed: {$request->subject_name} - {$request->chapter_name}",
+                'message' => "{$teacher} marked \"{$request->chapter_name}\" ({$className} {$division}) completed on {$formattedDate}. Topics covered: {$request->description}",
                 'type' => 'academic',
                 'link' => '/syllabus',
                 'is_read' => false,
@@ -125,8 +213,32 @@ class SyllabusController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Syllabus progress updated and notifications dispatched to students and parents.',
-            'data' => $log,
+            'message' => "Chapter \"{$request->chapter_name}\" recorded for {$className} ({$division}) and notifications dispatched to students.",
+            'data' => [
+                'id' => $log->id,
+                'subject' => $log->subject_name,
+                'chapter_name' => $log->unit_title,
+                'completed_date' => $completedDate,
+                'completed_date_formatted' => $formattedDate,
+                'topics_covered' => $log->message,
+                'teacher_name' => $log->teacher_name,
+                'class_name' => $className,
+                'division' => $division,
+            ],
         ], 201);
+    }
+
+    /**
+     * Delete a completed chapter log.
+     */
+    public function deleteLog($id)
+    {
+        $log = SyllabusProgressLog::findOrFail($id);
+        $log->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Completed chapter log removed successfully.',
+        ]);
     }
 }

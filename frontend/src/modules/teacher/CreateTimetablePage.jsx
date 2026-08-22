@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { studentParentService } from '../../services/studentParentService';
+import { adminService } from '../../services/adminService';
 import {
   LuClock,
   LuArrowLeft,
@@ -25,14 +26,21 @@ import {
   LuRotateCcw,
 } from 'react-icons/lu';
 
-const defaultStandardPeriods = [
-  { period_number: 1, time_slot: '8:00 - 8:45 AM', subject: 'Mathematics', teacher_name: 'Dr. Ananya Sen', room: 'Room 301', type: 'Theory' },
-  { period_number: 2, time_slot: '8:45 - 9:30 AM', subject: 'Science (Physics)', teacher_name: 'Mr. Vikram Rathore', room: 'Physics Lab 1', type: 'Lab Practical' },
-  { period_number: 3, time_slot: '9:45 - 10:30 AM', subject: 'English Core', teacher_name: 'Ms. Sunita Rao', room: 'Room 301', type: 'Literature' },
-  { period_number: 4, time_slot: '10:30 - 11:15 AM', subject: 'Computer Science (Python)', teacher_name: 'Mrs. Deepa K.', room: 'Computer Lab 2', type: 'Practical' },
-  { period_number: 5, time_slot: '11:30 - 12:15 PM', subject: 'Social Science', teacher_name: 'Mr. Manoj Joshi', room: 'Room 301', type: 'History' },
-  { period_number: 6, time_slot: '12:15 - 1:00 PM', subject: 'Physical Education & Athletics', teacher_name: 'Coach Sandeep', room: 'Sports Arena', type: 'Sports' },
+const DEFAULT_CLASSES = [
+  'Nursery', 'LKG', 'UKG',
+  'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
+  'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
+  'Class 11', 'Class 12'
 ];
+
+const EMPTY_WEEKLY_SCHEDULE = {
+  Monday: [],
+  Tuesday: [],
+  Wednesday: [],
+  Thursday: [],
+  Friday: [],
+  Saturday: [],
+};
 
 const periodTypeOptions = [
   'Theory',
@@ -69,53 +77,135 @@ export default function CreateTimetablePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [selectedClass, setSelectedClass] = useState('Class 10');
+  const [selectedClass, setSelectedClass] = useState('Class 8');
   const [selectedDivision, setSelectedDivision] = useState('Div A');
   const [selectedDay, setSelectedDay] = useState('Monday');
-  const [availableClasses, setAvailableClasses] = useState(['Class 10', 'Class 9', 'Class 8', 'Class 7', 'Class 6']);
-  const [availableDivisions, setAvailableDivisions] = useState(['Div A', 'Div B', 'Div C']);
+  const [availableClasses, setAvailableClasses] = useState(DEFAULT_CLASSES);
+  const [availableDivisions, setAvailableDivisions] = useState(['Div A', 'Div B', 'Div C', 'Div D']);
   const [teacherInfo, setTeacherInfo] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Full weekly timetable state: { Monday: [...], Tuesday: [...], ... }
-  const [weeklySchedule, setWeeklySchedule] = useState({
-    Monday: defaultStandardPeriods,
-    Tuesday: defaultStandardPeriods,
-    Wednesday: defaultStandardPeriods,
-    Thursday: defaultStandardPeriods,
-    Friday: defaultStandardPeriods,
-    Saturday: [
-      { period_number: 1, time_slot: '8:00 - 8:45 AM', subject: 'Weekly Assessment Test', teacher_name: 'Class Invigilator', room: 'Room 301', type: 'Assessment Test' },
-      { period_number: 2, time_slot: '8:45 - 9:30 AM', subject: 'Science Doubt Resolution', teacher_name: 'Mr. Vikram Rathore', room: 'Room 301', type: 'Remedial / Doubt Clearance' },
-      { period_number: 3, time_slot: '9:45 - 10:30 AM', subject: 'Math Doubt Resolution', teacher_name: 'Dr. Ananya Sen', room: 'Room 301', type: 'Remedial / Doubt Clearance' },
-      { period_number: 4, time_slot: '10:30 - 11:15 AM', subject: 'Co-Curricular & Club Activity', teacher_name: 'Club Incharges', room: 'Activity Hall', type: 'Activity / Club' },
-    ],
-  });
+  // Full weekly timetable state initialized empty
+  const [weeklySchedule, setWeeklySchedule] = useState(EMPTY_WEEKLY_SCHEDULE);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
+  // 1. Initial Load: Auto-resolve teacher's assigned class & division from profile
+  useEffect(() => {
+    const initTimetable = async () => {
+      setLoading(true);
+      try {
+        const [ttRes, profileRes, classesRes] = await Promise.allSettled([
+          studentParentService.getTimetable(),
+          adminService.getTeacherProfile(),
+          adminService.getClasses(),
+        ]);
+
+        let teacherClass = '';
+        let teacherDiv = 'Div A';
+
+        if (classesRes.status === 'fulfilled' && classesRes.value?.data && classesRes.value.data.length > 0) {
+          setAvailableClasses(classesRes.value.data.map((c) => c.name));
+        }
+
+        if (profileRes.status === 'fulfilled' && profileRes.value?.data) {
+          const t = profileRes.value.data;
+          setTeacherInfo({
+            id: t.id,
+            name: t.full_name,
+            classTeacherFor: t.class_teacher_class,
+            classTeacherDivision: t.class_teacher_division || 'Div A',
+            assignedClasses: t.assigned_classes,
+          });
+          if (t.class_teacher_class) {
+            teacherClass = t.class_teacher_class;
+          } else if (Array.isArray(t.assigned_classes) && t.assigned_classes.length > 0) {
+            teacherClass = t.assigned_classes[0];
+          }
+          if (t.class_teacher_division) {
+            teacherDiv = t.class_teacher_division;
+          }
+        }
+
+        if (ttRes.status === 'fulfilled' && ttRes.value?.data) {
+          const d = ttRes.value.data;
+          if (d.availableClasses && d.availableClasses.length > 0) {
+            setAvailableClasses(d.availableClasses);
+          }
+          if (d.teacherInfo && !teacherClass) {
+            teacherClass = d.teacherInfo.classTeacherFor;
+            teacherDiv = d.teacherInfo.classTeacherDivision || 'Div A';
+            setTeacherInfo(d.teacherInfo);
+          }
+        }
+
+        const targetClass = teacherClass || 'Class 8';
+        const targetDiv = teacherDiv || 'Div A';
+
+        setSelectedClass(targetClass);
+        setSelectedDivision(targetDiv);
+        setIsInitialized(true);
+
+        // Populate timetable for teacher's default class
+        const timetableRes = await studentParentService.getTimetable({ class_name: targetClass, division: targetDiv });
+        if (timetableRes?.data?.timetable) {
+          const normalized = {
+            Monday: [],
+            Tuesday: [],
+            Wednesday: [],
+            Thursday: [],
+            Friday: [],
+            Saturday: [],
+          };
+          Object.keys(timetableRes.data.timetable).forEach((day) => {
+            const list = timetableRes.data.timetable[day];
+            if (Array.isArray(list) && list.length > 0) {
+              normalized[day] = list.map((p, idx) => ({
+                id: p.id,
+                period_number: p.period_number || idx + 1,
+                time_slot: p.time || p.time_slot || '8:00 - 8:45 AM',
+                subject: p.subject || 'Subject',
+                teacher_name: p.teacher || p.teacher_name || 'Faculty',
+                room: p.room || 'Room 301',
+                type: p.type || 'Theory',
+              }));
+            }
+          });
+          setWeeklySchedule(normalized);
+        }
+      } catch (err) {
+        console.error('Failed to initialize timetable:', err);
+        setSelectedClass('Class 8');
+        setSelectedDivision('Div A');
+        setIsInitialized(true);
+        setWeeklySchedule(EMPTY_WEEKLY_SCHEDULE);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initTimetable();
+  }, []);
+
+  // 2. Fetch when teacher switches class or division in dropdown
   const fetchTimetable = async (className, division) => {
+    if (!className) return;
     setLoading(true);
     try {
       const res = await studentParentService.getTimetable({ class_name: className, division: division || selectedDivision });
       if (res?.data) {
-        if (res.data.availableClasses && res.data.availableClasses.length > 0) {
-          setAvailableClasses(res.data.availableClasses);
-        }
-        if (res.data.availableDivisions && res.data.availableDivisions.length > 0) {
-          setAvailableDivisions(res.data.availableDivisions);
-        }
-        if (res.data.teacherInfo) {
-          setTeacherInfo(res.data.teacherInfo);
-          if (res.data.teacherInfo.classTeacherFor && !className) {
-            setSelectedClass(res.data.teacherInfo.classTeacherFor);
-          }
-        }
+        const normalized = {
+          Monday: [],
+          Tuesday: [],
+          Wednesday: [],
+          Thursday: [],
+          Friday: [],
+          Saturday: [],
+        };
         if (res.data.timetable && Object.keys(res.data.timetable).length > 0) {
-          // Normalize timetable periods
-          const normalized = {};
           Object.keys(res.data.timetable).forEach((day) => {
             const list = res.data.timetable[day];
             if (Array.isArray(list) && list.length > 0) {
@@ -130,20 +220,21 @@ export default function CreateTimetablePage() {
               }));
             }
           });
-          if (Object.keys(normalized).length > 0) {
-            setWeeklySchedule((prev) => ({ ...prev, ...normalized }));
-          }
         }
+        setWeeklySchedule(normalized);
       }
     } catch (err) {
       console.error('Failed to fetch timetable:', err);
+      setWeeklySchedule(EMPTY_WEEKLY_SCHEDULE);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTimetable(selectedClass, selectedDivision);
+    if (isInitialized && selectedClass) {
+      fetchTimetable(selectedClass, selectedDivision);
+    }
   }, [selectedClass, selectedDivision]);
 
   const showToast = (msg) => {
@@ -315,19 +406,19 @@ export default function CreateTimetablePage() {
       </div>
 
       {/* Class Selection & In-Charge Banner */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Class & Division Selector Dropdowns */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between gap-3">
-          <div className="flex-1 space-y-2">
-            <div className="grid grid-cols-2 gap-2">
+        <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs flex items-center justify-between gap-4">
+          <div className="flex-1">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
                   Class / Grade
                 </label>
                 <select
                   value={selectedClass}
                   onChange={(e) => setSelectedClass(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-primary-500 cursor-pointer"
                 >
                   {availableClasses.map((cls) => (
                     <option key={cls} value={cls}>
@@ -337,13 +428,13 @@ export default function CreateTimetablePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
                   Division / Section
                 </label>
                 <select
                   value={selectedDivision}
                   onChange={(e) => setSelectedDivision(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-primary-500 cursor-pointer"
                 >
                   {availableDivisions.map((div) => (
                     <option key={div} value={div}>
@@ -354,40 +445,28 @@ export default function CreateTimetablePage() {
               </div>
             </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center font-bold shrink-0">
+          <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center font-bold shrink-0 shadow-2xs">
             <LuLayers className="w-5 h-5" />
           </div>
         </div>
 
         {/* Homeroom / Teacher Status */}
-        <div className="bg-white p-4 rounded-2xl border border-purple-200 bg-purple-50/20 shadow-xs flex items-center justify-between gap-3">
-          <div>
-            <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">Class Teacher In-Charge</span>
-            <p className="text-sm font-bold text-slate-800 mt-0.5">
-              {teacherInfo?.name || user?.name || 'Shruti Sen'}
+        <div className="bg-white p-4.5 rounded-2xl border border-purple-200/90 bg-purple-50/20 shadow-xs flex items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">
+              Class Teacher In-Charge
+            </span>
+            <p className="text-sm font-bold text-slate-900">
+              {teacherInfo?.name || user?.name || 'Class In-Charge'}
             </p>
-            <p className="text-[11px] text-purple-700 mt-0.5">
-              Assigned to {selectedClass} • Homeroom: Room 301
+            <p className="text-[11px] font-medium text-purple-700">
+              {teacherInfo?.classTeacherFor
+                ? `Assigned to ${teacherInfo.classTeacherFor} (${teacherInfo.classTeacherDivision || selectedDivision || 'Div A'}) • Homeroom: Room 301`
+                : `Assigned to ${selectedClass} (${selectedDivision}) • Homeroom: Room 301`}
             </p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold shrink-0">
+          <div className="w-11 h-11 rounded-2xl bg-purple-100 text-purple-700 border border-purple-200/60 flex items-center justify-center font-bold shrink-0 shadow-2xs">
             <LuAward className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Sync Status */}
-        <div className="bg-white p-4 rounded-2xl border border-emerald-100 bg-emerald-50/20 shadow-xs flex items-center justify-between gap-3">
-          <div>
-            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Student Portal Sync</span>
-            <p className="text-sm font-bold text-emerald-800 mt-0.5 flex items-center gap-1.5">
-              <LuCheckCheck className="w-4 h-4 text-emerald-600" /> Live & Connected
-            </p>
-            <p className="text-[11px] text-emerald-700 mt-0.5">
-              {selectedClass} students view this in real-time
-            </p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">
-            <LuClock className="w-5 h-5" />
           </div>
         </div>
       </div>

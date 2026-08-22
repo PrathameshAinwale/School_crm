@@ -161,6 +161,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         // Syllabus & Progress Logs
         Route::get('/syllabus', [SyllabusController::class, 'index']);
         Route::post('/syllabus/progress', [SyllabusController::class, 'storeLog'])->middleware('role:teacher,admin');
+        Route::delete('/syllabus/progress/{id}', [SyllabusController::class, 'deleteLog'])->middleware('role:teacher,admin');
 
         // School Period Timetable (Class specific & Teacher editor)
         Route::get('/timetable', [TimetableController::class, 'index']);
@@ -184,6 +185,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     // -------------------------------------------------------------
     Route::prefix('hr')->middleware('role:hr,admin')->group(function () {
         Route::get('/dashboard', [HRController::class, 'dashboard']);
+        Route::get('/profile', [HRController::class, 'profile']);
+        Route::put('/profile', [HRController::class, 'updateProfile']);
         Route::get('/salaries', [HRController::class, 'salaries']);
         Route::post('/salaries/disburse', [HRController::class, 'disburseSalary']);
         Route::get('/staff-attendance', [HRController::class, 'staffAttendance']);

@@ -39,6 +39,7 @@ import StaffSalaryPage from './modules/hr/StaffSalaryPage';
 import StaffLeavesPage from './modules/hr/StaffLeavesPage';
 import SchoolEventsPage from './modules/hr/SchoolEventsPage';
 import HRTrainingsPage from './modules/hr/HRTrainingsPage';
+import HRProfilePage from './modules/hr/HRProfilePage';
 
 // Administrator Detailed Pages
 import ManageTeachersPage from './modules/admin/ManageTeachersPage';
@@ -108,10 +109,19 @@ function StudentsRouter() {
 function ProfileRouter() {
   const { currentRole, user } = useAuth();
   const role = (user?.role || currentRole || '').toLowerCase();
+  if (role === 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
   if (role === 'teacher') {
     return <TeacherProfilePage />;
   }
-  return <ProfilePage />;
+  if (role === 'hr') {
+    return <HRProfilePage />;
+  }
+  if (role === 'student_parent') {
+    return <ProfilePage />;
+  }
+  return <Navigate to="/dashboard" replace />;
 }
 
 // Role-aware Trainings Router
@@ -154,7 +164,9 @@ function AppRoutes() {
 
         {/* Role Aware Profile Route */}
         <Route path="profile" element={<ProfileRouter />} />
-        <Route path="teacher/profile" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Teacher Profile"><TeacherProfilePage /></RoleRoute>} />
+        <Route path="teacher/profile" element={<RoleRoute allowedRoles={['teacher']} moduleName="Teacher Profile"><TeacherProfilePage /></RoleRoute>} />
+        <Route path="hr/profile" element={<RoleRoute allowedRoles={['hr']} moduleName="HR Profile"><HRProfilePage /></RoleRoute>} />
+        <Route path="student/profile" element={<RoleRoute allowedRoles={['student_parent']} moduleName="Student Profile"><ProfilePage /></RoleRoute>} />
 
         {/* Student & Parent Dedicated Pages */}
         <Route path="syllabus" element={<SyllabusPage />} />

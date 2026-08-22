@@ -49,8 +49,11 @@ class StudentDashboardController extends Controller
             : 79;
 
         // 3. Pending Assignments
-        $allAssignments = Assignment::where(function ($q) use ($className) {
-            $q->where('class_name', $className)->orWhere('class_name', 'ALL')->orWhereNull('class_name');
+        $allAssignments = Assignment::where(function ($q) use ($classId) {
+            if ($classId) {
+                $q->where('school_class_id', $classId);
+            }
+            $q->orWhereNull('school_class_id');
         })->get();
 
         $submittedIds = AssignmentSubmission::where('student_id', $studentId)->pluck('assignment_id')->toArray();
