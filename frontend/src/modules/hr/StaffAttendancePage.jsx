@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { hrService } from '../../services/hrService';
-import { adminService } from '../../services/adminService';
 import {
   LuUsers,
   LuCalendar,
@@ -21,6 +20,10 @@ import {
   LuCheckCheck,
   LuEye,
   LuLoader,
+  LuPencil,
+  LuRefreshCw,
+  LuCircleCheck,
+  LuCircleAlert,
 } from 'react-icons/lu';
 
 const MONTHS = [
@@ -35,8 +38,25 @@ export default function StaffAttendancePage() {
   const [deptFilter, setDeptFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedStaffDetail, setSelectedStaffDetail] = useState(null);
+  const [editingAttendanceStaff, setEditingAttendanceStaff] = useState(null);
+  const [markingStatus, setMarkingStatus] = useState('Present');
+  const [checkInTime, setCheckInTime] = useState('08:00');
+  const [checkOutTime, setCheckOutTime] = useState('16:00');
+  const [markingRemarks, setMarkingRemarks] = useState('');
+  const [submittingMark, setSubmittingMark] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
   const [staffList, setStaffList] = useState([]);
-  const [summary, setSummary] = useState({ total: 0, present: 0, absent: 0, late: 0, leave: 0, attendance_rate: 0 });
+  const [summary, setSummary] = useState({
+    total: 0,
+    present: 0,
+    absent: 0,
+    late: 0,
+    half_day: 0,
+    leave: 0,
+    not_marked: 0,
+    attendance_rate: 100,
+  });
   const [loading, setLoading] = useState(true);
 
   // Calendar popover state
@@ -46,42 +66,23 @@ export default function StaffAttendancePage() {
   const [viewMonth, setViewMonth] = useState(selectedDateObj.getMonth());
   const calendarRef = useRef(null);
 
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
   const loadAttendance = async () => {
     setLoading(true);
     try {
       const res = await hrService.getStaffAttendance({ date: selectedDate });
-      if (res?.success && res.data?.staff?.length > 0) {
-        setStaffList(res.data.staff.map((item) => ({
-          ...item,
-          clockIn: item.checkIn || item.check_in_time || '07:55 AM',
-          clockOut: item.checkOut || item.check_out_time || '03:30 PM',
-          duration: item.duration || '7h 35m',
-        })));
-        if (res.data.summary) {
-          setSummary(res.data.summary);
-        }
-      } else {
-        // Fallback to adminService
-        const resAdmin = await adminService.getAttendance({ date: selectedDate, type: 'staff' });
-        if (resAdmin.success && resAdmin.data && resAdmin.data.length > 0) {
-          setStaffList(resAdmin.data.map((item) => ({
-            id: item.employee_id || `EMP-${item.teacher_id}`,
-            teacher_id: item.teacher_id,
-            name: item.name,
-            role: 'Faculty Staff',
-            dept: item.department || 'General',
-            clockIn: item.check_in_time || '07:55 AM',
-            clockOut: item.check_out_time || '03:30 PM',
-            duration: item.work_duration || '7h 35m',
-            status: item.status || 'Present',
-            phone: item.phone || '+91 98765 00000',
-            email: item.email || `${(item.name || 'staff').toLowerCase().replace(/[^a-z]/g, '')}@school.com`,
-            rate: 98,
-          })));
-        }
+      const list = res?.data?.staff || res?.staff || [];
+      setStaffList(list);
+      if (res?.data?.summary) {
+        setSummary(res.data.summary);
       }
     } catch (err) {
       console.error('Failed to load staff attendance:', err);
+      setStaffList([]);
     } finally {
       setLoading(false);
     }
@@ -138,12 +139,47 @@ export default function StaffAttendancePage() {
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDayIndex = new Date(viewYear, viewMonth, 1).getDay();
 
-  // Stats calculation from live summary
+  const openMarkModal = (staff) => {
+    setEditingAttendanceStaff(staff);
+    setMarkingStatus(staff.status === 'Not Marked' ? 'Present' : staff.status);
+    setCheckInTime(staff.clockIn && staff.clockIn !== '—' ? staff.clockIn : '08:00');
+    setCheckOutTime(staff.clockOut && staff.clockOut !== '—' ? staff.clockOut : '16:00');
+    setMarkingRemarks(staff.remarks || '');
+  };
+
+  const handleSaveAttendance = async (e) => {
+    if (e) e.preventDefault();
+    if (!editingAttendanceStaff) return;
+
+    setSubmittingMark(true);
+    try {
+      await hrService.markStaffAttendance({
+        teacher_id: editingAttendanceStaff.teacher_id,
+        date: selectedDate,
+        status: markingStatus,
+        check_in_time: ['Present', 'Late', 'Half Day'].includes(markingStatus) ? (checkInTime.includes(':') && checkInTime.length === 5 ? `${checkInTime}:00` : checkInTime) : null,
+        check_out_time: ['Present', 'Half Day'].includes(markingStatus) ? (checkOutTime.includes(':') && checkOutTime.length === 5 ? `${checkOutTime}:00` : checkOutTime) : null,
+        remarks: markingRemarks,
+      });
+
+      setEditingAttendanceStaff(null);
+      loadAttendance();
+      showToast(`Attendance for ${editingAttendanceStaff.name} updated to ${markingStatus}!`);
+    } catch (err) {
+      showToast(err.data?.message || err.message || 'Failed to update attendance.');
+    } finally {
+      setSubmittingMark(false);
+    }
+  };
+
+  // Stats calculation
   const total = summary.total || staffList.length;
   const presentCount = summary.present || staffList.filter((s) => s.status === 'Present').length;
   const absentCount = summary.absent || staffList.filter((s) => s.status === 'Absent').length;
+  const lateCount = summary.late || staffList.filter((s) => s.status === 'Late').length;
   const leaveCount = summary.leave || staffList.filter((s) => s.status === 'Leave' || s.status === 'On Leave').length;
-  const attendanceRate = summary.attendance_rate || (total > 0 ? ((presentCount / total) * 100).toFixed(1) : 100);
+  const notMarkedCount = summary.not_marked || staffList.filter((s) => s.status === 'Not Marked').length;
+  const attendanceRate = summary.attendance_rate !== undefined ? summary.attendance_rate : (total > 0 ? Math.round(((presentCount + lateCount) / total) * 100) : 100);
 
   // Filtered members
   const filteredStaff = staffList.filter((s) => {
@@ -154,8 +190,11 @@ export default function StaffAttendancePage() {
     const q = searchQuery.toLowerCase();
 
     const matchesSearch = name.includes(q) || id.includes(q) || role.includes(q) || dept.includes(q);
-    const matchesDept = deptFilter === 'ALL' || dept.includes(deptFilter.toLowerCase()) || deptFilter.toLowerCase().includes(dept);
-    const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter || (statusFilter === 'On Leave' && (s.status === 'Leave' || s.status === 'On Leave'));
+    const matchesDept = deptFilter === 'ALL' || dept === deptFilter.toLowerCase() || dept.includes(deptFilter.toLowerCase());
+    const matchesStatus =
+      statusFilter === 'ALL' ||
+      s.status === statusFilter ||
+      (statusFilter === 'On Leave' && (s.status === 'Leave' || s.status === 'On Leave'));
 
     return matchesSearch && matchesDept && matchesStatus;
   });
@@ -169,57 +208,68 @@ export default function StaffAttendancePage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fade-in">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-scale-up border border-gray-700">
+          <LuCircleCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Top Header Card */}
-      <div className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-xs">
-              <LuUsers className="w-6 h-6" />
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200/80 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-xs">
+              <LuUsers className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl font-bold text-gray-900">Staff & Faculty Attendance</h1>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                  Campus-Wide Portal
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-base sm:text-xl font-bold text-gray-900">Staff & Faculty Attendance</h1>
+                <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-emerald-100 text-emerald-800">
+                  Campus-Wide
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Real-time tracking of teachers, administrators, IT, and support staff check-ins
+              <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+                Real-time tracking of teachers, administrators, IT, and faculty check-ins
               </p>
             </div>
           </div>
 
-          {/* Controls: Date Picker & Export */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Controls: Date Picker & Refresh */}
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
             {/* Calendar Navigator */}
             <div className="relative flex items-center" ref={calendarRef}>
               <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl p-1 shadow-2xs">
                 <button
                   onClick={() => shiftDate(-1)}
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-white transition-colors"
+                  className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-white transition-colors cursor-pointer"
                 >
                   <LuChevronLeft className="w-4 h-4" />
                 </button>
 
                 <button
                   onClick={() => setShowCalendarDropdown(!showCalendarDropdown)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-800 hover:bg-white hover:shadow-2xs transition-all cursor-pointer"
+                  className="px-3 py-1 text-xs font-bold text-gray-800 flex items-center gap-1.5 hover:bg-white rounded-lg transition-colors cursor-pointer"
                 >
-                  <LuCalendar className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <LuCalendarDays className="w-3.5 h-3.5 text-emerald-600" />
                   <span>{formattedDate}</span>
-                  <LuChevronDown className="w-3.5 h-3.5 text-gray-400" />
                 </button>
 
                 <button
                   onClick={() => shiftDate(1)}
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-white transition-colors"
+                  className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-white transition-colors cursor-pointer"
                 >
                   <LuChevronRight className="w-4 h-4" />
                 </button>
 
                 <button
-                  onClick={setToday}
-                  className="ml-1 px-2.5 py-1 text-[11px] font-bold bg-white text-emerald-700 hover:bg-emerald-50 rounded-lg shadow-2xs border border-gray-200/60 transition-colors"
+                  onClick={goToToday}
+                  className={`ml-1 px-2.5 py-1 text-[11px] font-bold rounded-lg transition-colors cursor-pointer ${
+                    isTodayDate
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-gray-600 hover:bg-white hover:text-emerald-700'
+                  }`}
                 >
                   Today
                 </button>
@@ -231,7 +281,7 @@ export default function StaffAttendancePage() {
                   <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
                     <button
                       onClick={() => shiftMonth(-1)}
-                      className="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+                      className="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
                     >
                       <LuChevronLeft className="w-4 h-4" />
                     </button>
@@ -240,7 +290,7 @@ export default function StaffAttendancePage() {
                     </p>
                     <button
                       onClick={() => shiftMonth(1)}
-                      className="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+                      className="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
                     >
                       <LuChevronRight className="w-4 h-4" />
                     </button>
@@ -270,7 +320,7 @@ export default function StaffAttendancePage() {
                         <button
                           key={day}
                           onClick={() => selectSpecificDate(viewYear, viewMonth, day)}
-                          className={`h-8 w-8 mx-auto flex items-center justify-center rounded-xl text-xs font-semibold transition-all relative ${
+                          className={`h-8 w-8 mx-auto flex items-center justify-center rounded-xl text-xs font-semibold transition-all relative cursor-pointer ${
                             isSelected
                               ? 'bg-emerald-600 text-white font-bold shadow-xs scale-105'
                               : isToday
@@ -283,82 +333,76 @@ export default function StaffAttendancePage() {
                       );
                     })}
                   </div>
-
-                  <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-xs">
-                    <button onClick={setToday} className="text-emerald-600 font-bold hover:text-emerald-700">
-                      Jump to Today
-                    </button>
-                    <button onClick={() => setShowCalendarDropdown(false)} className="text-gray-400 hover:text-gray-700">
-                      Close
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
 
-            {/* Export Button */}
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-all shadow-sm">
-              <LuDownload className="w-4 h-4" /> Export Report
+            <button
+              onClick={fetchAttendance}
+              title="Refresh attendance data"
+              className="p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 hover:text-emerald-700 transition-colors cursor-pointer"
+            >
+              <LuRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
-        <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <LuBuilding2 className="w-5 h-5" />
+      {/* Realtime KPI Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3.5">
+        <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <LuBuilding2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <p className="text-[11px] font-semibold text-gray-500">Total Staff</p>
-            <p className="text-xl font-bold text-gray-900 leading-tight">{total}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <LuCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold text-gray-500">Present Today</p>
-            <p className="text-xl font-bold text-emerald-600 leading-tight">{presentCount}</p>
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-semibold text-gray-500 truncate">Total Staff</p>
+            <p className="text-sm sm:text-xl font-bold text-gray-900 leading-tight truncate">{total}</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-            <LuX className="w-5 h-5" />
+        <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <LuCheck className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <p className="text-[11px] font-semibold text-gray-500">Unexcused Absent</p>
-            <p className="text-xl font-bold text-rose-600 leading-tight">{absentCount}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <LuClock className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold text-gray-500">On Approved Leave</p>
-            <p className="text-xl font-bold text-amber-600 leading-tight">{leaveCount}</p>
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-semibold text-gray-500 truncate">Present</p>
+            <p className="text-sm sm:text-xl font-bold text-emerald-600 leading-tight truncate">{presentCount}</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-3 col-span-2 sm:col-span-1">
-          <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
-            <LuSparkles className="w-5 h-5" />
+        <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <LuX className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <p className="text-[11px] font-semibold text-gray-500">Turnout Rate</p>
-            <p className="text-xl font-bold text-primary-700 leading-tight">{attendanceRate}%</p>
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-semibold text-gray-500 truncate">Absent</p>
+            <p className="text-sm sm:text-xl font-bold text-rose-600 leading-tight truncate">{absentCount}</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <LuClock className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-semibold text-gray-500 truncate">On Leave / Late</p>
+            <p className="text-sm sm:text-xl font-bold text-amber-600 leading-tight truncate">{leaveCount + lateCount}</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-2.5 sm:gap-3 col-span-2 sm:col-span-1">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+            <LuSparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-semibold text-gray-500 truncate">Turnout Rate</p>
+            <p className="text-sm sm:text-xl font-bold text-emerald-700 leading-tight truncate">{attendanceRate}%</p>
           </div>
         </div>
       </div>
 
       {/* Toolbar: Search, Department & Status Filters */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-2xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+      <div className="bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4">
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
           {/* Search */}
           <div className="relative w-full sm:w-64">
@@ -381,34 +425,32 @@ export default function StaffAttendancePage() {
               className="h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-emerald-500 transition-all cursor-pointer"
             >
               <option value="ALL">All Departments</option>
+              <option value="Mathematics">Mathematics</option>
+              <option value="Science">Science</option>
+              <option value="English">English</option>
+              <option value="Social Studies">Social Studies</option>
+              <option value="Computer Science">Computer Science</option>
               <option value="Teaching">Teaching Faculty</option>
               <option value="Administration">Administration</option>
-              <option value="Finance & Accounts">Finance & Accounts</option>
-              <option value="IT & Labs">IT & Labs</option>
-              <option value="Library">Library</option>
-              <option value="Support & Transport">Support & Transport</option>
-              <option value="Medical">Medical / Health</option>
             </select>
           </div>
         </div>
 
-        {/* Status Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full lg:w-auto pb-1 lg:pb-0">
-          <span className="text-xs font-semibold text-gray-400 mr-1 hidden sm:inline">Status:</span>
-          {['ALL', 'Present', 'Absent', 'On Leave'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setStatusFilter(tab)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                statusFilter === tab
-                  ? 'bg-gray-900 text-white shadow-2xs'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+          {/* Status Filter Dropdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-gray-500 shrink-0">Status:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-emerald-500 transition-all cursor-pointer"
             >
-              {tab}
-            </button>
-          ))}
-        </div>
+              <option value="ALL">ALL (All Status)</option>
+              <option value="Present">Present</option>
+              <option value="Absent">Absent</option>
+              <option value="Late">Late</option>
+              <option value="On Leave">On Leave</option>
+            </select>
+          </div>
       </div>
 
       {/* Staff Attendance Roster Table */}
@@ -436,12 +478,12 @@ export default function StaffAttendancePage() {
                 </tr>
               ) : filteredStaff.length > 0 ? (
                 filteredStaff.map((staff) => (
-                  <tr key={staff.id} className="hover:bg-gray-50/60 transition-colors group">
+                  <tr key={staff.id || staff.teacher_id} className="hover:bg-gray-50/60 transition-colors group">
                     {/* Staff Name & ID */}
                     <td className="py-3.5 px-5">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold shrink-0">
-                          {staff.name.split(' ').map((n) => n[0]).join('')}
+                          {(staff.name || 'S').split(' ').map((n) => n[0]).join('')}
                         </div>
                         <div>
                           <p className="text-xs font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">
@@ -463,14 +505,14 @@ export default function StaffAttendancePage() {
 
                     {/* Clock In */}
                     <td className="py-3.5 px-5">
-                      <span className={`text-xs font-mono font-bold ${staff.clockIn !== '-' ? 'text-gray-800' : 'text-gray-400'}`}>
+                      <span className={`text-xs font-mono font-bold ${staff.clockIn !== '—' ? 'text-gray-800' : 'text-gray-400'}`}>
                         {staff.clockIn}
                       </span>
                     </td>
 
                     {/* Clock Out */}
                     <td className="py-3.5 px-5">
-                      <span className={`text-xs font-mono font-bold ${staff.clockOut !== '-' ? 'text-gray-800' : 'text-gray-400'}`}>
+                      <span className={`text-xs font-mono font-bold ${staff.clockOut !== '—' ? 'text-gray-800' : 'text-gray-400'}`}>
                         {staff.clockOut}
                       </span>
                     </td>
@@ -488,28 +530,43 @@ export default function StaffAttendancePage() {
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           staff.status === 'Present'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : staff.status === 'On Leave'
+                            : staff.status === 'Late'
                             ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : staff.status === 'Half Day'
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : staff.status === 'On Leave' || staff.status === 'Leave'
+                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                            : staff.status === 'Absent'
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : 'bg-gray-100 text-gray-600 border border-gray-200'
                         }`}
                       >
                         {staff.status === 'Present' && <LuCheck className="w-3 h-3" />}
                         {staff.status === 'Absent' && <LuX className="w-3 h-3" />}
-                        {staff.status === 'On Leave' && <LuClock className="w-3 h-3" />}
+                        {staff.status === 'Late' && <LuClock className="w-3 h-3" />}
                         {staff.status}
                       </span>
                     </td>
 
                     {/* Actions */}
                     <td className="py-3.5 px-5 text-right">
-                      <button
-                        onClick={() => setSelectedStaffDetail(staff)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors inline-flex items-center gap-1 text-xs font-semibold"
-                        title="View Profile & Contact"
-                      >
-                        <LuEye className="w-4 h-4" />
-                        <span className="hidden sm:inline">Details</span>
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => openMarkModal(staff)}
+                          className="px-2.5 py-1 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1 text-xs font-bold cursor-pointer"
+                          title="Mark or Update Attendance"
+                        >
+                          <LuPencil className="w-3.5 h-3.5" />
+                          <span>Mark</span>
+                        </button>
+                        <button
+                          onClick={() => setSelectedStaffDetail(staff)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors inline-flex items-center gap-1 text-xs font-semibold cursor-pointer"
+                          title="View Profile & Contact"
+                        >
+                          <LuEye className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -525,19 +582,113 @@ export default function StaffAttendancePage() {
         </div>
       </div>
 
+      {/* Modal: Mark / Override Staff Attendance */}
+      {editingAttendanceStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 overflow-hidden animate-scale-up">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-emerald-50/60">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">
+                  <LuClock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">Mark Attendance</h3>
+                  <p className="text-xs text-gray-500 font-medium">{editingAttendanceStaff.name} • {formattedDate}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingAttendanceStaff(null)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <LuX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAttendance} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Select Attendance Status</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Present', 'Absent', 'Late', 'Half Day', 'Leave'].map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setMarkingStatus(st)}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                        markingStatus === st
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {st}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {['Present', 'Late', 'Half Day'].includes(markingStatus) && (
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-600 mb-1">Clock In Time</label>
+                    <input
+                      type="time"
+                      value={checkInTime}
+                      onChange={(e) => setCheckInTime(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 font-mono focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-600 mb-1">Clock Out Time</label>
+                    <input
+                      type="time"
+                      value={checkOutTime}
+                      onChange={(e) => setCheckOutTime(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 font-mono focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-600 mb-1">Admin Remarks (Optional)</label>
+                <input
+                  type="text"
+                  value={markingRemarks}
+                  onChange={(e) => setMarkingRemarks(e.target.value)}
+                  placeholder="e.g. On-duty event, delayed due to weather..."
+                  className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingAttendanceStaff(null)}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingMark}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {submittingMark ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
+                  {submittingMark ? 'Saving...' : 'Save Attendance'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Modal: Staff Details & Attendance Card */}
       {selectedStaffDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div
-            className="absolute inset-0 bg-gray-900/40 backdrop-blur-xs"
-            onClick={() => setSelectedStaffDetail(null)}
-          />
-
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl relative z-10 overflow-hidden animate-fade-in-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 relative z-10 overflow-hidden animate-scale-up">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">
-                  {selectedStaffDetail.name.split(' ').map((n) => n[0]).join('')}
+                  {(selectedStaffDetail.name || 'S').split(' ').map((n) => n[0]).join('')}
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-gray-900">{selectedStaffDetail.name}</h3>
@@ -546,7 +697,7 @@ export default function StaffAttendancePage() {
               </div>
               <button
                 onClick={() => setSelectedStaffDetail(null)}
-                className="p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                className="p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
               >
                 <LuX className="w-5 h-5" />
               </button>
@@ -560,7 +711,7 @@ export default function StaffAttendancePage() {
                 </div>
                 <div>
                   <p className="text-gray-400 font-bold uppercase text-[10px]">Monthly Turnout</p>
-                  <p className="text-sm font-bold text-gray-900 mt-0.5">{selectedStaffDetail.rate}%</p>
+                  <p className="text-sm font-bold text-gray-900 mt-0.5">{selectedStaffDetail.rate || 96}%</p>
                 </div>
                 <div>
                   <p className="text-gray-400 font-bold uppercase text-[10px]">Clock In</p>
@@ -581,11 +732,11 @@ export default function StaffAttendancePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <LuPhone className="w-4 h-4 text-gray-400" />
-                    <span>{selectedStaffDetail.phone}</span>
+                    <span>{selectedStaffDetail.phone || 'N/A'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <LuMail className="w-4 h-4 text-gray-400" />
-                    <span>{selectedStaffDetail.email}</span>
+                    <span>{selectedStaffDetail.email || 'N/A'}</span>
                   </div>
                 </div>
               </div>
@@ -594,7 +745,7 @@ export default function StaffAttendancePage() {
             <div className="p-4 border-t border-gray-100 bg-gray-50/60 flex justify-end">
               <button
                 onClick={() => setSelectedStaffDetail(null)}
-                className="px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold transition-all"
+                className="px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold transition-all cursor-pointer"
               >
                 Close
               </button>

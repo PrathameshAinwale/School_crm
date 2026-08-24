@@ -89,9 +89,9 @@ const navigation = {
     { label: 'Assignment', path: '/assignment', icon: LuClipboardList },
     { label: 'Study Material', path: '/study-material', icon: LuFolderDown },
     { label: 'Notices', path: '/notices', icon: LuBell },
-    { label: 'Fees', path: '/fees', icon: LuWallet },
-    { label: 'Feedback', path: '/feedback', icon: LuMessageSquareQuote },
-    { label: 'PTM', path: '/ptm', icon: LuCalendarCheck },
+    // { label: 'Fees', path: '/fees', icon: LuWallet },
+    // { label: 'Feedback', path: '/feedback', icon: LuMessageSquareQuote },
+    // { label: 'PTM', path: '/ptm', icon: LuCalendarCheck },
   ],
   hr: [
     {

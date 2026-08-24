@@ -106,13 +106,13 @@ export default function TeacherDashboard() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12 max-w-7xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12 max-w-7xl mx-auto">
       {/* Welcome Banner with Refresh Action */}
       <div className="relative">
         <WelcomeCard />
         <button
           onClick={handleRefresh}
-          className="absolute top-4 right-4 z-20 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md text-white border border-white/20 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs"
+          className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-20 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md text-white border border-white/20 text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
           title="Refresh realtime data"
         >
           <LuRefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
@@ -122,65 +122,65 @@ export default function TeacherDashboard() {
 
       {/* Primary 3 Daily Information Cards */}
       <div>
-        <div className="flex items-center justify-between mb-3.5">
-          <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+        <div className="flex items-center justify-between mb-2.5 sm:mb-3.5">
+          <h2 className="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
             <LuSparkles className="w-4 h-4 text-primary-600" />
             Today's Key Priorities
           </h2>
           {teacher?.classTeacherFor && (
-            <span className="text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-3 py-1 rounded-full flex items-center gap-1">
+            <span className="text-[10px] sm:text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full flex items-center gap-1">
               <LuAward className="w-3.5 h-3.5" /> Class Teacher: {teacher.classTeacherFor}
             </span>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-4">
           {dailyCards.map((card) => {
             const Icon = card.icon;
             return (
               <div
                 key={card.id}
                 onClick={() => navigate(card.path)}
-                className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs hover:shadow-lg hover:border-primary-300 hover:-translate-y-1 transition-all cursor-pointer flex flex-col justify-between group relative overflow-hidden"
+                className="bg-white rounded-xl sm:rounded-2xl p-3.5 sm:p-5 border border-gray-200/80 shadow-xs hover:shadow-lg hover:border-primary-300 hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between group relative overflow-hidden"
               >
                 {/* Top Accent Stripe on hover */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-primary-600 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                 <div>
                   {/* Card Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-2xl ${card.iconBg} flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-110 transition-transform`}>
-                      <Icon className="w-6 h-6" />
+                  <div className="flex items-center justify-between mb-2.5 sm:mb-3.5">
+                    <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl ${card.iconBg} flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform`}>
+                      <Icon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                     </div>
-                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${card.badgeColor}`}>
+                    <span className={`text-[10px] sm:text-[11px] font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border ${card.badgeColor}`}>
                       {card.badge}
                     </span>
                   </div>
 
                   {/* Card Title & Main Highlight */}
-                  <h3 className="text-base font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
+                  <h3 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
                     {card.title}
                   </h3>
 
-                  <div className="mt-3 p-3.5 rounded-2xl bg-gray-50/80 border border-gray-100/80 space-y-1">
-                    <p className="text-sm font-bold text-gray-800">{card.highlight}</p>
-                    <div className="flex items-center justify-between text-xs text-gray-500 font-medium pt-1">
+                  <div className="mt-2.5 p-2.5 sm:p-3 rounded-xl bg-gray-50/80 border border-gray-100/80 space-y-0.5">
+                    <p className="text-xs sm:text-sm font-bold text-gray-800">{card.highlight}</p>
+                    <div className="flex items-center justify-between text-[10px] sm:text-xs text-gray-500 font-medium pt-0.5">
                       <span className="flex items-center gap-1">
-                        <LuClock className="w-3.5 h-3.5 text-gray-400" /> {card.time}
+                        <LuClock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400" /> {card.time}
                       </span>
                       <span className="text-primary-700 font-semibold">{card.room}</span>
                     </div>
                   </div>
 
-                  <p className="text-xs text-gray-500 mt-3 font-medium">
+                  <p className="text-[11px] sm:text-xs text-gray-500 mt-2 font-medium line-clamp-2">
                     {card.subtext}
                   </p>
                 </div>
 
                 {/* Card Action Link */}
-                <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-primary-600 group-hover:text-primary-700">
+                <div className="mt-3.5 sm:mt-4 pt-2.5 sm:pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] sm:text-xs font-bold text-primary-600 group-hover:text-primary-700">
                   <span>{card.actionText}</span>
-                  <LuArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <LuArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             );
@@ -189,9 +189,9 @@ export default function TeacherDashboard() {
       </div>
 
       {/* Two Clean Detail Sections Below */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 sm:gap-6">
         {/* Left 2 Cols: Today's Lecture Schedule Timeline (Real-time from Timetable) */}
-        <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs">
+        <div className="lg:col-span-2 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200/80 shadow-xs">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center">

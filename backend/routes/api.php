@@ -92,8 +92,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::apiResource('resources', ResourceController::class);
     });
 
-    // Teacher Self Operations & Academic Group
-    Route::prefix('teacher')->middleware('role:teacher,admin')->group(function () {
+    // Teacher & Staff Self Operations (Accessible to Teacher, HR, Admin)
+    Route::prefix('teacher')->middleware('role:teacher,admin,hr')->group(function () {
         // Teacher Realtime Dashboard
         Route::get('/dashboard', [TeacherSelfController::class, 'dashboard']);
 

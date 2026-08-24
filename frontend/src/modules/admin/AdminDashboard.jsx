@@ -102,12 +102,12 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in pb-10">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-10">
       {/* 1. Welcome Card */}
       <WelcomeCard />
 
       {/* 2. Top Summary KPI Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <Link to="/manage-teachers" className="group block">
           <StatCard
             label="Faculty & Staff"
@@ -135,7 +135,7 @@ export default function AdminDashboard() {
             trend={metrics.pending_admissions + " Pending"}
             trendUp={true}
             icon={LuUserPlus}
-            color="purple"
+            color="violet"
           />
         </Link>
         <Link to="/attendance" className="group block">
@@ -152,42 +152,42 @@ export default function AdminDashboard() {
 
       {/* 3. Core Admin Management Grid */}
       <div>
-        <div className="flex items-center justify-between mb-3.5">
+        <div className="flex items-center justify-between mb-2.5 sm:mb-3.5">
           <div>
-            <h2 className="text-base font-bold text-gray-800">Administrative Modules</h2>
+            <h2 className="text-sm sm:text-base font-bold text-gray-800">Administrative Modules</h2>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
           {quickModules.map((mod) => {
             const Icon = mod.icon;
             return (
               <Link
                 key={mod.path}
                 to={mod.path}
-                className="group bg-white p-5 rounded-xl border border-gray-200 shadow-xs hover:shadow-md hover:border-primary-200 transition-all flex flex-col justify-between"
+                className="group bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-primary-200 transition-all flex flex-col justify-between"
               >
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors">
-                      <Icon className="w-5 h-5" />
+                  <div className="flex items-center justify-between mb-2.5 sm:mb-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors">
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 group-hover:bg-primary-50 group-hover:text-primary-700 transition-colors">
+                    <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-gray-100 text-gray-700 group-hover:bg-primary-50 group-hover:text-primary-700 transition-colors">
                       {mod.count}
                     </span>
                   </div>
-                  <h3 className="font-bold text-gray-800 text-sm mb-1 group-hover:text-primary-700 transition-colors">
+                  <h3 className="font-bold text-gray-800 text-xs sm:text-sm mb-1 group-hover:text-primary-700 transition-colors">
                     {mod.title}
                   </h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">
+                  <p className="text-[11px] sm:text-xs text-gray-400 leading-relaxed line-clamp-2">
                     {mod.subtitle}
                   </p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] sm:text-xs">
                   <span className="text-gray-500 font-medium">{mod.status}</span>
                   <span className="text-primary-600 font-bold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                    Open Module <LuArrowRight className="w-3.5 h-3.5" />
+                    Open <LuArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </span>
                 </div>
               </Link>

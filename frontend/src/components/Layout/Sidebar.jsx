@@ -13,12 +13,15 @@ export default function Sidebar({
   const { user, currentRole, logout } = useAuth();
   const location = useLocation();
   const navItems = navigation[currentRole] || navigation.admin;
-  const [expandedGroups, setExpandedGroups] = useState({});
+  const [expandedGroups, setExpandedGroups] = useState({
+    'HR Operations': true,
+    'Employee (Self)': true,
+  });
 
   const toggleGroup = (label) => {
     setExpandedGroups((prev) => ({
       ...prev,
-      [label]: !prev[label]
+      [label]: prev[label] === undefined ? false : !prev[label]
     }));
   };
 
@@ -50,7 +53,8 @@ export default function Sidebar({
         {/* Mobile close button */}
         <button
           onClick={() => setMobileMenuOpen(false)}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 lg:hidden transition-colors"
+          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 lg:hidden transition-colors cursor-pointer"
+          aria-label="Close mobile menu"
         >
           <LuX className="w-5 h-5" />
         </button>
@@ -61,12 +65,12 @@ export default function Sidebar({
         {navItems.map((item) => {
           if (item.type === 'group') {
             const Icon = item.icon;
-            const isExpanded = expandedGroups[item.label];
+            const isExpanded = expandedGroups[item.label] !== false;
             return (
               <div key={item.label} className="space-y-1">
                 <button
                   onClick={() => toggleGroup(item.label)}
-                  className={`w-full group relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50`}
+                  className={`w-full group relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 cursor-pointer`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="w-[18px] h-[18px] shrink-0 text-gray-400 group-hover:text-gray-600" />
@@ -98,6 +102,7 @@ export default function Sidebar({
                         <NavLink
                           key={child.path}
                           to={child.path}
+                          onClick={() => setMobileMenuOpen(false)}
                           className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                             isChildActive
                               ? 'bg-primary-50 text-primary-700 font-semibold'
@@ -125,6 +130,7 @@ export default function Sidebar({
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={() => setMobileMenuOpen(false)}
               className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
                   ? 'bg-primary-50 text-primary-700 font-semibold'

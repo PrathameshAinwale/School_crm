@@ -17,6 +17,7 @@ class StaffSalary extends Model
         'department',
         'month',
         'base_salary',
+        'allowance',
         'working_days',
         'days_present',
         'paid_leaves',
@@ -24,6 +25,7 @@ class StaffSalary extends Model
         'hra',
         'da',
         'special_allowance',
+        'deduction',
         'pf_deduction',
         'tds_deduction',
         'unpaid_leave_deduction',
@@ -37,9 +39,11 @@ class StaffSalary extends Model
 
     protected $casts = [
         'base_salary' => 'decimal:2',
+        'allowance' => 'decimal:2',
         'hra' => 'decimal:2',
         'da' => 'decimal:2',
         'special_allowance' => 'decimal:2',
+        'deduction' => 'decimal:2',
         'pf_deduction' => 'decimal:2',
         'tds_deduction' => 'decimal:2',
         'unpaid_leave_deduction' => 'decimal:2',

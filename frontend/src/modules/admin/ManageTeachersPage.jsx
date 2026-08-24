@@ -68,6 +68,7 @@ export default function ManageTeachersPage() {
 
   // New Teacher Form
   const [formData, setFormData] = useState({
+    role: 'teacher',
     first_name: '',
     last_name: '',
     email: '',
@@ -76,6 +77,7 @@ export default function ManageTeachersPage() {
     qualification: '',
     experience: '',
     salary: '',
+    allowance: '',
     joining_date: new Date().toISOString().split('T')[0],
     assigned_subjects: '',
     assigned_classes: '',
@@ -90,6 +92,7 @@ export default function ManageTeachersPage() {
 
   // Edit Teacher Form
   const [editFormData, setEditFormData] = useState({
+    role: 'teacher',
     first_name: '',
     last_name: '',
     email: '',
@@ -98,6 +101,7 @@ export default function ManageTeachersPage() {
     qualification: '',
     experience: '',
     salary: '',
+    allowance: '',
     assigned_subjects: '',
     assigned_classes: '',
     class_teacher_class: '',
@@ -189,7 +193,7 @@ export default function ManageTeachersPage() {
     if (e) e.preventDefault();
 
     // Check if another teacher is already class teacher for this class & division
-    if (!force && formData.class_teacher_class) {
+    if (!force && formData.class_teacher_class && formData.role !== 'hr') {
       const existing = findExistingClassTeacher(formData.class_teacher_class, formData.class_teacher_division);
       if (existing) {
         setOverwriteModalData({
@@ -197,7 +201,7 @@ export default function ManageTeachersPage() {
           targetClass: formData.class_teacher_class,
           targetDivision: formData.class_teacher_division || 'Div A',
           currentTeacherName: existing.full_name || `${existing.first_name} ${existing.last_name || ''}`.trim(),
-          newTeacherName: `${formData.first_name} ${formData.last_name || ''}`.trim() || 'New Faculty Member',
+          newTeacherName: `${formData.first_name} ${formData.last_name || ''}`.trim() || 'New Staff Member',
         });
         return;
       }
@@ -205,7 +209,8 @@ export default function ManageTeachersPage() {
 
     setSubmitting(true);
     try {
-      const finalDept = (isCustomDept ? customDept : formData.department)?.trim();
+      const isHR = formData.role === 'hr';
+      const finalDept = isHR ? 'Human Resources' : ((isCustomDept ? customDept : formData.department)?.trim());
       if (!finalDept) {
         showToast('Please specify or enter a valid department name.');
         setSubmitting(false);
@@ -214,15 +219,18 @@ export default function ManageTeachersPage() {
 
       const payload = {
         ...formData,
+        role: formData.role || 'teacher',
         department: finalDept,
-        class_teacher_class: formData.class_teacher_class || null,
-        class_teacher_division: formData.class_teacher_class ? (formData.class_teacher_division || 'Div A') : null,
-        assigned_subjects: formData.assigned_subjects
+        salary: formData.salary ? Number(formData.salary) : (isHR ? 55000 : 50000),
+        allowance: formData.allowance ? Number(formData.allowance) : 0,
+        class_teacher_class: isHR ? null : (formData.class_teacher_class || null),
+        class_teacher_division: isHR ? null : (formData.class_teacher_class ? (formData.class_teacher_division || 'Div A') : null),
+        assigned_subjects: isHR ? [] : (formData.assigned_subjects
           ? formData.assigned_subjects.split(',').map((s) => s.trim()).filter(Boolean)
-          : [],
-        assigned_classes: formData.class_teacher_class
+          : []),
+        assigned_classes: isHR ? [] : (formData.class_teacher_class
           ? [formData.class_teacher_class]
-          : (formData.assigned_classes ? formData.assigned_classes.split(',').map((c) => c.trim()).filter(Boolean) : []),
+          : (formData.assigned_classes ? formData.assigned_classes.split(',').map((c) => c.trim()).filter(Boolean) : [])),
       };
 
       const res = await adminService.createTeacher(payload);
@@ -231,6 +239,7 @@ export default function ManageTeachersPage() {
         setIsCustomDept(false);
         setCustomDept('');
         setFormData({
+          role: 'teacher',
           first_name: '',
           last_name: '',
           email: '',
@@ -239,6 +248,7 @@ export default function ManageTeachersPage() {
           qualification: '',
           experience: '',
           salary: '',
+          allowance: '',
           joining_date: new Date().toISOString().split('T')[0],
           assigned_subjects: '',
           assigned_classes: '',
@@ -249,7 +259,7 @@ export default function ManageTeachersPage() {
           status: 'Active',
         });
         loadTeachers();
-        showToast('Teacher created successfully with generated login credentials!');
+        showToast(`${isHR ? 'HR Staff member' : 'Teacher'} onboarded successfully!`);
 
         // Display generated credentials modal
         if (res.credentials) {
@@ -257,23 +267,26 @@ export default function ManageTeachersPage() {
         }
       }
     } catch (err) {
-      showToast(err.data?.message || err.message || 'Failed to create teacher.');
+      showToast(err.data?.message || err.message || 'Failed to create staff member.');
     } finally {
       setSubmitting(false);
     }
   };
 
   const openEditModal = (teacher) => {
+    const resolvedRole = teacher.user?.role || ((teacher.teacher_id && teacher.teacher_id.startsWith('HR-')) || teacher.department === 'Human Resources' ? 'hr' : 'teacher');
     setEditingTeacher(teacher);
     setEditFormData({
+      role: resolvedRole,
       first_name: teacher.first_name || '',
       last_name: teacher.last_name || '',
       email: teacher.email || '',
       phone: teacher.phone || '',
-      department: teacher.department || 'Mathematics',
+      department: teacher.department || (resolvedRole === 'hr' ? 'Human Resources' : 'Mathematics'),
       qualification: teacher.qualification || '',
       experience: teacher.experience || '',
-      salary: teacher.salary || '',
+      salary: teacher.salary !== undefined && teacher.salary !== null ? teacher.salary : '',
+      allowance: teacher.allowance !== undefined && teacher.allowance !== null ? teacher.allowance : '',
       assigned_subjects: Array.isArray(teacher.assigned_subjects) ? teacher.assigned_subjects.join(', ') : '',
       assigned_classes: Array.isArray(teacher.assigned_classes) ? teacher.assigned_classes.join(', ') : '',
       class_teacher_class: teacher.class_teacher_class || '',
@@ -289,7 +302,7 @@ export default function ManageTeachersPage() {
     if (!editingTeacher) return;
 
     // Check if another teacher is already class teacher for this class & division
-    if (!force && editFormData.class_teacher_class) {
+    if (!force && editFormData.class_teacher_class && editFormData.role !== 'hr') {
       const existing = findExistingClassTeacher(editFormData.class_teacher_class, editFormData.class_teacher_division, editingTeacher.id);
       if (existing) {
         setOverwriteModalData({
@@ -305,24 +318,29 @@ export default function ManageTeachersPage() {
 
     setSubmitting(true);
     try {
+      const isHR = editFormData.role === 'hr';
       const payload = {
         ...editFormData,
-        class_teacher_class: editFormData.class_teacher_class || null,
-        class_teacher_division: editFormData.class_teacher_class ? (editFormData.class_teacher_division || 'Div A') : null,
-        assigned_subjects: editFormData.assigned_subjects
+        role: editFormData.role || 'teacher',
+        department: isHR ? 'Human Resources' : editFormData.department,
+        salary: editFormData.salary ? Number(editFormData.salary) : (isHR ? 55000 : 50000),
+        allowance: editFormData.allowance ? Number(editFormData.allowance) : 0,
+        class_teacher_class: isHR ? null : (editFormData.class_teacher_class || null),
+        class_teacher_division: isHR ? null : (editFormData.class_teacher_class ? (editFormData.class_teacher_division || 'Div A') : null),
+        assigned_subjects: isHR ? [] : (editFormData.assigned_subjects
           ? editFormData.assigned_subjects.split(',').map((s) => s.trim()).filter(Boolean)
-          : [],
-        assigned_classes: editFormData.class_teacher_class
+          : []),
+        assigned_classes: isHR ? [] : (editFormData.class_teacher_class
           ? [editFormData.class_teacher_class]
-          : (editFormData.assigned_classes ? editFormData.assigned_classes.split(',').map((c) => c.trim()).filter(Boolean) : []),
+          : (editFormData.assigned_classes ? editFormData.assigned_classes.split(',').map((c) => c.trim()).filter(Boolean) : [])),
       };
 
       await adminService.updateTeacher(editingTeacher.id, payload);
       setEditingTeacher(null);
       loadTeachers();
-      showToast('Teacher details & class assignment updated successfully!');
+      showToast('Staff details & role assignment updated successfully!');
     } catch (err) {
-      showToast(err.data?.message || err.message || 'Failed to update teacher.');
+      showToast(err.data?.message || err.message || 'Failed to update staff member.');
     } finally {
       setSubmitting(false);
     }
@@ -422,134 +440,138 @@ export default function ManageTeachersPage() {
           <p className="text-xs text-slate-500 font-medium">Loading faculty directory...</p>
         </div>
       ) : teachers.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
-          <div className="w-16 h-16 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <LuUsers className="w-8 h-8" />
-          </div>
-          <h3 className="text-base font-bold text-slate-800 mb-1">No Faculty Records Found</h3>
-          <p className="text-xs text-slate-400 max-w-md mx-auto mb-6">
-            There are currently no staff members registered in the database. Click the button below to onboard your first teacher.
-          </p>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs rounded-xl transition-colors inline-flex items-center gap-2 shadow-sm"
-          >
-            <LuUserPlus className="w-4 h-4" /> Add First Teacher
-          </button>
+        <div className="p-12 text-center bg-white rounded-3xl border border-slate-200">
+          <p className="text-sm font-bold text-slate-700">No faculty members found</p>
+          <p className="text-xs text-slate-400 mt-1">Try adjusting your filters or search query.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-                <tr>
-                  <th className="px-5 py-3.5">Faculty Member</th>
-                  <th className="px-5 py-3.5">Class Teacher Role</th>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="px-5 py-3.5">Staff Member</th>
+                  <th className="px-5 py-3.5">Class In-Charge</th>
                   <th className="px-5 py-3.5">Department</th>
-                  <th className="px-5 py-3.5">Contact Info</th>
-                  <th className="px-5 py-3.5">Assigned Subjects</th>
+                  <th className="px-5 py-3.5">Monthly Pay (Base + Allow)</th>
                   <th className="px-5 py-3.5">Status</th>
                   <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {teachers.map((teacher) => (
-                  <tr key={teacher.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-xs shrink-0">
-                          {teacher.first_name?.[0] || 'T'}{teacher.last_name?.[0] || ''}
-                        </div>
-                        <div>
-                          <div className="font-bold text-slate-800">{teacher.first_name} {teacher.last_name || ''}</div>
-                          <div className="text-[11px] text-slate-400 font-medium">{teacher.department || 'Academic Faculty'}</div>
-                        </div>
-                      </div>
-                    </td>
+              <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                {teachers.map((teacher) => {
+                  const base = Number(teacher.salary || 50000);
+                  const allow = Number(teacher.allowance || 0);
+                  const gross = base + allow;
+                  const deduction = Math.round(gross * 0.12);
+                  const net = gross - deduction;
 
-                    {/* Class Teacher Assignment */}
-                    <td className="px-5 py-4">
-                      {teacher.class_teacher_class ? (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 font-bold text-[11px]">
-                          <LuAward className="w-3.5 h-3.5 text-purple-600" />
-                          <span>{teacher.class_teacher_class}</span>
+                  return (
+                    <tr key={teacher.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                            teacher.user?.role === 'hr' || (teacher.teacher_id && teacher.teacher_id.startsWith('HR-'))
+                              ? 'bg-indigo-100 text-indigo-800'
+                              : 'bg-primary-100 text-primary-800'
+                          }`}>
+                            {teacher.first_name?.[0] || 'S'}{teacher.last_name?.[0] || ''}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-slate-900">
+                                {teacher.first_name} {teacher.last_name || ''}
+                              </p>
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                teacher.user?.role === 'hr' || (teacher.teacher_id && teacher.teacher_id.startsWith('HR-')) || teacher.department === 'Human Resources'
+                                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                  : 'bg-blue-50 text-blue-700 border border-blue-200'
+                              }`}>
+                                {teacher.user?.role === 'hr' || (teacher.teacher_id && teacher.teacher_id.startsWith('HR-')) || teacher.department === 'Human Resources'
+                                  ? 'HR Staff'
+                                  : 'Teacher'}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 font-mono">
+                              {teacher.teacher_id || `STF-${teacher.id}`} • {teacher.email}
+                            </p>
+                          </div>
                         </div>
-                      ) : (
-                        <span className="text-slate-400 text-[11px] italic">Subject Teacher</span>
-                      )}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold text-[11px]">
-                        {teacher.department || 'General'}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 space-y-0.5">
-                      <div className="flex items-center gap-1.5 text-slate-600">
-                        <LuMail className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{teacher.email}</span>
-                      </div>
-                      {teacher.phone && (
-                        <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
-                          <LuPhone className="w-3 h-3" />
-                          <span>{teacher.phone}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex flex-wrap gap-1 max-w-xs">
-                        {Array.isArray(teacher.assigned_subjects) && teacher.assigned_subjects.length > 0 ? (
-                          teacher.assigned_subjects.map((sub, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded bg-primary-50 text-primary-700 text-[10px] font-semibold border border-primary-100">
-                              {sub}
-                            </span>
-                          ))
+                      </td>
+                      <td className="px-5 py-4">
+                        {teacher.user?.role === 'hr' || (teacher.teacher_id && teacher.teacher_id.startsWith('HR-')) || teacher.department === 'Human Resources' ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-800 border border-indigo-200 text-xs font-bold">
+                            HR Operations
+                          </span>
+                        ) : teacher.class_teacher_class ? (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 text-xs font-bold">
+                            <LuAward className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                            <span>{teacher.class_teacher_class}</span>
+                            {teacher.class_teacher_division && (
+                              <span className="text-[10px] text-purple-600 font-semibold">
+                                ({teacher.class_teacher_division})
+                              </span>
+                            )}
+                          </div>
                         ) : (
-                          <span className="text-slate-400 text-[11px] italic">Not assigned</span>
+                          <span className="text-slate-400 text-[11px] italic">Subject Teacher</span>
                         )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 ${
-                        teacher.status === 'Active'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : teacher.status === 'On Leave'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                          : 'bg-rose-50 text-rose-700 border border-rose-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          teacher.status === 'Active' ? 'bg-emerald-500' : teacher.status === 'On Leave' ? 'bg-amber-500' : 'bg-rose-500'
-                        }`}></span>
-                        {teacher.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setSelectedTeacher(teacher)}
-                          title="View Profile"
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-primary-600 hover:bg-primary-50 transition-colors"
-                        >
-                          <LuEye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => openEditModal(teacher)}
-                          title="Edit & Assign Class"
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors"
-                        >
-                          <LuPencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTargetTeacher(teacher)}
-                          title="Remove Teacher"
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                        >
-                          <LuTrash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-semibold">
+                          {teacher.department || 'General'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div>
+                          <p className="font-bold text-slate-900">₹{base.toLocaleString('en-IN')}</p>
+                          <p className="text-[10px] text-emerald-600 font-semibold">
+                            + ₹{allow.toLocaleString('en-IN')} allowance (Net: ₹{net.toLocaleString('en-IN')})
+                          </p>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 ${
+                          teacher.status === 'Active'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : teacher.status === 'On Leave'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            teacher.status === 'Active' ? 'bg-emerald-500' : teacher.status === 'On Leave' ? 'bg-amber-500' : 'bg-rose-500'
+                          }`}></span>
+                          {teacher.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => setSelectedTeacher(teacher)}
+                            title="View Profile"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-primary-600 hover:bg-primary-50 transition-colors cursor-pointer"
+                          >
+                            <LuEye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => openEditModal(teacher)}
+                            title="Edit Staff & Salary"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
+                          >
+                            <LuPencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteTargetTeacher(teacher)}
+                            title="Remove Teacher"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                          >
+                            <LuTrash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -568,12 +590,12 @@ export default function ManageTeachersPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-base">Onboard New Faculty Member</h3>
-                  <p className="text-primary-100 text-xs">Assign Class Teacher role and auto-generate staff login credentials</p>
+                  <p className="text-primary-100 text-xs">Set Base Salary, Allowance, and auto-generate staff login credentials</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
               >
                 <LuX className="w-5 h-5" />
               </button>
@@ -581,6 +603,58 @@ export default function ManageTeachersPage() {
 
             {/* Form */}
             <form onSubmit={handleAddSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Staff Role Selector (Teacher vs HR) */}
+              <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-2">
+                <label className="block text-xs font-bold text-indigo-950">
+                  Staff Role & Portal Access <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, role: 'teacher', department: formData.department === 'Human Resources' ? 'Mathematics' : formData.department })}
+                    className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                      formData.role === 'teacher'
+                        ? 'bg-white border-primary-600 ring-2 ring-primary-500/20 shadow-xs'
+                        : 'bg-white/60 border-slate-200 hover:bg-white text-slate-600'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0 ${
+                      formData.role === 'teacher' ? 'border-primary-600 bg-primary-600' : 'border-slate-300'
+                    }`}>
+                      {formData.role === 'teacher' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">Teaching Faculty (Teacher)</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        Access to Classroom, Student Attendance, Timetable & Syllabus
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, role: 'hr', department: 'Human Resources', class_teacher_class: '', assigned_subjects: '' })}
+                    className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                      formData.role === 'hr'
+                        ? 'bg-white border-indigo-600 ring-2 ring-indigo-500/20 shadow-xs'
+                        : 'bg-white/60 border-slate-200 hover:bg-white text-slate-600'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0 ${
+                      formData.role === 'hr' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                    }`}>
+                      {formData.role === 'hr' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">Human Resources (HR)</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        Access to HR Module: Staff Salaries, Attendance & Leaves
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -617,7 +691,7 @@ export default function ManageTeachersPage() {
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="teacher@school.com"
+                    placeholder="staff@school.com"
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
                   />
                 </div>
@@ -631,6 +705,76 @@ export default function ManageTeachersPage() {
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
                   />
                 </div>
+              </div>
+
+              {/* Salary & Allowances Section */}
+              <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <LuDollarSign className="w-4 h-4 text-emerald-600" />
+                    <label className="text-xs font-bold text-emerald-900">Salary & Monthly Allowances</label>
+                  </div>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                    HR Payroll Integrated
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-emerald-900 mb-1">
+                      Base Salary (₹ / month) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      required
+                      value={formData.salary}
+                      onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                      placeholder="e.g. 50000"
+                      className="w-full px-3.5 py-2 bg-white border border-emerald-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-emerald-900 mb-1">
+                      Monthly Allowance (₹ / month)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={formData.allowance}
+                      onChange={(e) => setFormData({ ...formData, allowance: e.target.value })}
+                      placeholder="e.g. 10000"
+                      className="w-full px-3.5 py-2 bg-white border border-emerald-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Calculation preview badge */}
+                {(() => {
+                  const b = Number(formData.salary || 0);
+                  const a = Number(formData.allowance || 0);
+                  const gross = b + a;
+                  const ded = Math.round(gross * 0.12);
+                  const net = gross - ded;
+                  return (
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-emerald-200/80 text-[11px]">
+                      <div className="bg-white p-2 rounded-lg border border-emerald-100">
+                        <span className="text-slate-400 block text-[10px]">Gross Pay:</span>
+                        <span className="font-bold text-slate-800 font-mono">₹{gross.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="bg-white p-2 rounded-lg border border-emerald-100">
+                        <span className="text-slate-400 block text-[10px]">12% Deduction:</span>
+                        <span className="font-bold text-rose-600 font-mono">- ₹{ded.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="bg-emerald-100/70 p-2 rounded-lg border border-emerald-300">
+                        <span className="text-emerald-800 block text-[10px] font-bold">Net Payable:</span>
+                        <span className="font-bold text-emerald-900 font-mono">₹{net.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Class Teacher Assignment */}
@@ -670,9 +814,6 @@ export default function ManageTeachersPage() {
                     </select>
                   </div>
                 </div>
-                <p className="text-[11px] text-purple-700">
-                  Teachers assigned as Class Teacher will manage class attendance, syllabus progress, and weekly period timetables for the selected division.
-                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -738,14 +879,14 @@ export default function ManageTeachersPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                  className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
                   {submitting ? 'Creating Staff Member...' : 'Confirm & Generate Credentials'}
@@ -767,13 +908,13 @@ export default function ManageTeachersPage() {
                   <LuPencil className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">Edit Faculty Details & Class Assignment</h3>
-                  <p className="text-amber-100 text-xs">Update teacher profile, assign class teacher status, or modify subjects</p>
+                  <h3 className="font-bold text-base">Edit Faculty Details, Salary & Allowances</h3>
+                  <p className="text-amber-100 text-xs">Update teacher profile, salary, allowance, and class assignments</p>
                 </div>
               </div>
               <button
                 onClick={() => setEditingTeacher(null)}
-                className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
               >
                 <LuX className="w-5 h-5" />
               </button>
@@ -781,6 +922,54 @@ export default function ManageTeachersPage() {
 
             {/* Form */}
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Staff Role Selector (Teacher vs HR) */}
+              <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-2">
+                <label className="block text-xs font-bold text-amber-950">
+                  Staff Role & System Access <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setEditFormData({ ...editFormData, role: 'teacher' })}
+                    className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                      editFormData.role === 'teacher'
+                        ? 'bg-white border-primary-600 ring-2 ring-primary-500/20 shadow-xs'
+                        : 'bg-white/60 border-slate-200 hover:bg-white text-slate-600'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0 ${
+                      editFormData.role === 'teacher' ? 'border-primary-600 bg-primary-600' : 'border-slate-300'
+                    }`}>
+                      {editFormData.role === 'teacher' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">Teaching Faculty (Teacher)</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">Teacher Portal & Classrooms</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setEditFormData({ ...editFormData, role: 'hr', department: 'Human Resources', class_teacher_class: '', assigned_subjects: '' })}
+                    className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                      editFormData.role === 'hr'
+                        ? 'bg-white border-indigo-600 ring-2 ring-indigo-500/20 shadow-xs'
+                        : 'bg-white/60 border-slate-200 hover:bg-white text-slate-600'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0 ${
+                      editFormData.role === 'hr' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                    }`}>
+                      {editFormData.role === 'hr' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">Human Resources (HR)</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">HR Module & Staff Operations</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -829,6 +1018,75 @@ export default function ManageTeachersPage() {
                 </div>
               </div>
 
+              {/* Salary & Allowances Section */}
+              <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <LuDollarSign className="w-4 h-4 text-emerald-600" />
+                    <label className="text-xs font-bold text-emerald-900">Salary & Monthly Allowances</label>
+                  </div>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                    HR Payroll Linked
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-emerald-900 mb-1">
+                      Base Salary (₹ / month)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={editFormData.salary}
+                      onChange={(e) => setEditFormData({ ...editFormData, salary: e.target.value })}
+                      placeholder="e.g. 50000"
+                      className="w-full px-3.5 py-2 bg-white border border-emerald-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-emerald-900 mb-1">
+                      Monthly Allowance (₹ / month)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={editFormData.allowance}
+                      onChange={(e) => setEditFormData({ ...editFormData, allowance: e.target.value })}
+                      placeholder="e.g. 10000"
+                      className="w-full px-3.5 py-2 bg-white border border-emerald-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Calculation preview badge */}
+                {(() => {
+                  const b = Number(editFormData.salary || 0);
+                  const a = Number(editFormData.allowance || 0);
+                  const gross = b + a;
+                  const ded = Math.round(gross * 0.12);
+                  const net = gross - ded;
+                  return (
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-emerald-200/80 text-[11px]">
+                      <div className="bg-white p-2 rounded-lg border border-emerald-100">
+                        <span className="text-slate-400 block text-[10px]">Gross Pay:</span>
+                        <span className="font-bold text-slate-800 font-mono">₹{gross.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="bg-white p-2 rounded-lg border border-emerald-100">
+                        <span className="text-slate-400 block text-[10px]">12% Deduction:</span>
+                        <span className="font-bold text-rose-600 font-mono">- ₹{ded.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="bg-emerald-100/70 p-2 rounded-lg border border-emerald-300">
+                        <span className="text-emerald-800 block text-[10px] font-bold">Net Payable:</span>
+                        <span className="font-bold text-emerald-900 font-mono">₹{net.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
               {/* Class Teacher Assignment */}
               <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 space-y-3">
                 <div className="flex items-center gap-2">
@@ -866,9 +1124,6 @@ export default function ManageTeachersPage() {
                     </select>
                   </div>
                 </div>
-                <p className="text-[11px] text-purple-700">
-                  Assigning a teacher to this class will enable them to create and manage the weekly timetable for that division.
-                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -916,14 +1171,14 @@ export default function ManageTeachersPage() {
                 <button
                   type="button"
                   onClick={() => setEditingTeacher(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                  className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
                   {submitting ? 'Saving Changes...' : 'Save Teacher Changes'}
@@ -1065,7 +1320,7 @@ export default function ManageTeachersPage() {
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
                   Academic & Employment Details
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
                     <div className="text-[11px] text-slate-400 font-medium mb-1">Qualification</div>
                     <div className="text-xs font-bold text-slate-800">{selectedTeacher.qualification || 'Not Specified'}</div>
@@ -1074,11 +1329,41 @@ export default function ManageTeachersPage() {
                     <div className="text-[11px] text-slate-400 font-medium mb-1">Experience</div>
                     <div className="text-xs font-bold text-slate-800">{selectedTeacher.experience ? `${selectedTeacher.experience} Years` : 'N/A'}</div>
                   </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                    <div className="text-[11px] text-slate-400 font-medium mb-1">Monthly Salary</div>
-                    <div className="text-xs font-bold text-slate-800">{selectedTeacher.salary ? `₹${parseFloat(selectedTeacher.salary).toLocaleString()}` : 'N/A'}</div>
-                  </div>
                 </div>
+              </div>
+
+              {/* Compensation & Salary Breakdown */}
+              <div>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
+                  Monthly Compensation & Net Payable
+                </h4>
+                {(() => {
+                  const b = Number(selectedTeacher.salary || 50000);
+                  const a = Number(selectedTeacher.allowance || 0);
+                  const gross = b + a;
+                  const ded = Math.round(gross * 0.12);
+                  const net = gross - ded;
+                  return (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                        <div className="text-[11px] text-slate-400 font-medium mb-1">Base Salary</div>
+                        <div className="text-xs font-bold text-slate-900 font-mono">₹{b.toLocaleString('en-IN')}</div>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                        <div className="text-[11px] text-slate-400 font-medium mb-1">Allowance</div>
+                        <div className="text-xs font-bold text-emerald-700 font-mono">+ ₹{a.toLocaleString('en-IN')}</div>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                        <div className="text-[11px] text-slate-400 font-medium mb-1">12% Deduction</div>
+                        <div className="text-xs font-bold text-rose-600 font-mono">- ₹{ded.toLocaleString('en-IN')}</div>
+                      </div>
+                      <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-300">
+                        <div className="text-[11px] text-emerald-800 font-bold mb-1">Net Payable</div>
+                        <div className="text-xs font-bold text-emerald-900 font-mono">₹{net.toLocaleString('en-IN')}</div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Assigned Subjects & Classes */}

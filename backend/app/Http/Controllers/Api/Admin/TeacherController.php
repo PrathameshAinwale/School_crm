@@ -48,11 +48,12 @@ class TeacherController extends Controller
     }
 
     /**
-     * Store a newly created teacher and auto-generate staff login credentials.
+     * Store a newly created teacher/staff member and auto-generate staff login credentials.
      */
     public function store(Request $request)
     {
         $request->validate([
+            'role' => 'nullable|string|in:teacher,hr',
             'first_name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:users,email|unique:teachers,email',
@@ -61,6 +62,7 @@ class TeacherController extends Controller
             'qualification' => 'nullable|string|max:255',
             'experience' => 'nullable|string|max:255',
             'salary' => 'nullable|numeric|min:0',
+            'allowance' => 'nullable|numeric|min:0',
             'joining_date' => 'nullable|date',
             'assigned_subjects' => 'nullable|array',
             'assigned_classes' => 'nullable|array',
@@ -72,6 +74,9 @@ class TeacherController extends Controller
         ]);
 
         return DB::transaction(function () use ($request) {
+            $staffRole = $request->input('role', 'teacher');
+            $isHR = ($staffRole === 'hr');
+
             // If assigning as Class Teacher, unassign any existing teacher for this class/division
             if ($request->filled('class_teacher_class')) {
                 $existingQuery = Teacher::where('class_teacher_class', $request->class_teacher_class);
@@ -84,14 +89,16 @@ class TeacherController extends Controller
                 ]);
             }
 
-            // 1. Generate unique teacher ID if not provided
+            // 1. Generate unique staff ID based on role
             $count = Teacher::count() + 1;
-            $teacherId = 'TCH-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+            $prefix = $isHR ? 'HR-' : 'TCH-';
+            $teacherId = $prefix . str_pad($count, 3, '0', STR_PAD_LEFT);
 
-            // 2. Auto-generate secure random temporary password (e.g. Tch#7kP9x)
-            $generatedPassword = 'Tch#' . Str::random(6) . '!';
+            // 2. Auto-generate secure random temporary password
+            $pwdPrefix = $isHR ? 'Hr#' : 'Tch#';
+            $generatedPassword = $pwdPrefix . Str::random(6) . '!';
 
-            // 3. Create or Restore User account for the teacher with must_change_password = true
+            // 3. Create or Restore User account with designated role ('teacher' or 'hr')
             $fullName = trim($request->first_name . ' ' . $request->last_name);
             $user = User::withTrashed()
                 ->where('email', strtolower($request->email))
@@ -110,7 +117,7 @@ class TeacherController extends Controller
                 $user->email = strtolower($request->email);
                 $user->phone = $request->phone;
                 $user->password = Hash::make($generatedPassword);
-                $user->role = 'teacher';
+                $user->role = $staffRole;
                 $user->must_change_password = true;
                 $user->password_changed_at = null;
                 $user->status = 'active';
@@ -121,14 +128,18 @@ class TeacherController extends Controller
                     'email' => strtolower($request->email),
                     'phone' => $request->phone,
                     'password' => Hash::make($generatedPassword),
-                    'role' => 'teacher',
-                    'must_change_password' => true, // Flagged for first-time login
+                    'role' => $staffRole,
+                    'must_change_password' => true,
                     'password_changed_at' => null,
                     'status' => 'active',
                 ]);
             }
 
-            // 4. Create Teacher profile linked to user
+            // 4. Create Teacher/Staff profile linked to user
+            $baseSalary = (float) ($request->salary ?? ($isHR ? 55000 : 50000));
+            $allowance = (float) ($request->allowance ?? 0);
+            $dept = $request->department ?: ($isHR ? 'Human Resources' : 'General');
+
             $teacher = Teacher::create([
                 'user_id' => $user->id,
                 'teacher_id' => $teacherId,
@@ -139,30 +150,68 @@ class TeacherController extends Controller
                 'gender' => $request->gender,
                 'date_of_birth' => $request->date_of_birth,
                 'joining_date' => $request->joining_date ?? now()->toDateString(),
-                'department' => $request->department,
+                'department' => $dept,
                 'qualification' => $request->qualification,
                 'experience' => $request->experience,
-                'salary' => $request->salary,
-                'assigned_subjects' => $request->assigned_subjects ?? [],
-                'assigned_classes' => $request->assigned_classes ?? [],
-                'class_teacher_class' => $request->class_teacher_class,
-                'class_teacher_division' => $request->class_teacher_division,
+                'salary' => $baseSalary,
+                'allowance' => $allowance,
+                'assigned_subjects' => $isHR ? [] : ($request->assigned_subjects ?? []),
+                'assigned_classes' => $isHR ? [] : ($request->assigned_classes ?? []),
+                'class_teacher_class' => $isHR ? null : $request->class_teacher_class,
+                'class_teacher_division' => $isHR ? null : $request->class_teacher_division,
                 'address' => $request->address,
                 'emergency_contact' => $request->emergency_contact,
                 'status' => $request->status ?? 'Active',
             ]);
 
+            // 5. Create / Sync StaffSalary record for current month
+            $currentMonth = \Carbon\Carbon::now()->format('F Y');
+            $gross = $baseSalary + $allowance;
+            $deduction = round($gross * 0.12, 2); // 12% deduction of base + allowance
+            $net = round($gross - $deduction, 2);
+
+            \App\Models\StaffSalary::updateOrCreate(
+                [
+                    'teacher_id' => $teacher->id,
+                    'month' => $currentMonth,
+                ],
+                [
+                    'employee_id' => $teacherId,
+                    'name' => $fullName,
+                    'role' => $isHR ? 'HR Operations & Talent Manager' : ($dept . ' Faculty'),
+                    'department' => $dept,
+                    'base_salary' => $baseSalary,
+                    'allowance' => $allowance,
+                    'working_days' => 26,
+                    'days_present' => 26,
+                    'paid_leaves' => 0,
+                    'unpaid_leaves' => 0,
+                    'hra' => round($baseSalary * 0.20, 2),
+                    'da' => round($baseSalary * 0.10, 2),
+                    'special_allowance' => $allowance,
+                    'deduction' => $deduction,
+                    'pf_deduction' => $deduction,
+                    'tds_deduction' => 0,
+                    'gross_salary' => $gross,
+                    'net_salary' => $net,
+                    'status' => 'Processed',
+                    'account_no' => '•••• •••• ' . rand(1000, 9999),
+                    'bank_name' => 'HDFC Bank',
+                ]
+            );
+
             return response()->json([
                 'success' => true,
-                'message' => 'Teacher created successfully with auto-generated login credentials.',
+                'message' => ($isHR ? 'HR Staff member' : 'Teacher') . ' created successfully with auto-generated login credentials.',
                 'data' => $teacher->load('user'),
                 'credentials' => [
                     'teacher_id' => $teacherId,
                     'name' => $fullName,
+                    'role' => $staffRole,
                     'email' => strtolower($request->email),
                     'temporary_password' => $generatedPassword,
                     'must_change_password' => true,
-                    'note' => 'Please provide these credentials to the staff member. They will be prompted to change their password on first login.',
+                    'note' => "Credentials issued for {$staffRole} portal access. User will change password on first login.",
                 ],
             ], 201);
         });
@@ -189,6 +238,7 @@ class TeacherController extends Controller
         $teacher = Teacher::findOrFail($id);
 
         $request->validate([
+            'role' => 'nullable|string|in:teacher,hr',
             'first_name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:teachers,email,' . $teacher->id . '|unique:users,email,' . ($teacher->user_id ?? 0),
@@ -197,6 +247,7 @@ class TeacherController extends Controller
             'qualification' => 'nullable|string|max:255',
             'experience' => 'nullable|string|max:255',
             'salary' => 'nullable|numeric|min:0',
+            'allowance' => 'nullable|numeric|min:0',
             'assigned_subjects' => 'nullable|array',
             'assigned_classes' => 'nullable|array',
             'class_teacher_class' => 'nullable|string|max:100',
@@ -223,18 +274,44 @@ class TeacherController extends Controller
             $teacher->update($request->only([
                 'first_name', 'last_name', 'email', 'phone', 'gender',
                 'date_of_birth', 'joining_date', 'department', 'qualification',
-                'experience', 'salary', 'assigned_subjects', 'assigned_classes',
+                'experience', 'salary', 'allowance', 'assigned_subjects', 'assigned_classes',
                 'class_teacher_class', 'class_teacher_division',
                 'address', 'emergency_contact', 'status'
             ]));
 
             if ($teacher->user) {
-                $teacher->user->update([
+                $userUpdates = [
                     'name' => $teacher->full_name,
                     'email' => strtolower($request->email),
                     'phone' => $request->phone,
-                ]);
+                ];
+                if ($request->filled('role')) {
+                    $userUpdates['role'] = $request->role;
+                }
+                $teacher->user->update($userUpdates);
             }
+
+            // Sync updated salary in staff_salaries table
+            $baseSalary = (float) ($teacher->salary ?? 50000);
+            $allowance = (float) ($teacher->allowance ?? 0);
+            $gross = $baseSalary + $allowance;
+            $deduction = round($gross * 0.12, 2);
+            $net = round($gross - $deduction, 2);
+            $currentMonth = \Carbon\Carbon::now()->format('F Y');
+
+            \App\Models\StaffSalary::where('teacher_id', $teacher->id)
+                ->where('status', '!=', 'Disbursed')
+                ->update([
+                    'name' => $teacher->full_name,
+                    'department' => $teacher->department ?: 'Teaching',
+                    'base_salary' => $baseSalary,
+                    'allowance' => $allowance,
+                    'special_allowance' => $allowance,
+                    'deduction' => $deduction,
+                    'pf_deduction' => $deduction,
+                    'gross_salary' => $gross,
+                    'net_salary' => $net,
+                ]);
 
             return response()->json([
                 'success' => true,

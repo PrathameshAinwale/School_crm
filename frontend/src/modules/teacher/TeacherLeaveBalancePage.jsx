@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { adminService } from '../../services/adminService';
 import { LuFileText, LuUmbrella, LuHeart, LuBaby, LuPlus, LuLoader, LuCalendar, LuCheck, LuClock, LuCircleX } from 'react-icons/lu';
 
 export default function TeacherLeaveBalancePage() {
   const navigate = useNavigate();
+  const { currentRole, user } = useAuth();
+  const role = (user?.role || currentRole || '').toLowerCase();
+  const applyLeavePath = role === 'hr' ? '/hr/apply-leave' : '/teacher/apply-leave';
+
   const [loading, setLoading] = useState(true);
   const [leaveTypes, setLeaveTypes] = useState([
     { code: 'CL', type: 'Casual Leave (CL)', total: 12, used: 0, remaining: 12, color: 'text-amber-600', bg: 'bg-amber-50', bar: 'bg-amber-500' },
@@ -48,14 +53,14 @@ export default function TeacherLeaveBalancePage() {
             <LuFileText className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Faculty Leave Balance & Quotas</h1>
+            <h1 className="text-xl font-bold text-gray-900">Staff Leave Balance & Quotas</h1>
             <p className="text-xs text-gray-500 mt-0.5">Overview of annual available, approved and pending leaves</p>
           </div>
         </div>
 
         <button
-          onClick={() => navigate('/teacher/apply-leave')}
-          className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-primary-500/20 self-start sm:self-auto shrink-0"
+          onClick={() => navigate(applyLeavePath)}
+          className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-primary-500/20 self-start sm:self-auto shrink-0 cursor-pointer"
         >
           <LuPlus className="w-4 h-4" />
           Apply for Leave

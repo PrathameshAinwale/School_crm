@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\StudentParent;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\SchoolCalendarEvent;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -76,9 +77,31 @@ class SchoolCalendarController extends Controller
             'description' => $request->description,
         ]);
 
+        $typePrefix = $event->event_type === 'Holiday' ? 'Holiday Announced: ' : ($event->event_type === 'Exam' ? 'Exam Schedule: ' : 'School Calendar: ');
+
+        // 1. Notify Students & Parents
+        Notification::create([
+            'role' => 'student_parent',
+            'title' => $typePrefix . $event->title,
+            'message' => "{$event->event_type} on {$dateLabel} at {$event->venue}. " . ($event->description ?: 'Please check your school calendar.'),
+            'type' => $event->event_type === 'Holiday' ? 'alert' : 'calendar',
+            'link' => '/calendar',
+            'is_read' => false,
+        ]);
+
+        // 2. Notify Teachers
+        Notification::create([
+            'role' => 'teacher',
+            'title' => $typePrefix . $event->title,
+            'message' => "{$event->event_type} on {$dateLabel} at {$event->venue}. " . ($event->description ?: 'Please check your academic calendar.'),
+            'type' => $event->event_type === 'Holiday' ? 'alert' : 'calendar',
+            'link' => '/calendar',
+            'is_read' => false,
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'School calendar event posted successfully.',
+            'message' => 'School calendar event posted successfully and notifications sent.',
             'data' => $event,
         ], 201);
     }

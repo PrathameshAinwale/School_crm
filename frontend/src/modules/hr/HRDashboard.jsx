@@ -109,67 +109,67 @@ export default function HRDashboard() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12 max-w-7xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12 max-w-7xl mx-auto">
       {/* Welcome Banner */}
       <WelcomeCard />
 
       {/* Primary 4 Daily Information Cards */}
       <div>
-        <div className="flex items-center justify-between mb-3.5">
-          <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+        <div className="flex items-center justify-between mb-2.5 sm:mb-3.5">
+          <h2 className="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
             <LuSparkles className="w-4 h-4 text-primary-600" />
             Today's HR Key Priorities
           </h2>
           <button
             onClick={handleRefresh}
-            className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-600 flex items-center gap-1.5 transition-colors"
+            className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-[11px] sm:text-xs font-semibold text-slate-600 flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <LuRefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             Sync Realtime
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           {dailyCards.map((card) => {
             const Icon = card.icon;
             return (
               <div
                 key={card.id}
                 onClick={() => navigate(card.path)}
-                className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs hover:shadow-lg hover:border-emerald-300 hover:-translate-y-1 transition-all cursor-pointer flex flex-col justify-between group relative overflow-hidden"
+                className="bg-white rounded-xl sm:rounded-2xl p-3.5 sm:p-5 border border-gray-200/80 shadow-xs hover:shadow-lg hover:border-emerald-300 hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between group relative overflow-hidden"
               >
                 <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                 <div>
                   {/* Card Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-2xl ${card.iconBg} flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-110 transition-transform`}>
-                      <Icon className="w-6 h-6" />
+                  <div className="flex items-center justify-between mb-2.5 sm:mb-3.5">
+                    <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl ${card.iconBg} flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform`}>
+                      <Icon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                     </div>
-                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${card.badgeColor}`}>
+                    <span className={`text-[10px] sm:text-[11px] font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border ${card.badgeColor}`}>
                       {card.badge}
                     </span>
                   </div>
 
                   {/* Card Title & Highlight */}
-                  <h3 className="text-base font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">
+                  <h3 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">
                     {card.title}
                   </h3>
 
-                  <div className="mt-3 p-3.5 rounded-2xl bg-gray-50/80 border border-gray-100/80 space-y-1">
-                    <p className="text-sm font-bold text-gray-800">{card.highlight}</p>
-                    <p className="text-xs text-gray-500 font-medium">{card.time}</p>
+                  <div className="mt-2.5 p-2.5 sm:p-3 rounded-xl bg-gray-50/80 border border-gray-100/80 space-y-0.5">
+                    <p className="text-xs sm:text-sm font-bold text-gray-800">{card.highlight}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">{card.time}</p>
                   </div>
 
-                  <p className="text-xs text-gray-500 mt-3 font-medium">
+                  <p className="text-[11px] sm:text-xs text-gray-500 mt-2 font-medium line-clamp-2">
                     {card.subtext}
                   </p>
                 </div>
 
                 {/* Card Action Link */}
-                <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-emerald-700 group-hover:text-emerald-800">
+                <div className="mt-3.5 sm:mt-4 pt-2.5 sm:pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] sm:text-xs font-bold text-emerald-700 group-hover:text-emerald-800">
                   <span>{card.actionText}</span>
-                  <LuArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <LuArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             );

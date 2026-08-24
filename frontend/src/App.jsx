@@ -184,8 +184,8 @@ function AppRoutes() {
         <Route path="salary" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Salaries"><StaffSalaryPage /></RoleRoute>} />
         <Route path="salaries" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Salaries"><StaffSalaryPage /></RoleRoute>} />
         <Route path="payroll" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Payroll"><StaffSalaryPage /></RoleRoute>} />
-        <Route path="hr/attendance" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Teacher Attendance"><TeacherAttendancePage /></RoleRoute>} />
-        <Route path="hr/leave-balance" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Leave Balance"><TeacherLeaveBalancePage /></RoleRoute>} />
+        <Route path="hr/attendance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Staff Attendance"><TeacherAttendancePage /></RoleRoute>} />
+        <Route path="hr/leave-balance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Leave Balance"><TeacherLeaveBalancePage /></RoleRoute>} />
         <Route path="hr/apply-leave" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Apply for Leave"><TeacherApplyLeavePage /></RoleRoute>} />
         <Route path="hr/staff-attendance" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Attendance"><StaffAttendancePage /></RoleRoute>} />
         <Route path="hr/staff-leaves" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Leaves"><StaffLeavesPage /></RoleRoute>} />
@@ -204,14 +204,14 @@ function AppRoutes() {
         <Route path="school-resources" element={<RoleRoute allowedRoles={['admin']} moduleName="School Resources"><AdminResourcesPage /></RoleRoute>} />
         <Route path="subjects" element={<Placeholder />} />
 
-        {/* Teacher & Academic Routes */}
+        {/* Teacher & Staff Academic & Self Routes */}
         <Route path="teacher/schedule" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Today's Schedule"><TeacherTodaySchedulePage /></RoleRoute>} />
         <Route path="teacher/timetable" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Create Timetable"><CreateTimetablePage /></RoleRoute>} />
         <Route path="teacher/student-attendance" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Student Attendance"><ClassAttendancePage /></RoleRoute>} />
         <Route path="class-attendance" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Class Attendance"><ClassAttendancePage /></RoleRoute>} />
-        <Route path="teacher/attendance" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Teacher Attendance"><TeacherAttendancePage /></RoleRoute>} />
-        <Route path="teacher/leave-balance" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Leave Balance"><TeacherLeaveBalancePage /></RoleRoute>} />
-        <Route path="teacher/apply-leave" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Apply Leave"><TeacherApplyLeavePage /></RoleRoute>} />
+        <Route path="teacher/attendance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Staff Attendance"><TeacherAttendancePage /></RoleRoute>} />
+        <Route path="teacher/leave-balance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Leave Balance"><TeacherLeaveBalancePage /></RoleRoute>} />
+        <Route path="teacher/apply-leave" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Apply Leave"><TeacherApplyLeavePage /></RoleRoute>} />
         <Route path="student-records" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Student Records"><StudentRecordsPage /></RoleRoute>} />
         <Route path="scoresheet" element={<Placeholder />} />
         <Route path="my-hr" element={<Placeholder />} />

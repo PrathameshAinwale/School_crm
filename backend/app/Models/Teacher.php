@@ -24,6 +24,7 @@ class Teacher extends Model
         'qualification',
         'experience',
         'salary',
+        'allowance',
         'assigned_subjects',
         'assigned_classes',
         'class_teacher_class',
@@ -37,6 +38,7 @@ class Teacher extends Model
         'assigned_subjects' => 'array',
         'assigned_classes' => 'array',
         'salary' => 'decimal:2',
+        'allowance' => 'decimal:2',
         'date_of_birth' => 'date',
         'joining_date' => 'date',
     ];

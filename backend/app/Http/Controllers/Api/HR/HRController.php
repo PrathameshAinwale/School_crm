@@ -272,18 +272,23 @@ class HRController extends Controller
         $dateStr = $request->input('date', Carbon::today()->toDateString());
         $targetDate = Carbon::parse($dateStr)->toDateString();
 
-        $teachers = Teacher::with('user')->get();
+        $teachers = Teacher::with('user')->where('status', '!=', 'Inactive')->orderBy('first_name')->get();
+        if ($teachers->isEmpty()) {
+            $teachers = Teacher::with('user')->orderBy('first_name')->get();
+        }
         if ($teachers->isEmpty()) {
             $teachers = User::where('role', 'teacher')->get();
         }
 
-        $attendances = StaffAttendance::where('date', $targetDate)->get()->keyBy('teacher_id');
+        $attendances = StaffAttendance::whereDate('date', $targetDate)->get()->keyBy('teacher_id');
 
         $staffList = [];
         $presentCount = 0;
         $absentCount = 0;
         $lateCount = 0;
         $leaveCount = 0;
+        $halfDayCount = 0;
+        $notMarkedCount = 0;
 
         foreach ($teachers as $idx => $teacher) {
             $teacherId = $teacher instanceof Teacher ? $teacher->id : ($teacher->id);
@@ -296,37 +301,46 @@ class HRController extends Controller
 
             $att = $attendances->get($teacherId);
 
-            $status = 'Absent';
+            $status = 'Not Marked';
             $clockIn = '—';
             $clockOut = '—';
             $duration = '—';
+            $remarks = '';
 
             if ($att) {
                 $status = $att->status ?: 'Present';
                 $clockIn = $att->check_in_time ? Carbon::parse($att->check_in_time)->format('h:i A') : '—';
                 $clockOut = $att->check_out_time ? Carbon::parse($att->check_out_time)->format('h:i A') : '—';
+                $remarks = $att->remarks ?: '';
 
                 if ($att->check_in_time && $att->check_out_time) {
                     $in = Carbon::parse($targetDate . ' ' . $att->check_in_time);
                     $out = Carbon::parse($targetDate . ' ' . $att->check_out_time);
-                    $hours = $out->diffInMinutes($in) / 60;
+                    $hours = max(0, $out->diffInMinutes($in)) / 60;
                     $duration = number_format($hours, 1) . ' hrs';
                 } elseif ($att->check_in_time) {
                     $duration = 'In Progress';
+                }
+            } else {
+                // If past date and no record, mark as Absent
+                if ($targetDate < Carbon::today()->toDateString()) {
+                    $status = 'Absent';
                 }
             }
 
             if ($status === 'Present') $presentCount++;
             elseif ($status === 'Late') $lateCount++;
+            elseif ($status === 'Half Day') $halfDayCount++;
             elseif ($status === 'Leave' || $status === 'On Leave') $leaveCount++;
-            else $absentCount++;
+            elseif ($status === 'Absent') $absentCount++;
+            else $notMarkedCount++;
 
             $staffList[] = [
                 'id' => $empId,
                 'teacher_id' => $teacherId,
                 'user_id' => $userId,
                 'name' => $name,
-                'role' => 'Teaching Faculty',
+                'role' => ($dept ? $dept . ' Faculty' : 'Teaching Faculty'),
                 'dept' => $dept,
                 'clockIn' => $clockIn,
                 'clockOut' => $clockOut,
@@ -334,12 +348,14 @@ class HRController extends Controller
                 'status' => $status,
                 'phone' => $phone,
                 'email' => $email,
+                'remarks' => $remarks,
                 'rate' => 96,
             ];
         }
 
         $total = count($staffList);
-        $attendanceRate = $total > 0 ? round((($presentCount + $lateCount) / $total) * 100) : 100;
+        $turnout = $presentCount + $lateCount + $halfDayCount;
+        $attendanceRate = $total > 0 ? round(($turnout / $total) * 100) : 100;
 
         return response()->json([
             'success' => true,
@@ -351,9 +367,20 @@ class HRController extends Controller
                     'present' => $presentCount,
                     'absent' => $absentCount,
                     'late' => $lateCount,
+                    'half_day' => $halfDayCount,
                     'leave' => $leaveCount,
+                    'not_marked' => $notMarkedCount,
                     'attendance_rate' => $attendanceRate,
                 ],
+            ],
+            'staff' => $staffList,
+            'summary' => [
+                'total' => $total,
+                'present' => $presentCount,
+                'absent' => $absentCount,
+                'late' => $lateCount,
+                'leave' => $leaveCount,
+                'attendance_rate' => $attendanceRate,
             ],
         ]);
     }
@@ -366,21 +393,33 @@ class HRController extends Controller
         $request->validate([
             'teacher_id' => 'required',
             'date' => 'required|date',
-            'status' => 'required|in:Present,Absent,Late,Half Day,Leave',
+            'status' => 'required|string|in:Present,Absent,Late,Half Day,Leave,On Duty',
         ]);
 
         $teacherId = $request->input('teacher_id');
         $date = Carbon::parse($request->input('date'))->toDateString();
         $status = $request->input('status');
 
+        $checkInTime = null;
+        $checkOutTime = null;
+
+        if (in_array($status, ['Present', 'Late', 'Half Day', 'On Duty'])) {
+            $checkInTime = $request->input('check_in_time', ($status === 'Late' ? '08:45:00' : '08:00:00'));
+        }
+        if ($status === 'Present' || $status === 'On Duty') {
+            $checkOutTime = $request->input('check_out_time', '16:00:00');
+        } elseif ($status === 'Half Day') {
+            $checkOutTime = $request->input('check_out_time', '12:30:00');
+        }
+
         $record = StaffAttendance::updateOrCreate(
             ['teacher_id' => $teacherId, 'date' => $date],
             [
                 'status' => $status,
-                'check_in_time' => $status === 'Present' || $status === 'Late' ? ($request->input('check_in_time', '08:00:00')) : null,
-                'check_out_time' => $status === 'Present' ? ($request->input('check_out_time', '16:00:00')) : null,
+                'check_in_time' => $checkInTime,
+                'check_out_time' => $checkOutTime,
                 'marked_by' => $request->user() ? $request->user()->id : null,
-                'remarks' => $request->input('remarks', 'Updated by HR Admin'),
+                'remarks' => $request->input('remarks', "Marked as {$status} by HR Admin"),
             ]
         );
 
@@ -398,54 +437,61 @@ class HRController extends Controller
     {
         $month = $request->input('month', Carbon::now()->format('F Y'));
 
-        $records = StaffSalary::where('month', $month)->get();
+        $teachers = Teacher::where('status', '!=', 'Inactive')->orderBy('first_name')->get();
+        if ($teachers->isEmpty()) {
+            $teachers = Teacher::orderBy('first_name')->get();
+        }
 
-        // If no records for this month, auto-initialize from Teachers directory
-        if ($records->isEmpty()) {
-            $teachers = Teacher::all();
-            if ($teachers->isEmpty()) {
-                $teachers = User::where('role', 'teacher')->get();
-            }
+        // Dynamically sync / initialize salary records for each teacher for this month
+        foreach ($teachers as $idx => $t) {
+            $baseSalary = (float) ($t->salary ?? 50000);
+            $allowance = (float) ($t->allowance ?? 0);
+            $gross = $baseSalary + $allowance;
+            $deduction = round($gross * 0.12, 2); // 12% statutory deduction of (base + allowance)
+            $net = round($gross - $deduction, 2);
 
-            foreach ($teachers as $idx => $t) {
-                $teacherId = $t instanceof Teacher ? $t->id : $t->id;
-                $name = $t instanceof Teacher ? $t->full_name : $t->name;
-                $empId = $t instanceof Teacher ? ($t->teacher_id ?: 'EMP-10' . ($idx + 1)) : 'EMP-10' . ($idx + 1);
-                $dept = $t instanceof Teacher ? ($t->department ?: 'Teaching') : 'Teaching';
-                $role = 'PGT ' . ($dept === 'Teaching' ? 'Senior Faculty' : $dept);
+            $existing = StaffSalary::where('teacher_id', $t->id)
+                ->where('month', $month)
+                ->first();
 
-                $baseSalary = 50000 + ($idx * 5000);
-                $workingDays = 26;
-                $daysPresent = 25;
-                $paidLeaves = 1;
-                $unpaidLeaves = 0;
-
-                $hra = round($baseSalary * 0.20);
-                $da = round($baseSalary * 0.12);
-                $special = 4000;
-                $pf = round($baseSalary * 0.07);
-                $tds = round($baseSalary * 0.05);
-
-                $gross = $baseSalary + $hra + $da + $special;
-                $net = $gross - $pf - $tds;
-
+            if ($existing) {
+                // If not yet disbursed, ensure base salary & allowance and 12% deduction stay synchronized
+                if ($existing->status !== 'Disbursed') {
+                    $existing->update([
+                        'employee_id' => $t->teacher_id ?: ('TCH-' . str_pad($t->id, 3, '0', STR_PAD_LEFT)),
+                        'name' => $t->full_name,
+                        'role' => ($t->department ? $t->department . ' Faculty' : 'Teaching Faculty'),
+                        'department' => $t->department ?: 'Teaching',
+                        'base_salary' => $baseSalary,
+                        'allowance' => $allowance,
+                        'special_allowance' => $allowance,
+                        'deduction' => $deduction,
+                        'pf_deduction' => $deduction,
+                        'gross_salary' => $gross,
+                        'net_salary' => $net,
+                    ]);
+                }
+            } else {
                 StaffSalary::create([
-                    'teacher_id' => $teacherId,
-                    'employee_id' => $empId,
-                    'name' => $name,
-                    'role' => $role,
-                    'department' => $dept,
+                    'teacher_id' => $t->id,
+                    'employee_id' => $t->teacher_id ?: ('TCH-' . str_pad($t->id, 3, '0', STR_PAD_LEFT)),
+                    'name' => $t->full_name,
+                    'role' => ($t->department ? $t->department . ' Faculty' : 'Teaching Faculty'),
+                    'department' => $t->department ?: 'Teaching',
                     'month' => $month,
                     'base_salary' => $baseSalary,
-                    'working_days' => $workingDays,
-                    'days_present' => $daysPresent,
-                    'paid_leaves' => $paidLeaves,
-                    'unpaid_leaves' => $unpaidLeaves,
-                    'hra' => $hra,
-                    'da' => $da,
-                    'special_allowance' => $special,
-                    'pf_deduction' => $pf,
-                    'tds_deduction' => $tds,
+                    'allowance' => $allowance,
+                    'working_days' => 26,
+                    'days_present' => 26,
+                    'paid_leaves' => 0,
+                    'unpaid_leaves' => 0,
+                    'hra' => round($baseSalary * 0.20, 2),
+                    'da' => round($baseSalary * 0.10, 2),
+                    'special_allowance' => $allowance,
+                    'deduction' => $deduction,
+                    'pf_deduction' => $deduction,
+                    'tds_deduction' => 0.00,
+                    'unpaid_leave_deduction' => 0.00,
                     'gross_salary' => $gross,
                     'net_salary' => $net,
                     'status' => 'Processed',
@@ -453,27 +499,38 @@ class HRController extends Controller
                     'bank_name' => 'HDFC Bank',
                 ]);
             }
-
-            $records = StaffSalary::where('month', $month)->get();
         }
 
+        $records = StaffSalary::where('month', $month)->get();
+
         $mapped = $records->map(function ($s) {
+            $base = (float) $s->base_salary;
+            $allowance = (float) ($s->allowance ?: $s->special_allowance ?: 0);
+            $gross = $base + $allowance;
+            $deduction = (float) ($s->deduction ?: round($gross * 0.12, 2));
+            $net = (float) ($s->net_salary ?: ($gross - $deduction));
+
             return [
-                'id' => $s->employee_id ?: 'EMP-' . $s->id,
+                'id' => $s->employee_id ?: ('EMP-' . $s->id),
                 'db_id' => $s->id,
+                'teacher_id' => $s->teacher_id,
                 'name' => $s->name,
                 'role' => $s->role,
                 'dept' => $s->department,
-                'baseSalary' => (float) $s->base_salary,
-                'workingDays' => (int) $s->working_days,
-                'daysPresent' => (int) $s->days_present,
-                'paidLeaves' => (int) $s->paid_leaves,
-                'unpaidLeaves' => (int) $s->unpaid_leaves,
+                'baseSalary' => $base,
+                'allowance' => $allowance,
+                'specialAllowance' => $allowance,
+                'workingDays' => (int) ($s->working_days ?: 26),
+                'daysPresent' => (int) ($s->days_present ?: 26),
+                'paidLeaves' => (int) ($s->paid_leaves ?: 0),
+                'unpaidLeaves' => (int) ($s->unpaid_leaves ?: 0),
                 'hra' => (float) $s->hra,
                 'da' => (float) $s->da,
-                'specialAllowance' => (float) $s->special_allowance,
-                'pfDeduction' => (float) $s->pf_deduction,
+                'deduction' => $deduction,
+                'pfDeduction' => $deduction,
                 'tdsDeduction' => (float) $s->tds_deduction,
+                'grossSalary' => $gross,
+                'netSalary' => $net,
                 'status' => $s->status ?: 'Processed',
                 'accountNo' => $s->account_no ?: '•••• •••• 4589',
                 'bankName' => $s->bank_name ?: 'HDFC Bank',
@@ -481,7 +538,9 @@ class HRController extends Controller
             ];
         });
 
-        $totalPayroll = $records->sum('net_salary');
+        $totalNetPayroll = $records->sum('net_salary');
+        $totalGrossPayroll = $records->sum('gross_salary');
+        $totalDeductions = $records->sum('deduction');
         $disbursedCount = $records->where('status', 'Disbursed')->count();
 
         return response()->json([
@@ -491,7 +550,9 @@ class HRController extends Controller
                 'salaries' => $mapped,
                 'summary' => [
                     'total_count' => $records->count(),
-                    'total_amount' => $totalPayroll,
+                    'total_amount' => $totalNetPayroll,
+                    'total_gross' => $totalGrossPayroll,
+                    'total_deductions' => $totalDeductions,
                     'disbursed_count' => $disbursedCount,
                     'pending_count' => $records->where('status', '!=', 'Disbursed')->count(),
                 ],
@@ -605,9 +666,19 @@ class HRController extends Controller
             'description' => $request->input('description'),
         ]);
 
+        // Dispatch notification to all Teachers
+        Notification::create([
+            'role' => 'teacher',
+            'title' => 'New Faculty Training: ' . $training->title,
+            'message' => "Upcoming {$training->category} training workshop on " . Carbon::parse($training->date)->format('d M Y') . " at {$training->venue} ({$training->time_slot}). Trainer: {$training->trainer_name}.",
+            'type' => 'training',
+            'link' => '/school-events',
+            'is_read' => false,
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'Faculty training workshop created successfully.',
+            'message' => 'Faculty training workshop created successfully and notified to teachers.',
             'data' => $training,
         ]);
     }
@@ -694,23 +765,49 @@ class HRController extends Controller
             'description' => 'nullable|string',
         ]);
 
+        $dateFormatted = Carbon::parse($request->input('date'))->format('d M Y');
+        $dateStr = Carbon::parse($request->input('date'))->toDateString();
+        $venue = $request->input('venue', 'Main Auditorium');
+        $timeSlot = $request->input('time', '09:00 AM - 01:00 PM');
+        $audience = $request->input('audience', 'Students & Faculty');
+
         $event = SchoolCalendarEvent::create([
             'title' => $request->input('title'),
             'event_type' => $request->input('category'),
             'category' => $request->input('category'),
-            'date_label' => Carbon::parse($request->input('date'))->format('d M Y'),
-            'start_date' => Carbon::parse($request->input('date'))->toDateString(),
-            'time_slot' => $request->input('time', '09:00 AM - 01:00 PM'),
-            'venue' => $request->input('venue', 'Main Auditorium'),
-            'audience' => $request->input('audience', 'Students & Faculty'),
+            'date_label' => $dateFormatted,
+            'start_date' => $dateStr,
+            'time_slot' => $timeSlot,
+            'venue' => $venue,
+            'audience' => $audience,
             'coordinator' => $request->input('coordinator', 'HR Management'),
             'status' => 'Upcoming',
             'description' => $request->input('description'),
         ]);
 
+        // 1. Notify Teachers
+        Notification::create([
+            'role' => 'teacher',
+            'title' => 'New School Event: ' . $event->title,
+            'message' => "Event on {$dateFormatted} at {$venue} ({$timeSlot}). Audience: {$audience}.",
+            'type' => 'event',
+            'link' => '/school-events',
+            'is_read' => false,
+        ]);
+
+        // 2. Notify Students & Parents
+        Notification::create([
+            'role' => 'student_parent',
+            'title' => 'Upcoming School Event: ' . $event->title,
+            'message' => "Event on {$dateFormatted} at {$venue} ({$timeSlot}). All students and parents are invited.",
+            'type' => 'event',
+            'link' => '/calendar',
+            'is_read' => false,
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'School calendar event created successfully.',
+            'message' => 'School calendar event created and notified to teachers and parents.',
             'data' => $event,
         ]);
     }

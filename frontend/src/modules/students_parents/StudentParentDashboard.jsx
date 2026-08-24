@@ -153,95 +153,26 @@ export default function StudentParentDashboard() {
       {/* Welcome Banner */}
       <WelcomeCard />
 
-      {/* Main KPI Row: Auto-Swipeable Carousel on Mobile, Grid on Desktop */}
-      <div className="relative">
-        {/* Mobile View: Swipeable + Auto-sliding Container */}
-        <div
-          className="sm:hidden overflow-hidden rounded-2xl"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-        >
+      {/* Main KPI Row: Compact 2-Col on Mobile, 4-Col on Desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        {statsData.map((stat, i) => (
           <div
-            className="flex transition-transform duration-500 ease-out"
-            style={{ transform: `translateX(-${activeKpiIndex * 100}%)` }}
+            key={stat.label + i}
+            onClick={() => handleKpiClick(i)}
+            className="cursor-pointer group block"
           >
-            {statsData.map((stat, i) => (
-              <div
-                key={stat.label + i}
-                onClick={() => handleKpiClick(i)}
-                className="w-full shrink-0 px-0.5 cursor-pointer"
-              >
-                <div className="relative transition-transform duration-200">
-                  <StatCard
-                    label={stat.label}
-                    value={stat.value}
-                    trend={stat.trend}
-                    trendUp={stat.trendUp}
-                    icon={statIcons[i % statIcons.length]}
-                    color={statColors[i % statColors.length]}
-                  />
-                  {stat.sub && (
-                    <div className="px-4 py-2.5 -mt-2 bg-white rounded-b-xl border-x border-b border-gray-100 text-[11px] text-gray-500 font-medium flex items-center justify-between shadow-xs">
-                      <span className="truncate">{stat.sub}</span>
-                      <LuArrowUpRight className="w-3.5 h-3.5 text-primary-600 shrink-0 ml-1" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Mobile Carousel Indicators */}
-          <div className="flex items-center justify-center gap-2 mt-2.5">
-            {statsData.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => {
-                  setActiveKpiIndex(idx);
-                  setIsPaused(true);
-                  setTimeout(() => setIsPaused(false), 3000);
-                }}
-                className={`transition-all rounded-full ${
-                  activeKpiIndex === idx
-                    ? 'w-6 h-2 bg-primary-600'
-                    : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'
-                }`}
-                aria-label={`Go to slide ${idx + 1}`}
+            <div className="relative transition-transform duration-200 group-hover:-translate-y-0.5 h-full">
+              <StatCard
+                label={stat.label}
+                value={stat.value}
+                trend={stat.trend}
+                trendUp={stat.trendUp}
+                icon={statIcons[i % statIcons.length]}
+                color={statColors[i % statColors.length]}
               />
-            ))}
-          </div>
-        </div>
-
-        {/* Desktop / Tablet View */}
-        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {statsData.map((stat, i) => (
-            <div
-              key={stat.label + i}
-              onClick={() => handleKpiClick(i)}
-              className="cursor-pointer group"
-            >
-              <div className="relative transition-transform duration-200 group-hover:-translate-y-0.5">
-                <StatCard
-                  label={stat.label}
-                  value={stat.value}
-                  trend={stat.trend}
-                  trendUp={stat.trendUp}
-                  icon={statIcons[i % statIcons.length]}
-                  color={statColors[i % statColors.length]}
-                />
-                {stat.sub && (
-                  <div className="px-5 pb-3 -mt-2 bg-white rounded-b-xl border-x border-b border-gray-100 text-xs text-gray-500 font-medium flex items-center justify-between">
-                    <span>{stat.sub}</span>
-                    <LuArrowUpRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-primary-600 transition-colors" />
-                  </div>
-                )}
-              </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       {/* Grid: 1. Syllabus & 2. School Calendar */}

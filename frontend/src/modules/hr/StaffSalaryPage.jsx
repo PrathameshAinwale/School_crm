@@ -20,134 +20,33 @@ import {
   LuSparkles,
   LuRefreshCw,
   LuLoader,
+  LuDollarSign,
+  LuPercent,
 } from 'react-icons/lu';
 
-const INITIAL_SALARY_RECORDS = [
-  {
-    id: 'EMP-101',
-    name: 'Dr. Ananya Sen',
-    role: 'PGT Mathematics',
-    dept: 'Teaching',
-    baseSalary: 65000,
-    workingDays: 26,
-    daysPresent: 25,
-    paidLeaves: 1,
-    unpaidLeaves: 0,
-    hra: 12000,
-    da: 8000,
-    specialAllowance: 5000,
-    pfDeduction: 4500,
-    tdsDeduction: 3500,
-    status: 'Disbursed',
-    accountNo: '•••• •••• 4589',
-    bankName: 'HDFC Bank',
-  },
-  {
-    id: 'EMP-102',
-    name: 'Mr. Vikram Rathore',
-    role: 'PGT Physics & Science',
-    dept: 'Teaching',
-    baseSalary: 62000,
-    workingDays: 26,
-    daysPresent: 24,
-    paidLeaves: 2,
-    unpaidLeaves: 0,
-    hra: 11000,
-    da: 7500,
-    specialAllowance: 4500,
-    pfDeduction: 4200,
-    tdsDeduction: 3000,
-    status: 'Disbursed',
-    accountNo: '•••• •••• 8821',
-    bankName: 'State Bank of India',
-  },
-  {
-    id: 'EMP-103',
-    name: 'Ms. Sunita Rao',
-    role: 'TGT English Language',
-    dept: 'Teaching',
-    baseSalary: 52000,
-    workingDays: 26,
-    daysPresent: 26,
-    paidLeaves: 0,
-    unpaidLeaves: 0,
-    hra: 10000,
-    da: 6500,
-    specialAllowance: 4000,
-    pfDeduction: 3800,
-    tdsDeduction: 2500,
-    status: 'Disbursed',
-    accountNo: '•••• •••• 1045',
-    bankName: 'ICICI Bank',
-  },
-  {
-    id: 'EMP-104',
-    name: 'Mr. Manoj Joshi',
-    role: 'TGT Social Science',
-    dept: 'Teaching',
-    baseSalary: 50000,
-    workingDays: 26,
-    daysPresent: 22,
-    paidLeaves: 1,
-    unpaidLeaves: 3,
-    hra: 9000,
-    da: 5500,
-    specialAllowance: 3000,
-    pfDeduction: 3600,
-    tdsDeduction: 1800,
-    status: 'Processed',
-    accountNo: '•••• •••• 3411',
-    bankName: 'Axis Bank',
-  },
-  {
-    id: 'EMP-105',
-    name: 'Mrs. Deepa Krishnan',
-    role: 'Head of Computer Science & AI',
-    dept: 'Teaching',
-    baseSalary: 70000,
-    workingDays: 26,
-    daysPresent: 26,
-    paidLeaves: 0,
-    unpaidLeaves: 0,
-    hra: 14000,
-    da: 9000,
-    specialAllowance: 6000,
-    pfDeduction: 5000,
-    tdsDeduction: 4500,
-    status: 'Disbursed',
-    accountNo: '•••• •••• 1204',
-    bankName: 'HDFC Bank',
-  },
-  {
-    id: 'EMP-106',
-    name: 'Mr. Rajesh Sharma',
-    role: 'Senior Admin Officer',
-    dept: 'Administration',
-    baseSalary: 48000,
-    workingDays: 26,
-    daysPresent: 25,
-    paidLeaves: 1,
-    unpaidLeaves: 0,
-    hra: 9000,
-    da: 6000,
-    specialAllowance: 3500,
-    pfDeduction: 3500,
-    tdsDeduction: 2000,
-    status: 'Disbursed',
-    accountNo: '•••• •••• 6712',
-    bankName: 'Axis Bank',
-  },
-];
+// Helper to generate selectable month cycles
+const getAvailableMonths = () => {
+  const months = [];
+  const now = new Date();
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    months.push(label);
+  }
+  return months;
+};
 
 export default function StaffSalaryPage() {
-  const [selectedMonth, setSelectedMonth] = useState('August 2026');
+  const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthName);
+  const [availableMonths] = useState(getAvailableMonths());
   const [searchQuery, setSearchQuery] = useState('');
   const [deptFilter, setDeptFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedSlip, setSelectedSlip] = useState(null);
   const [disburseSuccess, setDisburseSuccess] = useState(false);
   const [disburseMsg, setDisburseMsg] = useState('');
-  const [records, setRecords] = useState(INITIAL_SALARY_RECORDS);
+  const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [summaryData, setSummaryData] = useState(null);
 
@@ -156,14 +55,17 @@ export default function StaffSalaryPage() {
     try {
       const res = await hrService.getStaffSalaries({ month: selectedMonth });
       const salaryList = res?.data?.salaries || res?.salaries || res?.data?.records;
-      if (salaryList && Array.isArray(salaryList) && salaryList.length > 0) {
+      if (salaryList && Array.isArray(salaryList)) {
         setRecords(salaryList);
         if (res.data?.summary) {
           setSummaryData(res.data.summary);
         }
+      } else {
+        setRecords([]);
       }
     } catch (err) {
-      console.log('Error loading salary records:', err);
+      console.error('Error loading salary records:', err);
+      setRecords([]);
     } finally {
       setLoading(false);
     }
@@ -173,30 +75,23 @@ export default function StaffSalaryPage() {
     fetchSalaries();
   }, [selectedMonth]);
 
-  // Helper calculations for an employee
-  const calculateSalary = (staff) => {
-    const dailyRate = Math.round(staff.baseSalary / (staff.workingDays || 26));
-    const payableDays = (staff.daysPresent || 0) + (staff.paidLeaves || 0);
-    
-    // Pro-rated basic pay based on days worked
-    const earnedBasic = Math.round(dailyRate * payableDays);
-    const grossEarnings = staff.grossSalary || (earnedBasic + (staff.hra || 0) + (staff.da || 0) + (staff.specialAllowance || 0));
-    
-    // Deductions
-    const lopDays = Math.max(0, (staff.workingDays || 26) - payableDays);
-    const lopDeduction = staff.unpaidLeaveDeduction || (lopDays * dailyRate);
-    const totalDeductions = (staff.pfDeduction || 0) + (staff.tdsDeduction || 0) + lopDeduction;
-    const netSalary = Math.max(0, grossEarnings - totalDeductions);
+  // Exact Calculation logic based on user specifications:
+  // Gross = Base + Allowance
+  // Deduction = 12% of (Base + Allowance)
+  // Net Payable = Gross - Deduction
+  const computeStaffPay = (staff) => {
+    const base = Number(staff.baseSalary || 0);
+    const allowance = Number(staff.allowance !== undefined ? staff.allowance : (staff.specialAllowance || 0));
+    const gross = base + allowance;
+    const deduction = Math.round(gross * 0.12);
+    const net = gross - deduction;
 
     return {
-      dailyRate,
-      payableDays,
-      lopDays,
-      earnedBasic,
-      grossEarnings,
-      lopDeduction,
-      totalDeductions,
-      netSalary,
+      base,
+      allowance,
+      gross,
+      deduction,
+      net,
     };
   };
 
@@ -228,22 +123,32 @@ export default function StaffSalaryPage() {
   };
 
   const filteredRecords = records.filter((s) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.role.toLowerCase().includes(searchQuery.toLowerCase());
+      (s.name || '').toLowerCase().includes(q) ||
+      (s.id || '').toLowerCase().includes(q) ||
+      (s.role || '').toLowerCase().includes(q) ||
+      (s.dept || '').toLowerCase().includes(q);
 
-    const matchesDept = deptFilter === 'ALL' || s.dept === deptFilter;
+    const matchesDept = deptFilter === 'ALL' || (s.dept || '').toLowerCase() === deptFilter.toLowerCase();
     const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
 
     return matchesSearch && matchesDept && matchesStatus;
   });
 
-  // Overall totals calculation
-  let totalDisbursedAmount = 0;
+  // KPI calculations
+  let totalNetPayroll = 0;
+  let totalGrossPayroll = 0;
+  let totalDeductions = 0;
+
   records.forEach((s) => {
-    totalDisbursedAmount += (s.netSalary || calculateSalary(s).netSalary);
+    const c = computeStaffPay(s);
+    totalNetPayroll += c.net;
+    totalGrossPayroll += c.gross;
+    totalDeductions += c.deduction;
   });
+
+  const disbursedCount = records.filter((r) => r.status === 'Disbursed').length;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fade-in">
@@ -269,13 +174,10 @@ export default function StaffSalaryPage() {
             </div>
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl font-bold text-gray-900">Staff Salary & Payroll Calculation</h1>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                  Attendance-Based Payroll
-                </span>
+                <h1 className="text-xl font-bold text-gray-900">Staff Salary & Payroll Registry</h1>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Calculates teacher compensation based on actual days worked, allowances, and statutory deductions
+                Real-time salary calculation with base compensation, allowances, and statutory 12% deductions
               </p>
             </div>
           </div>
@@ -283,20 +185,31 @@ export default function StaffSalaryPage() {
           {/* Month Selector & Batch Actions */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-500">Payroll Cycle:</span>
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="h-10 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all cursor-pointer"
+                className="h-10 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all cursor-pointer font-mono"
               >
-                <option value="August 2026">Cycle: August 2026</option>
-                <option value="July 2026">Cycle: July 2026</option>
-                <option value="June 2026">Cycle: June 2026</option>
+                {availableMonths.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
               </select>
             </div>
 
             <button
+              onClick={fetchSalaries}
+              title="Refresh Salary Calculation"
+              className="p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-emerald-600 transition-colors cursor-pointer"
+            >
+              <LuRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+
+            <button
               onClick={handleDisburseBatch}
-              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
             >
               <LuCalculator className="w-4 h-4" /> Disburse Batch
             </button>
@@ -305,47 +218,47 @@ export default function StaffSalaryPage() {
       </div>
 
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <LuBanknote className="w-5 h-5" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
+        <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <LuBanknote className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <p className="text-[11px] font-semibold text-gray-500">Total Net Payroll</p>
-            <p className="text-xl font-bold text-gray-900 leading-tight">₹{totalDisbursedAmount.toLocaleString('en-IN')}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <LuUsers className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold text-gray-500">Staff Count</p>
-            <p className="text-xl font-bold text-gray-900 leading-tight">{records.length} Active</p>
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-semibold text-gray-500 truncate">Total Net Payroll</p>
+            <p className="text-sm sm:text-xl font-bold text-gray-900 leading-tight truncate">₹{totalNetPayroll.toLocaleString('en-IN')}</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-            <LuBuilding2 className="w-5 h-5" />
+        <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <LuUsers className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <p className="text-[11px] font-semibold text-gray-500">Avg Monthly Pay</p>
-            <p className="text-xl font-bold text-gray-900 leading-tight">
-              ₹{records.length > 0 ? Math.round(totalDisbursedAmount / records.length).toLocaleString('en-IN') : 0}
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-semibold text-gray-500 truncate">Staff Enrolled</p>
+            <p className="text-sm sm:text-xl font-bold text-gray-900 leading-tight truncate">{records.length} Staff</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+            <LuPercent className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-semibold text-gray-500 truncate">12% Deductions</p>
+            <p className="text-sm sm:text-xl font-bold text-purple-700 leading-tight truncate">
+              ₹{totalDeductions.toLocaleString('en-IN')}
             </p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <LuSparkles className="w-5 h-5" />
+        <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <LuSparkles className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <p className="text-[11px] font-semibold text-gray-500">Disbursed Ratio</p>
-            <p className="text-xl font-bold text-gray-900 leading-tight">
-              {records.filter((r) => r.status === 'Disbursed').length} / {records.length} Paid
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-semibold text-gray-500 truncate">Disbursed</p>
+            <p className="text-sm sm:text-xl font-bold text-gray-900 leading-tight truncate">
+              {disbursedCount} / {records.length} Paid
             </p>
           </div>
         </div>
@@ -360,24 +273,25 @@ export default function StaffSalaryPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search faculty name, ID or role..."
+            placeholder="Search staff name, ID or department..."
             className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all font-medium"
           />
         </div>
 
         {/* Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-          {['ALL', 'Teaching', 'Administration', 'Primary Wing', 'Sports'].map((dept) => (
+          <span className="text-xs font-bold text-gray-400 mr-1 hidden sm:inline">Status:</span>
+          {['ALL', 'Disbursed', 'Processed'].map((st) => (
             <button
-              key={dept}
-              onClick={() => setDeptFilter(dept)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                deptFilter === dept
-                  ? 'bg-emerald-600 text-white shadow-xs'
+              key={st}
+              onClick={() => setStatusFilter(st)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                statusFilter === st
+                  ? 'bg-gray-900 text-white shadow-xs'
                   : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
               }`}
             >
-              {dept === 'ALL' ? 'All Depts' : dept}
+              {st === 'ALL' ? 'All Status' : st}
             </button>
           ))}
         </div>
@@ -386,33 +300,39 @@ export default function StaffSalaryPage() {
       {/* Staff Salary Table */}
       <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[900px]">
+          <table className="w-full text-left border-collapse min-w-[950px]">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                <th className="py-3.5 px-5">Employee / Faculty</th>
-                <th className="py-3.5 px-5">Base Monthly</th>
-                <th className="py-3.5 px-5 text-center">Days Worked</th>
-                <th className="py-3.5 px-5">Allowances</th>
-                <th className="py-3.5 px-5">Deductions</th>
+                <th className="py-3.5 px-5">Staff Member</th>
+                <th className="py-3.5 px-5">Department</th>
+                <th className="py-3.5 px-5">Base Salary</th>
+                <th className="py-3.5 px-5">Allowance</th>
+                <th className="py-3.5 px-5">Gross Total</th>
+                <th className="py-3.5 px-5">12% Deduction</th>
                 <th className="py-3.5 px-5">Net Payable</th>
                 <th className="py-3.5 px-5 text-center">Status</th>
-                <th className="py-3.5 px-5 text-right">Payslip</th>
+                <th className="py-3.5 px-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredRecords.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan="9" className="py-16 text-center text-sm text-gray-400">
+                    <LuLoader className="w-7 h-7 animate-spin text-emerald-600 mx-auto mb-2" />
+                    <p className="text-xs text-gray-500 font-medium">Calculating dynamic staff salaries & deductions...</p>
+                  </td>
+                </tr>
+              ) : filteredRecords.length > 0 ? (
                 filteredRecords.map((staff) => {
-                  const calc = calculateSalary(staff);
-                  const totalAllowances = (staff.hra || 0) + (staff.da || 0) + (staff.specialAllowance || 0);
-                  const totalDeducts = (staff.pfDeduction || 0) + (staff.tdsDeduction || 0);
+                  const pay = computeStaffPay(staff);
 
                   return (
-                    <tr key={staff.id} className="hover:bg-gray-50/60 transition-colors group">
+                    <tr key={staff.id || staff.db_id} className="hover:bg-gray-50/60 transition-colors group">
                       {/* Name & Role */}
                       <td className="py-3.5 px-5">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold shrink-0">
-                            {staff.name.split(' ').map((n) => n[0]).join('')}
+                            {(staff.name || 'S').split(' ').map((n) => n[0]).join('')}
                           </div>
                           <div>
                             <p className="text-xs font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">
@@ -425,44 +345,47 @@ export default function StaffSalaryPage() {
                         </div>
                       </td>
 
+                      {/* Department */}
+                      <td className="py-3.5 px-5">
+                        <span className="px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 text-xs font-semibold">
+                          {staff.dept || 'Teaching'}
+                        </span>
+                      </td>
+
                       {/* Base Salary */}
                       <td className="py-3.5 px-5">
-                        <p className="text-xs font-bold text-gray-900">₹{Number(staff.baseSalary).toLocaleString('en-IN')}</p>
-                        <p className="text-[10px] text-gray-400">₹{calc.dailyRate}/day</p>
+                        <p className="text-xs font-bold text-gray-900 font-mono">₹{pay.base.toLocaleString('en-IN')}</p>
                       </td>
 
-                      {/* Days Worked (Attendance Breakdown) */}
-                      <td className="py-3.5 px-5 text-center">
-                        <div className="inline-flex flex-col items-center">
-                          <span className="text-xs font-bold text-gray-800">
-                            {calc.payableDays} / {staff.workingDays || 26} Days
+                      {/* Allowance */}
+                      <td className="py-3.5 px-5">
+                        <span className="text-xs font-bold text-emerald-700 font-mono">
+                          + ₹{pay.allowance.toLocaleString('en-IN')}
+                        </span>
+                      </td>
+
+                      {/* Gross Total */}
+                      <td className="py-3.5 px-5">
+                        <span className="text-xs font-bold text-gray-800 font-mono">
+                          ₹{pay.gross.toLocaleString('en-IN')}
+                        </span>
+                      </td>
+
+                      {/* 12% Statutory Deduction */}
+                      <td className="py-3.5 px-5">
+                        <div>
+                          <span className="text-xs font-bold text-rose-600 font-mono">
+                            - ₹{pay.deduction.toLocaleString('en-IN')}
                           </span>
-                          <span className="text-[10px] text-gray-400">
-                            {staff.daysPresent} Present • {staff.paidLeaves} Leave {staff.unpaidLeaves > 0 && `• ${staff.unpaidLeaves} LWP`}
-                          </span>
+                          <p className="text-[10px] text-gray-400">12% PF / Statutory</p>
                         </div>
-                      </td>
-
-                      {/* Allowances */}
-                      <td className="py-3.5 px-5">
-                        <span className="text-xs font-bold text-emerald-600">
-                          + ₹{totalAllowances.toLocaleString('en-IN')}
-                        </span>
-                        <p className="text-[10px] text-gray-400">HRA, DA & Special</p>
-                      </td>
-
-                      {/* Deductions */}
-                      <td className="py-3.5 px-5">
-                        <span className="text-xs font-bold text-red-600">
-                          - ₹{totalDeducts.toLocaleString('en-IN')}
-                        </span>
-                        <p className="text-[10px] text-gray-400">PF & TDS Deductions</p>
                       </td>
 
                       {/* Net Payable */}
                       <td className="py-3.5 px-5">
-                        <p className="text-sm font-extrabold text-gray-900">₹{calc.netSalary.toLocaleString('en-IN')}</p>
-                        <p className="text-[10px] text-gray-400 font-mono">{staff.accountNo}</p>
+                        <div className="bg-emerald-50/70 border border-emerald-200 px-3 py-1.5 rounded-xl inline-block">
+                          <p className="text-xs font-black text-emerald-900 font-mono">₹{pay.net.toLocaleString('en-IN')}</p>
+                        </div>
                       </td>
 
                       {/* Status */}
@@ -474,7 +397,7 @@ export default function StaffSalaryPage() {
                         ) : (
                           <button
                             onClick={() => handleSingleDisburse(staff.id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
                           >
                             Mark Disbursed
                           </button>
@@ -485,7 +408,7 @@ export default function StaffSalaryPage() {
                       <td className="py-3.5 px-5 text-right">
                         <button
                           onClick={() => setSelectedSlip(staff)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 text-xs font-bold transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 text-xs font-bold transition-colors cursor-pointer"
                         >
                           <LuEye className="w-3.5 h-3.5" /> View Slip
                         </button>
@@ -495,7 +418,7 @@ export default function StaffSalaryPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan="8" className="py-12 text-center text-xs text-gray-400">
+                  <td colSpan="9" className="py-12 text-center text-xs text-gray-400">
                     No payroll records matching your query.
                   </td>
                 </tr>
@@ -506,112 +429,108 @@ export default function StaffSalaryPage() {
       </div>
 
       {/* Payslip Modal */}
-      {selectedSlip && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-6 animate-scale-in">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                  <LuFileText className="w-5 h-5" />
+      {selectedSlip && (() => {
+        const pay = computeStaffPay(selectedSlip);
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-6 animate-scale-in">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                    <LuFileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900">Salary Slip - {selectedMonth}</h3>
+                    <p className="text-xs text-gray-400">{selectedSlip.name} • {selectedSlip.id}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedSlip(null)}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors cursor-pointer"
+                >
+                  <LuX className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Slip Details Breakdown */}
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl text-xs">
+                <div>
+                  <p className="text-gray-400 font-medium">Employee Name</p>
+                  <p className="font-bold text-gray-800 mt-0.5">{selectedSlip.name}</p>
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-gray-900">Salary Slip - {selectedMonth}</h3>
-                  <p className="text-xs text-gray-400">{selectedSlip.name} • {selectedSlip.id}</p>
+                  <p className="text-gray-400 font-medium">Department</p>
+                  <p className="font-bold text-gray-800 mt-0.5">{selectedSlip.dept || 'Teaching'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 font-medium">Bank & Account</p>
+                  <p className="font-bold text-gray-800 mt-0.5 font-mono">{selectedSlip.bankName || 'HDFC Bank'} ({selectedSlip.accountNo || '•••• 4589'})</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 font-medium">Payroll Month</p>
+                  <p className="font-bold text-emerald-700 mt-0.5">{selectedMonth}</p>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedSlip(null)}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors"
-              >
-                <LuX className="w-4 h-4" />
-              </button>
-            </div>
 
-            {/* Slip Details Breakdown */}
-            <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl text-xs">
-              <div>
-                <p className="text-gray-400 font-medium">Employee Name</p>
-                <p className="font-bold text-gray-800 mt-0.5">{selectedSlip.name}</p>
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Earnings & Allowances</h4>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between py-1.5 border-b border-gray-100">
+                    <span className="text-gray-600">Base Salary</span>
+                    <span className="font-bold text-gray-900 font-mono">₹{pay.base.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-gray-100">
+                    <span className="text-gray-600">Monthly Allowance</span>
+                    <span className="font-bold text-emerald-600 font-mono">+ ₹{pay.allowance.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 bg-gray-50 px-2 rounded-lg font-bold">
+                    <span className="text-gray-800">Total Gross Earnings</span>
+                    <span className="text-gray-900 font-mono">₹{pay.gross.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-gray-400 font-medium">Designation</p>
-                <p className="font-bold text-gray-800 mt-0.5">{selectedSlip.role}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 font-medium">Bank & Account</p>
-                <p className="font-bold text-gray-800 mt-0.5">{selectedSlip.bankName} ({selectedSlip.accountNo})</p>
-              </div>
-              <div>
-                <p className="text-gray-400 font-medium">Attendance Ratio</p>
-                <p className="font-bold text-gray-800 mt-0.5">{selectedSlip.daysPresent} / {selectedSlip.workingDays} Days Worked</p>
-              </div>
-            </div>
 
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Earnings & Allowances</h4>
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Base Salary</span>
-                  <span className="font-bold text-gray-800">₹{Number(selectedSlip.baseSalary).toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">House Rent Allowance (HRA)</span>
-                  <span className="font-bold text-emerald-600">+ ₹{Number(selectedSlip.hra).toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Dearness Allowance (DA)</span>
-                  <span className="font-bold text-emerald-600">+ ₹{Number(selectedSlip.da).toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Special Allowance</span>
-                  <span className="font-bold text-emerald-600">+ ₹{Number(selectedSlip.specialAllowance).toLocaleString('en-IN')}</span>
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Statutory Deductions</h4>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between py-1.5 border-b border-gray-100">
+                    <span className="text-gray-600">Statutory Deduction (12% of Gross)</span>
+                    <span className="font-bold text-rose-600 font-mono">- ₹{pay.deduction.toLocaleString('en-IN')}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Statutory Deductions</h4>
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Provident Fund (PF)</span>
-                  <span className="font-bold text-red-600">- ₹{Number(selectedSlip.pfDeduction).toLocaleString('en-IN')}</span>
+              <div className="bg-emerald-50 border border-emerald-300 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-bold uppercase text-emerald-800">Net Payable Amount (Base + Allowance - 12%)</p>
+                  <p className="text-2xl font-black text-emerald-950 mt-0.5 font-mono">
+                    ₹{pay.net.toLocaleString('en-IN')}
+                  </p>
                 </div>
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Tax Deducted at Source (TDS)</span>
-                  <span className="font-bold text-red-600">- ₹{Number(selectedSlip.tdsDeduction).toLocaleString('en-IN')}</span>
-                </div>
+                <span className="px-3 py-1 bg-emerald-600 text-white rounded-xl text-xs font-bold">
+                  {selectedSlip.status}
+                </span>
               </div>
-            </div>
 
-            <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-bold uppercase text-emerald-800">Net Disbursed Compensation</p>
-                <p className="text-xl font-black text-emerald-900 mt-0.5">
-                  ₹{calculateSalary(selectedSlip).netSalary.toLocaleString('en-IN')}
-                </p>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <LuPrinter className="w-3.5 h-3.5" /> Print Payslip
+                </button>
+                <button
+                  onClick={() => setSelectedSlip(null)}
+                  className="px-5 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
               </div>
-              <span className="px-3 py-1 bg-emerald-600 text-white rounded-xl text-xs font-bold">
-                {selectedSlip.status}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                onClick={() => window.print()}
-                className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1.5 transition-colors"
-              >
-                <LuPrinter className="w-3.5 h-3.5" /> Print Payslip
-              </button>
-              <button
-                onClick={() => setSelectedSlip(null)}
-                className="px-5 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold transition-colors"
-              >
-                Close
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

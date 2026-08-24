@@ -27,18 +27,18 @@ export default function WelcomeCard() {
   });
 
   return (
-    <div className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
-          <Icon className="w-6 h-6" />
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 animate-fade-in">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+          <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
         </div>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-base sm:text-2xl font-bold text-gray-900 tracking-tight leading-snug">
             {greeting}, <span className="text-primary-600">{userName}</span>
           </h1>
-          <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5 font-medium">
+          <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5 flex items-center gap-1.5 font-medium">
             <span>Welcome to your</span>
-            <span className="px-2 py-0.5 bg-primary-50 text-primary-700 rounded-md font-semibold text-[11px]">
+            <span className="px-1.5 py-0.2 sm:px-2 sm:py-0.5 bg-primary-50 text-primary-700 rounded-md font-semibold text-[10px] sm:text-[11px]">
               {roleLabel}
             </span>
             <span>overview</span>

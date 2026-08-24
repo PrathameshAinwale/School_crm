@@ -30,6 +30,26 @@ class TeacherSelfController extends Controller
             ->orWhere('email', $user->email)
             ->first();
 
+        if (!$teacher && in_array($user->role, ['hr', 'teacher', 'admin'])) {
+            $nameParts = explode(' ', $user->name ?: ($user->role === 'hr' ? 'HR Staff' : 'Faculty Staff'));
+            $firstName = $nameParts[0] ?? 'Staff';
+            $lastName = count($nameParts) > 1 ? implode(' ', array_slice($nameParts, 1)) : '';
+            $teacherId = ($user->role === 'hr' ? 'HR-' : 'TCH-') . str_pad($user->id, 3, '0', STR_PAD_LEFT);
+
+            $teacher = Teacher::create([
+                'user_id' => $user->id,
+                'teacher_id' => $teacherId,
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => strtolower($user->email),
+                'phone' => $user->phone ?? '+91 98765 00000',
+                'department' => $user->role === 'hr' ? 'Human Resources' : 'General',
+                'status' => 'Active',
+                'salary' => $user->role === 'hr' ? 55000 : 50000,
+                'allowance' => 10000,
+            ]);
+        }
+
         return $teacher;
     }
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { adminService } from '../../services/adminService';
 import {
   LuClipboardList,
@@ -12,6 +13,10 @@ import {
 
 export default function TeacherApplyLeavePage() {
   const navigate = useNavigate();
+  const { currentRole, user } = useAuth();
+  const role = (user?.role || currentRole || '').toLowerCase();
+  const leaveBalancePath = role === 'hr' ? '/hr/leave-balance' : '/teacher/leave-balance';
+
   const [leaveType, setLeaveType] = useState('CL');
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -58,7 +63,7 @@ export default function TeacherApplyLeavePage() {
       if (res.success) {
         showToast(res.message || 'Leave application submitted successfully!');
         setTimeout(() => {
-          navigate('/teacher/leave-balance');
+          navigate(leaveBalancePath);
         }, 1200);
       }
     } catch (err) {
@@ -84,8 +89,8 @@ export default function TeacherApplyLeavePage() {
       <div className="flex items-center justify-between bg-white p-6 rounded-3xl border border-gray-200/80 shadow-xs">
         <div className="flex items-center gap-3.5">
           <button
-            onClick={() => navigate('/teacher/leave-balance')}
-            className="p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+            onClick={() => navigate(leaveBalancePath)}
+            className="p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
           >
             <LuArrowLeft className="w-4 h-4" />
           </button>
@@ -174,8 +179,8 @@ export default function TeacherApplyLeavePage() {
           <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
             <button
               type="button"
-              onClick={() => navigate('/teacher/leave-balance')}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+              onClick={() => navigate(leaveBalancePath)}
+              className="px-5 py-2.5 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
             >
               Cancel
             </button>

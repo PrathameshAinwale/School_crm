@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { adminService } from '../../services/adminService';
 import {
   LuSearch,
   LuBell,
@@ -9,6 +10,14 @@ import {
   LuSettings,
   LuLogOut,
   LuMenu,
+  LuGraduationCap,
+  LuCalendarDays,
+  LuCalendar,
+  LuSparkles,
+  LuInfo,
+  LuCircleCheck,
+  LuCircleAlert,
+  LuFileText,
 } from 'react-icons/lu';
 
 export default function Topbar({ onToggleMobileMenu }) {
@@ -36,12 +45,12 @@ export default function Topbar({ onToggleMobileMenu }) {
   const loadNotifications = async () => {
     try {
       const res = await adminService.getNotifications();
-      if (res.success) {
+      if (res && res.success) {
         setNotificationsList(res.data || []);
         setUnreadCount(res.unread_count || 0);
       }
-    } catch (err) {
-      // quiet fallback
+    } catch (e) {
+      // quiet fail
     }
   };
 
@@ -73,6 +82,48 @@ export default function Topbar({ onToggleMobileMenu }) {
       setNotificationsList((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch (e) {}
+  };
+
+  const getNotifMeta = (type, title = '') => {
+    const lowerTitle = title.toLowerCase();
+    if (type === 'training' || lowerTitle.includes('training') || lowerTitle.includes('workshop')) {
+      return {
+        icon: LuGraduationCap,
+        bg: 'bg-purple-100 text-purple-700',
+        badge: 'bg-purple-50 text-purple-700 border-purple-200',
+        label: 'Training',
+      };
+    }
+    if (type === 'event' || lowerTitle.includes('event') || lowerTitle.includes('sports') || lowerTitle.includes('championship')) {
+      return {
+        icon: LuSparkles,
+        bg: 'bg-amber-100 text-amber-700',
+        badge: 'bg-amber-50 text-amber-700 border-amber-200',
+        label: 'School Event',
+      };
+    }
+    if (type === 'calendar' || lowerTitle.includes('calendar') || lowerTitle.includes('holiday') || lowerTitle.includes('exam')) {
+      return {
+        icon: LuCalendarDays,
+        bg: 'bg-indigo-100 text-indigo-700',
+        badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+        label: lowerTitle.includes('holiday') ? 'Holiday' : 'Academic Calendar',
+      };
+    }
+    if (type === 'alert') {
+      return {
+        icon: LuCircleAlert,
+        bg: 'bg-rose-100 text-rose-700',
+        badge: 'bg-rose-50 text-rose-700 border-rose-200',
+        label: 'Announcement',
+      };
+    }
+    return {
+      icon: LuInfo,
+      bg: 'bg-blue-100 text-blue-700',
+      badge: 'bg-blue-50 text-blue-700 border-blue-200',
+      label: 'Notice',
+    };
   };
 
   const currentDate = new Date().toLocaleDateString('en-IN', {
@@ -125,21 +176,21 @@ export default function Topbar({ onToggleMobileMenu }) {
               setShowNotifications(!showNotifications);
               if (!showNotifications) loadNotifications();
             }}
-            className="relative w-8.5 h-8.5 rounded-lg flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
+            className="relative w-8.5 h-8.5 rounded-lg flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors cursor-pointer"
           >
             <LuBell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
+              <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center animate-pulse">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 top-full mt-1.5 w-80 max-w-[90vw] bg-white rounded-2xl border border-gray-200 shadow-2xl overflow-hidden z-50 animate-fade-in">
-              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <div className="absolute right-0 top-full mt-1.5 w-84 max-w-[90vw] bg-white rounded-2xl border border-gray-200 shadow-2xl overflow-hidden z-50 animate-fade-in">
+              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/75">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-bold text-gray-900">Notifications</h3>
+                  <h3 className="text-xs font-bold text-gray-900">Notifications & Alerts</h3>
                   {unreadCount > 0 && (
                     <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold">
                       {unreadCount} new
@@ -156,37 +207,51 @@ export default function Topbar({ onToggleMobileMenu }) {
                 )}
               </div>
 
-              <div className="max-h-72 overflow-y-auto divide-y divide-gray-100">
+              <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
                 {notificationsList.length > 0 ? (
-                  notificationsList.map((notif) => (
-                    <div
-                      key={notif.id}
-                      onClick={() => handleNotificationClick(notif)}
-                      className={`p-3.5 hover:bg-gray-50 cursor-pointer transition-colors ${
-                        !notif.is_read ? 'bg-primary-50/40' : ''
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className={`text-xs ${!notif.is_read ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
-                          {notif.title}
-                        </p>
-                        {!notif.is_read && (
-                          <span className="w-2 h-2 rounded-full bg-primary-600 shrink-0 mt-1" />
-                        )}
+                  notificationsList.map((notif) => {
+                    const meta = getNotifMeta(notif.type, notif.title);
+                    const IconComponent = meta.icon;
+                    return (
+                      <div
+                        key={notif.id}
+                        onClick={() => handleNotificationClick(notif)}
+                        className={`p-3.5 hover:bg-gray-50/80 cursor-pointer transition-colors flex items-start gap-3 ${
+                          !notif.is_read ? 'bg-primary-50/30' : ''
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${meta.bg}`}>
+                          <IconComponent className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${meta.badge}`}>
+                                {meta.label}
+                              </span>
+                              <p className={`text-xs ${!notif.is_read ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'}`}>
+                                {notif.title}
+                              </p>
+                            </div>
+                            {!notif.is_read && (
+                              <span className="w-2 h-2 rounded-full bg-primary-600 shrink-0 mt-1" />
+                            )}
+                          </div>
+                          {notif.message && (
+                            <p className="text-[11px] text-gray-600 mt-1 line-clamp-2 leading-relaxed">
+                              {notif.message}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-gray-400 mt-1 font-medium">
+                            {notif.time_ago || notif.created_at}
+                          </p>
+                        </div>
                       </div>
-                      {notif.message && (
-                        <p className="text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed">
-                          {notif.message}
-                        </p>
-                      )}
-                      <p className="text-[10px] text-gray-400 mt-1.5 font-medium">
-                        {notif.time_ago || notif.created_at}
-                      </p>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="py-8 text-center text-gray-400 text-xs">
-                    No notifications yet.
+                    No new notifications right now.
                   </div>
                 )}
               </div>

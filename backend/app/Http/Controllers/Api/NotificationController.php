@@ -24,17 +24,26 @@ class NotificationController extends Controller
                 ->first();
             $classId = $student ? $student->school_class_id : null;
 
-            $query->where(function ($q) use ($user, $classId) {
+            $matchedRoles = [$user->role, 'all'];
+            if ($user->role === 'student_parent') {
+                $matchedRoles = array_merge($matchedRoles, ['student', 'parent', 'students', 'parents']);
+            } elseif ($user->role === 'teacher') {
+                $matchedRoles = array_merge($matchedRoles, ['faculty', 'teachers', 'staff']);
+            }
+
+            $query->where(function ($q) use ($user, $classId, $matchedRoles) {
                 $q->where('user_id', $user->id);
                 if ($classId) {
                     $q->orWhere('school_class_id', $classId)
                       ->orWhere('school_class_id', (string)$classId);
                 }
-                if ($user->role) {
-                    $q->orWhere(function ($sub) use ($user) {
-                        $sub->whereNull('user_id')->where('role', $user->role);
-                    });
-                }
+                $q->orWhere(function ($sub) use ($matchedRoles) {
+                    $sub->whereNull('user_id')
+                        ->where(function ($roleQ) use ($matchedRoles) {
+                            $roleQ->whereIn('role', $matchedRoles)
+                                  ->orWhereNull('role');
+                        });
+                });
             });
         }
 

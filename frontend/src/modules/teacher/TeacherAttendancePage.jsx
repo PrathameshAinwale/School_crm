@@ -160,48 +160,48 @@ export default function TeacherAttendancePage() {
       )}
 
       {/* Header Banner */}
-      <div className="bg-white p-6 rounded-3xl border border-gray-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
-            <LuFingerprint className="w-6 h-6" />
+      <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-gray-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3 sm:gap-3.5">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
+            <LuFingerprint className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Faculty Attendance & Time Tracker</h1>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <h1 className="text-base sm:text-xl font-bold text-gray-900">Attendance & Time Tracker</h1>
+            <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
               {teacherInfo ? `${teacherInfo.name}` : 'Daily Clock-in / Clock-out Register'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap self-start sm:self-auto">
           {/* Heat Map Button in Top Corner */}
           <button
             onClick={() => {
               setShowHeatmapModal(true);
               if (!heatmapData) loadHeatmapMonth(heatmapMonth, heatmapYear);
             }}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs shadow-md shadow-amber-500/25 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+            className="px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-[11px] sm:text-xs shadow-md shadow-amber-500/25 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
           >
-            <LuFlame className="w-4 h-4 animate-pulse" /> Attendance Heat Map
+            <LuFlame className="w-3.5 h-3.5 animate-pulse" /> Heat Map
           </button>
 
-          <div className="flex items-center gap-2 px-3.5 py-2.5 bg-gray-100 rounded-xl text-xs font-bold text-gray-700">
-            <LuCalendar className="w-4 h-4 text-primary-600" />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2.5 bg-gray-100 rounded-xl text-[11px] sm:text-xs font-bold text-gray-700">
+            <LuCalendar className="w-3.5 h-3.5 text-primary-600" />
             <span>{currentDate}</span>
           </div>
         </div>
       </div>
 
       {/* Today's Punch Attendance Card */}
-      <div className="bg-white rounded-3xl border border-gray-200/80 overflow-hidden shadow-xs">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200/80 overflow-hidden shadow-xs">
         {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100 bg-gray-50/50">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between border-b border-gray-100 bg-gray-50/50">
           <div className="flex items-center gap-2">
-            <LuCalendarDays className="w-5 h-5 text-primary-600" />
-            <h2 className="text-sm font-bold text-gray-900">Today's Attendance Status</h2>
+            <LuCalendarDays className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600" />
+            <h2 className="text-xs sm:text-sm font-bold text-gray-900">Today's Attendance Status</h2>
           </div>
           <span
-            className={`px-3 py-1 rounded-full text-xs font-bold ${
+            className={`px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold ${
               isCompletedToday
                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                 : isPunchedIn
@@ -210,54 +210,54 @@ export default function TeacherAttendancePage() {
             }`}
           >
             {isCompletedToday
-              ? '✓ Attendance Completed Today'
+              ? '✓ Completed Today'
               : isPunchedIn
               ? '● Clocked In (Active)'
-              : 'Not Clocked In Today'}
+              : 'Not Clocked In'}
           </span>
         </div>
 
         {/* Clock In & Clock Out Details */}
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gradient-to-b from-slate-50/50 to-white">
+        <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 bg-gradient-to-b from-slate-50/50 to-white">
           {/* Clock In Card */}
-          <div className="p-5 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                <LuLogIn className="w-5 h-5" />
+          <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 sm:gap-3.5">
+              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <LuLogIn className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+                <span className="text-[10px] sm:text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
                   Clock In Time
                 </span>
-                <span className="text-xl font-bold font-mono text-gray-900 mt-0.5 block">
+                <span className="text-base sm:text-xl font-bold font-mono text-gray-900 mt-0.5 block">
                   {punchInTime || '—'}
                 </span>
               </div>
             </div>
             {punchInTime && (
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-lg">
+              <span className="text-[10px] sm:text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">
                 Marked
               </span>
             )}
           </div>
 
           {/* Clock Out Card */}
-          <div className="p-5 rounded-2xl bg-rose-50/60 border border-rose-100 flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
-                <LuLogOut className="w-5 h-5" />
+          <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-rose-50/60 border border-rose-100 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 sm:gap-3.5">
+              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                <LuLogOut className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wider block">
+                <span className="text-[10px] sm:text-[11px] font-bold text-rose-800 uppercase tracking-wider block">
                   Clock Out Time
                 </span>
-                <span className="text-xl font-bold font-mono text-gray-900 mt-0.5 block">
+                <span className="text-base sm:text-xl font-bold font-mono text-gray-900 mt-0.5 block">
                   {punchOutTime || (isPunchedIn ? 'In Progress...' : '—')}
                 </span>
               </div>
             </div>
             {punchOutTime ? (
-              <span className="text-[11px] font-bold text-rose-700 bg-rose-100/80 px-2.5 py-1 rounded-lg">
+              <span className="text-[10px] sm:text-[11px] font-bold text-rose-700 bg-rose-100/80 px-2 py-0.5 rounded-md">
                 Completed
               </span>
             ) : isPunchedIn ? (
