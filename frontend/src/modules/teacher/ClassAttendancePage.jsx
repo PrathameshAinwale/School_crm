@@ -199,24 +199,24 @@ export default function ClassAttendancePage() {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-scale-up border border-slate-700">
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-scale-up border border-slate-700">
           <LuCircleCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Header Banner */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
-            <LuClipboardCheck className="w-6 h-6" />
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
+            <LuClipboardCheck className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Student Attendance Marking</h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <h1 className="text-base sm:text-xl font-bold text-slate-800 leading-tight">Student Attendance Marking</h1>
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
               Select class and division to mark daily student presence (Present, Absent, Late)
             </p>
           </div>
@@ -257,7 +257,7 @@ export default function ClassAttendancePage() {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Class Enrolled</span>
             <LuUsers className="w-4 h-4 text-slate-400" />
           </div>
-          <div className="text-2xl font-black text-slate-800">{records.length}</div>
+          <div className="text-xl sm:text-2xl font-black text-slate-800">{records.length}</div>
           <div className="text-[11px] text-slate-400 mt-0.5">Students in division</div>
         </div>
 
@@ -266,7 +266,7 @@ export default function ClassAttendancePage() {
             <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Present</span>
             <LuUserCheck className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-black text-emerald-700">{summary.present}</div>
+          <div className="text-xl sm:text-2xl font-black text-emerald-700">{summary.present}</div>
           <div className="text-[11px] text-emerald-600/80 mt-0.5">Attending class</div>
         </div>
 
@@ -275,7 +275,7 @@ export default function ClassAttendancePage() {
             <span className="text-[11px] font-bold text-rose-600 uppercase tracking-wider">Absent</span>
             <LuUserX className="w-4 h-4 text-rose-600" />
           </div>
-          <div className="text-2xl font-black text-rose-700">{summary.absent}</div>
+          <div className="text-xl sm:text-2xl font-black text-rose-700">{summary.absent}</div>
           <div className="text-[11px] text-rose-600/80 mt-0.5">Not present</div>
         </div>
 
@@ -284,13 +284,13 @@ export default function ClassAttendancePage() {
             <span className="text-[11px] font-bold text-primary-600 uppercase tracking-wider">Attendance Rate</span>
             <LuClipboardCheck className="w-4 h-4 text-primary-600" />
           </div>
-          <div className="text-2xl font-black text-primary-700">{summary.attendance_rate || 0}%</div>
+          <div className="text-xl sm:text-2xl font-black text-primary-700">{summary.attendance_rate || 0}%</div>
           <div className="text-[11px] text-primary-600/80 mt-0.5">Class presence ratio</div>
         </div>
       </div>
 
       {/* Class & Division Selector Toolbar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
+      <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between">
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
           {/* Class Selector */}
           <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1">
@@ -326,13 +326,13 @@ export default function ClassAttendancePage() {
 
           {/* Search inside division */}
           <div className="relative w-full sm:w-56">
-            <LuSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
               placeholder="Search student name, roll..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium"
+              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium"
             />
           </div>
         </div>
@@ -359,13 +359,13 @@ export default function ClassAttendancePage() {
 
       {/* Student Attendance Matrix Table */}
       {loading ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center shadow-xs">
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-8 sm:p-16 text-center shadow-xs">
           <LuLoader className="w-8 h-8 animate-spin text-primary-600 mx-auto mb-3" />
           <p className="text-xs text-slate-500 font-medium">Loading roster for {selectedClass} - Division {selectedDivision}...</p>
         </div>
       ) : filteredRecords.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
-          <div className="w-14 h-14 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-8 sm:p-12 text-center shadow-xs">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
             <LuUsers className="w-7 h-7" />
           </div>
           <h3 className="text-base font-bold text-slate-800 mb-1">No Students in {selectedClass} - Division {selectedDivision}</h3>
@@ -374,97 +374,168 @@ export default function ClassAttendancePage() {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-                <tr>
-                  <th className="px-5 py-3.5">Roll No & Student Name</th>
-                  <th className="px-5 py-3.5">Admission No</th>
-                  <th className="px-5 py-3.5">Class & Division</th>
-                  <th className="px-5 py-3.5">Mark Attendance</th>
-                  <th className="px-5 py-3.5">Remarks / Reason</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {filteredRecords.map((student) => {
-                  const realIndex = records.findIndex((r) => r.student_id === student.student_id);
-                  return (
-                    <tr key={student.student_id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-xs shrink-0">
-                            {student.roll_number || '0'}
-                          </div>
-                          <div>
-                            <div className="font-bold text-slate-800">{student.name}</div>
-                            <div className="text-[11px] text-slate-400">Roll: {student.roll_number || 'N/A'}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="font-mono font-bold text-primary-700 bg-primary-50 px-2 py-0.5 rounded border border-primary-100 text-[11px]">
-                          {student.admission_number}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold text-[11px] border border-slate-200/60">
-                          {student.class_name || selectedClass} - {student.section_name || selectedDivision}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-fit border border-slate-200/60">
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange(realIndex, 'Present')}
-                            className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                              student.status === 'Present'
-                                ? 'bg-emerald-600 text-white shadow-xs'
-                                : 'text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            Present
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange(realIndex, 'Absent')}
-                            className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                              student.status === 'Absent'
-                                ? 'bg-rose-600 text-white shadow-xs'
-                                : 'text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            Absent
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange(realIndex, 'Late')}
-                            className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                              student.status === 'Late'
-                                ? 'bg-amber-500 text-white shadow-xs'
-                                : 'text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            Late
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <input
-                          type="text"
-                          placeholder="e.g. Fever, Leave note..."
-                          value={student.remarks || ''}
-                          onChange={(e) => handleRemarksChange(realIndex, e.target.value)}
-                          className="w-full max-w-xs px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-primary-500"
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        <>
+          {/* Mobile Card View: Interactive Student Attendance Cards */}
+          <div className="sm:hidden space-y-2.5">
+            {filteredRecords.map((student) => {
+              const realIndex = records.findIndex((r) => r.student_id === student.student_id);
+              return (
+                <div key={student.student_id} className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-xs shrink-0">
+                        {student.roll_number || '0'}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-800 text-sm truncate">{student.name}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">Adm: {student.admission_number}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Attendance Toggle Buttons */}
+                  <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(realIndex, 'Present')}
+                      className={`py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
+                        student.status === 'Present'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      Present
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(realIndex, 'Absent')}
+                      className={`py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
+                        student.status === 'Absent'
+                          ? 'bg-rose-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      Absent
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(realIndex, 'Late')}
+                      className={`py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
+                        student.status === 'Late'
+                          ? 'bg-amber-500 text-white shadow-xs'
+                          : 'text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      Late
+                    </button>
+                  </div>
+
+                  {/* Remarks input */}
+                  <input
+                    type="text"
+                    placeholder="Remarks / reason (optional)..."
+                    value={student.remarks || ''}
+                    onChange={(e) => handleRemarksChange(realIndex, e.target.value)}
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+              );
+            })}
           </div>
-        </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden sm:block bg-white rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                  <tr>
+                    <th className="px-5 py-3.5">Roll No & Student Name</th>
+                    <th className="px-5 py-3.5">Admission No</th>
+                    <th className="px-5 py-3.5">Class & Division</th>
+                    <th className="px-5 py-3.5">Mark Attendance</th>
+                    <th className="px-5 py-3.5">Remarks / Reason</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {filteredRecords.map((student) => {
+                    const realIndex = records.findIndex((r) => r.student_id === student.student_id);
+                    return (
+                      <tr key={student.student_id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-xs shrink-0">
+                              {student.roll_number || '0'}
+                            </div>
+                            <div>
+                              <div className="font-bold text-slate-800">{student.name}</div>
+                              <div className="text-[11px] text-slate-400">Roll: {student.roll_number || 'N/A'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="font-mono font-bold text-primary-700 bg-primary-50 px-2 py-0.5 rounded border border-primary-100 text-[11px]">
+                            {student.admission_number}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold text-[11px] border border-slate-200/60">
+                            {student.class_name || selectedClass} - {student.section_name || selectedDivision}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-fit border border-slate-200/60">
+                            <button
+                              type="button"
+                              onClick={() => handleStatusChange(realIndex, 'Present')}
+                              className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                student.status === 'Present'
+                                  ? 'bg-emerald-600 text-white shadow-xs'
+                                  : 'text-slate-600 hover:bg-slate-200'
+                              }`}
+                            >
+                              Present
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleStatusChange(realIndex, 'Absent')}
+                              className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                student.status === 'Absent'
+                                  ? 'bg-rose-600 text-white shadow-xs'
+                                  : 'text-slate-600 hover:bg-slate-200'
+                              }`}
+                            >
+                              Absent
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleStatusChange(realIndex, 'Late')}
+                              className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                student.status === 'Late'
+                                  ? 'bg-amber-500 text-white shadow-xs'
+                                  : 'text-slate-600 hover:bg-slate-200'
+                              }`}
+                            >
+                              Late
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <input
+                            type="text"
+                            placeholder="e.g. Fever, Leave note..."
+                            value={student.remarks || ''}
+                            onChange={(e) => handleRemarksChange(realIndex, e.target.value)}
+                            className="w-full max-w-xs px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-primary-500"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

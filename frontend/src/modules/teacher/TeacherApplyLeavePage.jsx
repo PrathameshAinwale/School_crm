@@ -77,7 +77,7 @@ export default function TeacherApplyLeavePage() {
     <div className="space-y-6 max-w-2xl mx-auto pb-12 animate-fade-in">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700 animate-scale-up">
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700 animate-scale-up">
           <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
             <LuCircleCheck className="w-4 h-4" />
           </div>
@@ -87,7 +87,7 @@ export default function TeacherApplyLeavePage() {
 
       {/* Header */}
       <div className="flex items-center justify-between bg-white p-6 rounded-3xl border border-gray-200/80 shadow-xs">
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(leaveBalancePath)}
             className="p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"

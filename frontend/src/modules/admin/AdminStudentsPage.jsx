@@ -161,41 +161,41 @@ export default function AdminStudentsPage() {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12">
       {/* Header Banner */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
-            <LuGraduationCap className="w-6 h-6" />
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
+            <LuGraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-800">Class & Division Student Directory</h1>
-              <span className="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold text-[11px] border border-emerald-200">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base sm:text-xl font-bold text-slate-800 leading-tight">Student Directory</h1>
+              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[10px] sm:text-[11px] border border-emerald-200">
                 View Only
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Explore school classes, select a division (Saffron, White, Green), and inspect enrolled student profiles
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+              Browse classes, divisions & enrolled student profiles
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold self-start sm:self-auto">
           <LuUsers className="w-4 h-4 text-emerald-600" />
-          <span>Total School Students: <strong>{allStudents.length}</strong></span>
+          <span>Total: <strong>{allStudents.length}</strong> Students</span>
         </div>
       </div>
 
       {/* Interactive Breadcrumb Bar */}
-      <div className="bg-white px-5 py-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2 text-slate-500 font-medium">
+      <div className="bg-white px-3.5 sm:px-5 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-2 sm:gap-3 text-xs">
+        <div className="flex items-center gap-1.5 sm:gap-2 text-slate-500 font-medium overflow-x-auto">
           <button
             onClick={() => {
               setActiveClass(null);
               setActiveDivision(null);
             }}
-            className={`hover:text-emerald-600 transition-colors font-bold ${
+            className={`hover:text-emerald-600 transition-colors font-bold whitespace-nowrap cursor-pointer ${
               !activeClass ? 'text-emerald-700 font-bold' : ''
             }`}
           >
@@ -204,10 +204,10 @@ export default function AdminStudentsPage() {
 
           {activeClass && (
             <>
-              <LuChevronRight className="w-3.5 h-3.5 text-slate-300" />
+              <LuChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
               <button
                 onClick={() => setActiveDivision(null)}
-                className={`hover:text-emerald-600 transition-colors ${
+                className={`hover:text-emerald-600 transition-colors whitespace-nowrap cursor-pointer ${
                   !activeDivision ? 'text-emerald-700 font-bold' : ''
                 }`}
               >
@@ -218,8 +218,8 @@ export default function AdminStudentsPage() {
 
           {activeClass && activeDivision && (
             <>
-              <LuChevronRight className="w-3.5 h-3.5 text-slate-300" />
-              <span className="text-emerald-700 font-bold">Division {activeDivision}</span>
+              <LuChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+              <span className="text-emerald-700 font-bold whitespace-nowrap truncate max-w-[120px] sm:max-w-none">{activeDivision}</span>
             </>
           )}
         </div>
@@ -234,10 +234,11 @@ export default function AdminStudentsPage() {
                 setActiveClass(null);
               }
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition-colors"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition-colors cursor-pointer text-[11px] sm:text-xs"
           >
             <LuArrowLeft className="w-3.5 h-3.5" />
-            <span>{activeDivision ? `Back to Divisions` : `Back to All Classes`}</span>
+            <span className="hidden sm:inline">{activeDivision ? `Back to Divisions` : `Back to All Classes`}</span>
+            <span className="sm:hidden">Back</span>
           </button>
         )}
       </div>
@@ -254,17 +255,17 @@ export default function AdminStudentsPage() {
       {/* LEVEL 1: CLASS CARDS GRID (When no class is selected)                    */}
       {/* ========================================================================= */}
       {!loading && !activeClass && (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-              <LuBuilding2 className="w-4 h-4 text-emerald-600" /> Select a Class / Grade to View Divisions
+            <h2 className="text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+              <LuBuilding2 className="w-4 h-4 text-emerald-600" /> <span className="hidden sm:inline">Select a Class / Grade to View Divisions</span><span className="sm:hidden">Select a Class</span>
             </h2>
-            <span className="text-xs text-slate-400 font-medium">
-              {classesList.length} Classes Available
+            <span className="text-[11px] sm:text-xs text-slate-400 font-medium">
+              {classesList.length} Classes
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {classesList.map((cls) => {
               const count = getStudentCount(cls.name);
               return (
@@ -275,33 +276,33 @@ export default function AdminStudentsPage() {
                     setActiveDivision(null);
                     setSearchQuery('');
                   }}
-                  className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-lg hover:border-emerald-300 hover:-translate-y-1 transition-all cursor-pointer group flex flex-col justify-between"
+                  className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/80 p-3 sm:p-5 shadow-xs hover:shadow-lg hover:border-emerald-300 sm:hover:-translate-y-1 transition-all cursor-pointer group flex flex-col justify-between"
                 >
                   <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-xs">
-                        <LuBookOpen className="w-5 h-5" />
+                    <div className="flex items-center justify-between mb-2 sm:mb-3">
+                      <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-xs">
+                        <LuBookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
-                      <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 group-hover:bg-emerald-50 group-hover:text-emerald-700 transition-colors border border-slate-200/60">
-                        {count} {count === 1 ? 'Student' : 'Students'}
+                      <span className="px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-bold bg-slate-100 text-slate-700 group-hover:bg-emerald-50 group-hover:text-emerald-700 transition-colors border border-slate-200/60">
+                        {count}
                       </span>
                     </div>
 
-                    <h3 className="text-base font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">
                       {cls.name}
                     </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">Click to inspect divisions</p>
+                    <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5 hidden sm:block">Click to inspect divisions</p>
                   </div>
 
                   {/* Division Pills Preview */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-amber-500" title="Saffron (A)"></span>
-                      <span className="w-2 h-2 rounded-full bg-slate-400" title="White (B)"></span>
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" title="Green (C)"></span>
-                      <span className="text-[11px] text-slate-400 font-medium ml-1">3 Divisions</span>
+                  <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500" title="Saffron (A)"></span>
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-slate-400" title="White (B)"></span>
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500" title="Green (C)"></span>
+                      <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium ml-0.5 sm:ml-1">3 Div</span>
                     </div>
-                    <LuChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+                    <LuChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </div>
               );
@@ -314,21 +315,21 @@ export default function AdminStudentsPage() {
       {/* LEVEL 2: DIVISION CARDS VIEW (When class is selected, division not yet) */}
       {/* ========================================================================= */}
       {!loading && activeClass && !activeDivision && (
-        <div className="space-y-5 animate-fade-in">
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-6 rounded-2xl text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-3 sm:space-y-5 animate-fade-in">
+          <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
             <div>
-              <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider">Class Selected</span>
-              <h2 className="text-2xl font-bold mt-0.5">{activeClass}</h2>
-              <p className="text-xs text-slate-300 mt-1">
-                Select one of the 3 divisions below to view all students enrolled in that specific division
+              <span className="text-emerald-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider">Class Selected</span>
+              <h2 className="text-lg sm:text-2xl font-bold mt-0.5">{activeClass}</h2>
+              <p className="text-[11px] sm:text-xs text-slate-300 mt-1">
+                Select a division below to view enrolled students
               </p>
             </div>
-            <div className="px-4 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold self-start sm:self-auto">
-              Total in {activeClass}: <strong>{getStudentCount(activeClass)} Students</strong>
+            <div className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-[11px] sm:text-xs font-semibold self-start sm:self-auto">
+              {getStudentCount(activeClass)} Students
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-3 gap-2.5 sm:gap-5">
             {DIVISIONS.map((div) => {
               const count = getStudentCount(activeClass, div.name);
               return (
@@ -338,31 +339,32 @@ export default function AdminStudentsPage() {
                     setActiveDivision(div.name);
                     setSearchQuery('');
                   }}
-                  className={`bg-white rounded-2xl border-2 ${div.border} p-6 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden`}
+                  className={`bg-white rounded-xl sm:rounded-2xl border-2 ${div.border} p-3 sm:p-6 shadow-xs hover:shadow-xl sm:hover:-translate-y-1 transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden`}
                 >
-                  <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${div.color}`} />
+                  <div className={`absolute top-0 left-0 right-0 h-1 sm:h-1.5 bg-gradient-to-r ${div.color}`} />
 
                   <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-tr ${div.color} text-white flex items-center justify-center font-extrabold text-base shadow-md`}>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 sm:mb-4 gap-1.5">
+                      <div className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr ${div.color} text-white flex items-center justify-center font-extrabold text-sm sm:text-base shadow-md`}>
                         {div.tag}
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${div.bg} ${div.text} border ${div.border}`}>
-                        {count} {count === 1 ? 'Student' : 'Students'}
+                      <span className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold ${div.bg} ${div.text} border ${div.border}`}>
+                        {count}
                       </span>
                     </div>
 
-                    <h3 className="text-lg font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">
-                      Division {div.name}
+                    <h3 className="text-xs sm:text-lg font-bold text-slate-800 group-hover:text-emerald-600 transition-colors leading-tight">
+                      <span className="hidden sm:inline">Division </span>{div.name}
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                      Enrolled students in {activeClass} assigned to Section {div.name}
+                    <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5 sm:mt-1 leading-relaxed hidden sm:block">
+                      Section {div.name} students
                     </p>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-700 group-hover:text-emerald-800">
-                    <span>View Student Roster</span>
-                    <LuChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <div className="mt-2.5 sm:mt-6 pt-2 sm:pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] sm:text-xs font-bold text-emerald-700 group-hover:text-emerald-800">
+                    <span className="hidden sm:inline">View Student Roster</span>
+                    <span className="sm:hidden">View</span>
+                    <LuChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               );
@@ -375,121 +377,166 @@ export default function AdminStudentsPage() {
       {/* LEVEL 3: STUDENTS ROSTER IN SELECTED DIVISION                            */}
       {/* ========================================================================= */}
       {!loading && activeClass && activeDivision && (
-        <div className="space-y-4 animate-fade-in">
+        <div className="space-y-3 sm:space-y-4 animate-fade-in">
           {/* Active Division Banner */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
-                <LuLayers className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm shrink-0">
+                <LuLayers className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-slate-800">
-                    {activeClass} - Division {activeDivision}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-sm sm:text-lg font-bold text-slate-800 leading-tight">
+                    {activeClass} - {activeDivision}
                   </h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    {currentRoster.length} {currentRoster.length === 1 ? 'Student' : 'Students'}
+                  <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {currentRoster.length} Students
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">
-                  Student records in {activeClass} ({activeDivision}) enrolled by faculty in Teacher Module
+                <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">
+                  Student records enrolled by faculty in Teacher Module
                 </p>
               </div>
             </div>
 
             {/* In-Division Search */}
             <div className="relative w-full md:w-72">
-              <LuSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search name, roll no, parent phone..."
+                placeholder="Search name, roll no, phone..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
               />
             </div>
           </div>
 
-          {/* Roster Table */}
+          {/* Roster */}
           {currentRoster.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
-              <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <LuGraduationCap className="w-7 h-7" />
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-8 sm:p-12 text-center shadow-xs">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-emerald-50 text-emerald-600 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <LuGraduationCap className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
-              <h3 className="text-base font-bold text-slate-800 mb-1">
-                No Students in {activeClass} - Division {activeDivision}
+              <h3 className="text-sm sm:text-base font-bold text-slate-800 mb-1">
+                No Students in {activeClass} - {activeDivision}
               </h3>
               <p className="text-xs text-slate-400 max-w-md mx-auto">
-                No student has been assigned to this division yet. Faculty members add student enrollment for their assigned classes in the <strong>Teacher Module</strong>.
+                No student has been assigned to this division yet.
               </p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-                    <tr>
-                      <th className="px-5 py-3.5">Student Name & Roll</th>
-                      <th className="px-5 py-3.5">Admission Number</th>
-                      <th className="px-5 py-3.5">Class & Division</th>
-                      <th className="px-5 py-3.5">Parent / Guardian (Login ID)</th>
-                      <th className="px-5 py-3.5">Status</th>
-                      <th className="px-5 py-3.5 text-right">View Profile</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                    {currentRoster.map((student) => (
-                      <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0">
-                              {student.first_name?.[0]}{student.last_name?.[0] || ''}
-                            </div>
-                            <div>
-                              <div className="font-bold text-slate-800">{student.first_name} {student.last_name || ''}</div>
-                              <div className="text-[11px] text-slate-400">Roll: {student.roll_number || 'N/A'}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="font-mono text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 text-[11px]">
-                            {student.admission_number}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="font-semibold text-slate-700">
-                            {student.school_class?.name || 'Class ' + (student.school_class_id || '')}
-                            {student.section ? ` - Division ${student.section.name.replace(/^Division\s*/i, '')}` : ''}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 space-y-0.5">
-                          <div className="font-semibold text-slate-800">{student.guardian_name}</div>
-                          <div className="flex items-center gap-1.5 text-emerald-700 font-mono text-[11px] font-bold">
-                            <LuPhone className="w-3 h-3 text-slate-400" />
-                            <span>{student.guardian_phone}</span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            {student.status || 'Active'}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          <button
-                            onClick={() => setSelectedStudent(student)}
-                            title="View Student Profile"
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-colors inline-flex items-center gap-1 font-semibold text-xs"
-                          >
-                            <LuEye className="w-4 h-4" /> Profile
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <>
+              {/* Mobile View: Student Cards */}
+              <div className="sm:hidden grid grid-cols-2 gap-2.5">
+                {currentRoster.map((student) => (
+                  <div
+                    key={student.id}
+                    onClick={() => setSelectedStudent(student)}
+                    className="bg-white rounded-xl p-3 border border-slate-200/80 shadow-xs cursor-pointer active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0">
+                        {student.first_name?.[0]}{student.last_name?.[0] || ''}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-800 text-xs truncate">
+                          {student.first_name} {student.last_name?.[0] ? student.last_name[0] + '.' : ''}
+                        </p>
+                        <p className="text-[10px] text-slate-400">Roll: {student.roll_number || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <span className="font-mono text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 text-[10px] block w-fit">
+                        {student.admission_number}
+                      </span>
+                      {student.guardian_name && (
+                        <p className="text-[10px] text-slate-500 truncate">
+                          👤 {student.guardian_name}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                        <span className="w-1 h-1 rounded-full bg-emerald-500"></span>
+                        {student.status || 'Active'}
+                      </span>
+                      <LuEye className="w-3 h-3 text-slate-400" />
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+
+              {/* Desktop View: Full Table */}
+              <div className="hidden sm:block bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                      <tr>
+                        <th className="px-5 py-3.5">Student Name & Roll</th>
+                        <th className="px-5 py-3.5">Admission Number</th>
+                        <th className="px-5 py-3.5">Class & Division</th>
+                        <th className="px-5 py-3.5">Parent / Guardian (Login ID)</th>
+                        <th className="px-5 py-3.5">Status</th>
+                        <th className="px-5 py-3.5 text-right">View Profile</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                      {currentRoster.map((student) => (
+                        <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                {student.first_name?.[0]}{student.last_name?.[0] || ''}
+                              </div>
+                              <div>
+                                <div className="font-bold text-slate-800">{student.first_name} {student.last_name || ''}</div>
+                                <div className="text-[11px] text-slate-400">Roll: {student.roll_number || 'N/A'}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className="font-mono text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 text-[11px]">
+                              {student.admission_number}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className="font-semibold text-slate-700">
+                              {student.school_class?.name || 'Class ' + (student.school_class_id || '')}
+                              {student.section ? ` - Division ${student.section.name.replace(/^Division\s*/i, '')}` : ''}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 space-y-0.5">
+                            <div className="font-semibold text-slate-800">{student.guardian_name}</div>
+                            <div className="flex items-center gap-1.5 text-emerald-700 font-mono text-[11px] font-bold">
+                              <LuPhone className="w-3 h-3 text-slate-400" />
+                              <span>{student.guardian_phone}</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              {student.status || 'Active'}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            <button
+                              onClick={() => setSelectedStudent(student)}
+                              title="View Student Profile"
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-colors inline-flex items-center gap-1 font-semibold text-xs cursor-pointer"
+                            >
+                              <LuEye className="w-4 h-4" /> Profile
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           )}
         </div>
       )}

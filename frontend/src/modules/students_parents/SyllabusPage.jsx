@@ -231,10 +231,10 @@ export default function SyllabusPage() {
   const subjectsInList = Array.from(new Set(completedChapters.map((c) => c.subject).filter(Boolean)));
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12 max-w-5xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12 max-w-5xl mx-auto">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700 animate-scale-up">
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700 animate-scale-up">
           <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
             <LuCircleCheck className="w-4 h-4" />
           </div>
@@ -267,7 +267,7 @@ export default function SyllabusPage() {
         {isTeacherOrAdmin && (
           <button
             onClick={openRecordModal}
-            className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center gap-2 self-start sm:self-auto shrink-0"
+            className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center gap-2 w-full sm:w-auto justify-center self-start sm:self-auto shrink-0"
           >
             <LuPlus className="w-4 h-4" /> Record Completed Chapter
           </button>
@@ -330,14 +330,14 @@ export default function SyllabusPage() {
 
       {/* Filter and Search Bar */}
       <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full md:w-80">
-          <LuSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <div className="relative flex-1">
+          <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
           <input
             type="text"
             placeholder="Search chapter, topic, or subject..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary-500"
+            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary-500"
           />
         </div>
 
@@ -346,7 +346,7 @@ export default function SyllabusPage() {
           <select
             value={selectedSubjectFilter}
             onChange={(e) => setSelectedSubjectFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-primary-500 cursor-pointer w-full md:w-auto"
+            className="w-full sm:w-auto px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 cursor-pointer focus:outline-none focus:border-primary-500 cursor-pointer w-full md:w-auto"
           >
             <option value="ALL">All Subjects ({completedChapters.length})</option>
             {subjectsInList.map((sub) => (
@@ -361,13 +361,13 @@ export default function SyllabusPage() {
       {/* Completed Chapters List */}
       <div className="space-y-4">
         {loading ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
+          <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-8 sm:p-12 text-center shadow-xs">
             <LuLoader className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-3" />
             <p className="text-xs text-slate-500 font-medium">Loading syllabus records...</p>
           </div>
         ) : filteredChapters.length === 0 ? (
           <div className="bg-white rounded-3xl border border-gray-200 p-12 text-center shadow-xs space-y-3">
-            <div className="w-14 h-14 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto">
               <LuBookOpen className="w-7 h-7" />
             </div>
             <h3 className="text-base font-bold text-gray-900">
@@ -391,7 +391,7 @@ export default function SyllabusPage() {
           filteredChapters.map((chapter) => (
             <div
               key={chapter.id}
-              className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-2xs hover:border-gray-300 transition-all space-y-3"
+              className="bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs hover:border-gray-300 transition-all space-y-3"
             >
               {/* Card Top: Subject & Date */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
@@ -466,7 +466,7 @@ export default function SyllabusPage() {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleRecordChapterSubmit} className="p-6 space-y-4 text-xs">
+            <form onSubmit={handleRecordChapterSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4 text-xs">
               {/* 1. Class & Division Selection */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">

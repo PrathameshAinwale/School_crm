@@ -62,7 +62,7 @@ export default function StudyMaterialPage() {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in pb-10">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-10">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center gap-3">
@@ -113,7 +113,7 @@ export default function StudyMaterialPage() {
       </div>
 
       {/* Materials List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
         {filteredMaterials.map((mat) => (
           <div
             key={mat.id}

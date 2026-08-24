@@ -78,7 +78,7 @@ export default function StaffLeavesPage() {
       <div className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-xs">
-            <LuClipboardList className="w-6 h-6" />
+            <LuClipboardList className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">Faculty & Staff Leaves</h1>
@@ -98,8 +98,92 @@ export default function StaffLeavesPage() {
         </button>
       </div>
 
-      {/* Clean Table View */}
-      <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden">
+      {/* Mobile Card View */}
+      <div className="sm:hidden space-y-2.5">
+        {loading ? (
+          <div className="bg-white rounded-xl border border-gray-200/80 p-8 text-center text-gray-400">
+            <LuLoader className="w-6 h-6 animate-spin mx-auto mb-2 text-primary-600" />
+            <span className="text-xs font-semibold">Loading leave applications...</span>
+          </div>
+        ) : leaveRequests.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200/80 p-8 text-center text-gray-400">
+            <LuFileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+            <p className="text-sm font-bold text-gray-700">No Leaves Found</p>
+            <p className="text-xs text-gray-400 mt-0.5">No leave records registered.</p>
+          </div>
+        ) : (
+          leaveRequests.map((req) => (
+            <div key={req.id || req.db_id} className="bg-white rounded-xl p-3.5 border border-gray-200/80 shadow-xs space-y-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-bold text-gray-900">{req.name}</p>
+                  <p className="text-[11px] text-gray-400 font-medium">{req.role}</p>
+                </div>
+                <span className="text-xs font-bold text-gray-800 px-2 py-0.5 rounded-lg bg-gray-100">
+                  {req.type}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs py-1.5 px-2 bg-gray-50 rounded-lg border border-gray-100">
+                <div>
+                  <span className="text-[10px] text-gray-400 font-medium block">From</span>
+                  <span className="font-semibold text-gray-700 text-xs">{req.startDate}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-400 font-medium block">To</span>
+                  <span className="font-semibold text-gray-700 text-xs">{req.endDate}</span>
+                </div>
+              </div>
+
+              {req.reason && (
+                <p className="text-xs text-gray-600 bg-amber-50/50 p-2 rounded-lg border border-amber-100/50">
+                  <span className="font-semibold text-amber-900 text-[10px] block">Reason:</span>
+                  {req.reason}
+                </p>
+              )}
+
+              <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                {req.status === 'Pending' ? (
+                  <div className="flex items-center gap-2 w-full justify-end">
+                    <button
+                      onClick={() => handleUpdateStatus(req.id, req.name, 'Approved', req.db_id)}
+                      disabled={processingId === (req.db_id || req.id)}
+                      className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
+                    >
+                      <LuCheck className="w-3.5 h-3.5" /> Approve
+                    </button>
+                    <button
+                      onClick={() => handleUpdateStatus(req.id, req.name, 'Rejected', req.db_id)}
+                      disabled={processingId === (req.db_id || req.id)}
+                      className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-700 rounded-xl text-xs font-bold border border-gray-200 cursor-pointer"
+                    >
+                      <LuX className="w-3.5 h-3.5" /> Reject
+                    </button>
+                  </div>
+                ) : (
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ml-auto ${
+                      req.status === 'Approved'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-red-50 text-red-700 border border-red-200'
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        req.status === 'Approved' ? 'bg-emerald-500' : 'bg-red-500'
+                      }`}
+                    />
+                    {req.status}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden sm:block bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[780px]">
             <thead>
@@ -182,13 +266,17 @@ export default function StaffLeavesPage() {
                         </div>
                       ) : (
                         <span
-                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
+                          className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ${
                             req.status === 'Approved'
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                               : 'bg-red-50 text-red-700 border border-red-200'
                           }`}
                         >
-                          {req.status === 'Approved' ? <LuCheck className="w-3 h-3" /> : <LuX className="w-3 h-3" />}
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              req.status === 'Approved' ? 'bg-emerald-500' : 'bg-red-500'
+                            }`}
+                          />
                           {req.status}
                         </span>
                       )}

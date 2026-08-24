@@ -113,24 +113,24 @@ export default function AdminVehiclesPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-scale-up border border-slate-700">
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-scale-up border border-slate-700">
           <LuCircleCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 to-orange-600 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
-            <LuBus className="w-6 h-6" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-amber-600 to-orange-600 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
+            <LuBus className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">School Vehicles & Transport Fleet</h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <h1 className="text-base sm:text-xl font-bold text-slate-800 leading-tight">School Vehicles & Transport Fleet</h1>
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
               Manage school buses, vans, assigned drivers, and transport routes
             </p>
           </div>
@@ -138,30 +138,30 @@ export default function AdminVehiclesPage() {
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white font-semibold text-xs rounded-xl shadow-md shadow-orange-500/20 transition-all flex items-center gap-2 self-start sm:self-auto shrink-0"
+          className="px-4 py-2.5 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white font-semibold text-xs rounded-xl shadow-md shadow-orange-500/20 transition-all flex items-center gap-2 w-full sm:w-auto justify-center self-start sm:self-auto shrink-0"
         >
           <LuPlus className="w-4 h-4" /> Add New Vehicle
         </button>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
-        <form onSubmit={handleSearchSubmit} className="relative w-full md:w-80">
-          <LuSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between">
+        <form onSubmit={handleSearchSubmit} className="relative flex-1">
+          <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
           <input
             type="text"
             placeholder="Search by vehicle number, driver name, route..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium"
+            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium"
           />
         </form>
 
-        <div className="flex items-center gap-2.5 w-full md:w-auto">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-orange-500"
+            className="w-full sm:w-auto px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:border-orange-500"
           >
             <option value="ALL">All Statuses</option>
             <option value="Active">Active</option>
@@ -173,13 +173,13 @@ export default function AdminVehiclesPage() {
 
       {/* Vehicles Table */}
       {loading ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-8 sm:p-12 text-center">
           <LuLoader className="w-8 h-8 animate-spin text-orange-600 mx-auto mb-3" />
           <p className="text-xs text-slate-500 font-medium">Loading fleet from database...</p>
         </div>
       ) : vehicles.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
-          <div className="w-16 h-16 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-8 sm:p-12 text-center shadow-xs">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <LuBus className="w-8 h-8" />
           </div>
           <h3 className="text-base font-bold text-slate-800 mb-1">No Transport Vehicles Registered</h3>
@@ -194,74 +194,123 @@ export default function AdminVehiclesPage() {
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-                <tr>
-                  <th className="px-5 py-3.5">Vehicle Number & Type</th>
-                  <th className="px-5 py-3.5">Capacity</th>
-                  <th className="px-5 py-3.5">Driver & Contact</th>
-                  <th className="px-5 py-3.5">Assigned Route</th>
-                  <th className="px-5 py-3.5">Status</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {vehicles.map((v) => (
-                  <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="font-bold text-slate-800">{v.vehicle_number}</div>
-                      <div className="text-[11px] text-slate-400">{v.type} • {v.model || 'Standard'}</div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="font-semibold text-slate-800">{v.capacity} Seats</span>
-                    </td>
-                    <td className="px-5 py-4 space-y-0.5">
-                      <div className="font-semibold text-slate-800">{v.driver_name}</div>
-                      <div className="flex items-center gap-1.5 text-slate-500 text-[11px]">
-                        <LuPhone className="w-3 h-3 text-slate-400" />
-                        <span>{v.driver_phone}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1.5 text-slate-700">
-                        <LuMapPin className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                        <span className="truncate max-w-xs">{v.route_name || 'No route assigned'}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 ${
-                        v.status === 'Active'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          v.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'
-                        }`}></span>
-                        {v.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() => setDeleteTargetVehicle(v)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                      >
-                        <LuTrash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          {/* Mobile View: Vehicle Cards */}
+          <div className="sm:hidden space-y-2.5">
+            {vehicles.map((v) => (
+              <div key={v.id} className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-bold text-slate-800 text-sm">{v.vehicle_number}</div>
+                    <div className="text-[10px] text-slate-400 font-medium">{v.type} • {v.model || 'Standard'} • {v.capacity} Seats</div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
+                      v.status === 'Active'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    }`}>
+                      <span className={`w-1 h-1 rounded-full ${
+                        v.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'
+                      }`}></span>
+                      {v.status}
+                    </span>
+                    <button
+                      onClick={() => setDeleteTargetVehicle(v)}
+                      className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                    >
+                      <LuTrash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs py-1.5 px-2 bg-slate-50 rounded-lg border border-slate-100">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-medium block">Driver</span>
+                    <span className="font-semibold text-slate-700 text-xs truncate block">{v.driver_name || 'Unassigned'}</span>
+                    {v.driver_phone && (
+                      <span className="text-[10px] text-slate-500 font-mono block">{v.driver_phone}</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-medium block">Route</span>
+                    <span className="font-semibold text-slate-700 text-xs truncate block">{v.route_name || 'No route'}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden sm:block bg-white rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                  <tr>
+                    <th className="px-5 py-3.5">Vehicle Number & Type</th>
+                    <th className="px-5 py-3.5">Capacity</th>
+                    <th className="px-5 py-3.5">Driver & Contact</th>
+                    <th className="px-5 py-3.5">Assigned Route</th>
+                    <th className="px-5 py-3.5">Status</th>
+                    <th className="px-5 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {vehicles.map((v) => (
+                    <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-5 py-4">
+                        <div className="font-bold text-slate-800">{v.vehicle_number}</div>
+                        <div className="text-[11px] text-slate-400">{v.type} • {v.model || 'Standard'}</div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="font-semibold text-slate-800">{v.capacity} Seats</span>
+                      </td>
+                      <td className="px-5 py-4 space-y-0.5">
+                        <div className="font-semibold text-slate-800">{v.driver_name}</div>
+                        <div className="flex items-center gap-1.5 text-slate-500 text-[11px]">
+                          <LuPhone className="w-3 h-3 text-slate-400" />
+                          <span>{v.driver_phone}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-1.5 text-slate-700">
+                          <LuMapPin className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                          <span className="truncate max-w-xs">{v.route_name || 'No route assigned'}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 ${
+                          v.status === 'Active'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            v.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'
+                          }`}></span>
+                          {v.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <button
+                          onClick={() => setDeleteTargetVehicle(v)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        >
+                          <LuTrash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Add Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-xl w-full my-8 overflow-hidden animate-scale-up">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-xl w-full my-4 sm:my-8 overflow-hidden animate-scale-up">
             <div className="bg-gradient-to-r from-orange-600 to-amber-600 p-5 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
@@ -280,7 +329,7 @@ export default function AdminVehiclesPage() {
               </button>
             </div>
 
-            <form onSubmit={handleAddSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            <form onSubmit={handleAddSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4 max-h-[75vh] overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -399,7 +448,7 @@ export default function AdminVehiclesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center animate-scale-up">
             <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <LuTrash2 className="w-6 h-6" />
+              <LuTrash2 className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <h3 className="text-base font-bold text-slate-800 mb-1">Remove Vehicle?</h3>
             <p className="text-xs text-slate-500 mb-6">

@@ -157,7 +157,7 @@ export default function ProfilePage() {
   const { student, parents, address, health } = profileData;
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12 max-w-7xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12 max-w-7xl mx-auto">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center gap-3">
@@ -281,14 +281,14 @@ export default function ProfilePage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-5">
           {/* Father's Card */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:border-gray-300 transition-colors flex flex-col justify-between">
+          <div className="bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm hover:border-gray-300 transition-colors flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-blue-50 text-primary-700 font-bold text-base flex items-center justify-center shrink-0">
-                    <LuUser className="w-6 h-6" />
+                    <LuUser className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
                   <div>
                     <span className="text-[10px] font-bold text-primary-700 uppercase tracking-wider">{parents.father.relation}</span>
@@ -346,12 +346,12 @@ export default function ProfilePage() {
           </div>
 
           {/* Mother's Card */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:border-gray-300 transition-colors flex flex-col justify-between">
+          <div className="bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm hover:border-gray-300 transition-colors flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-700 font-bold text-base flex items-center justify-center shrink-0">
-                    <LuUser className="w-6 h-6" />
+                    <LuUser className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
                   <div>
                     <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">{parents.mother.relation}</span>
@@ -413,7 +413,7 @@ export default function ProfilePage() {
       {/* Emergency Contact & Residence / Transport Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Emergency Contacts Card */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100">
               <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
@@ -457,7 +457,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Residential Address & School Transport Card */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100">
               <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -513,7 +513,7 @@ export default function ProfilePage() {
             {updateSubmitted ? (
               <div className="py-8 text-center space-y-2">
                 <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-                  <LuCheck className="w-6 h-6" />
+                  <LuCheck className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <h4 className="text-base font-bold text-gray-800">Update Request Submitted!</h4>
                 <p className="text-xs text-gray-500">School administration has received your changes. You will receive an SMS confirmation after verification.</p>

@@ -262,10 +262,10 @@ export default function AssignmentsPage() {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in pb-16 max-w-7xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-16 max-w-7xl mx-auto">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700 animate-scale-up">
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700 animate-scale-up">
           <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
             <LuCircleCheck className="w-4 h-4" />
           </div>
@@ -301,7 +301,7 @@ export default function AssignmentsPage() {
         {isTeacherOrAdmin && (
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-primary-500/20 hover:-translate-y-0.5 self-start sm:self-auto shrink-0"
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-primary-500/20 hover:-translate-y-0.5 w-full sm:w-auto justify-center self-start sm:self-auto shrink-0"
           >
             <LuPlus className="w-4 h-4" />
             Create New Assignment
@@ -310,7 +310,7 @@ export default function AssignmentsPage() {
       </div>
 
       {/* Filter & Toolbar Controls */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+      <div className="bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         {/* Left: Class & Subject Filters */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
           {/* Class Filter */}
@@ -571,7 +571,7 @@ export default function AssignmentsPage() {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleCreateAssignment} className="p-6 space-y-4 overflow-y-auto">
+            <form onSubmit={handleCreateAssignment} className="p-4 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto">
               {/* Select Target Class & Subject */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -844,9 +844,9 @@ export default function AssignmentsPage() {
           <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl relative z-10 overflow-hidden animate-scale-up max-h-[90vh] flex flex-col">
             {/* Modal Header */}
             <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                  <LuUsers className="w-6 h-6" />
+                  <LuUsers className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">

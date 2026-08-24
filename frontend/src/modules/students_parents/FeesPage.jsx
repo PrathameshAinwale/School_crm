@@ -90,7 +90,7 @@ export default function FeesPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in pb-10">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-10">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center gap-3">
@@ -164,7 +164,59 @@ export default function FeesPage() {
           <span className="text-xs text-gray-400 font-medium">Session 2026-27</span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile View: Fee Installment Cards */}
+        <div className="sm:hidden p-3 space-y-2.5">
+          {installments.map((inst, i) => (
+            <div key={i} className="bg-slate-50/70 rounded-xl p-3 border border-slate-200/80 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold text-gray-800 text-xs">{inst.term}</span>
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                    inst.status === 'Paid'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : inst.status === 'Pending'
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : 'bg-gray-100 text-gray-600 border-gray-200'
+                  }`}
+                >
+                  {inst.status}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2 rounded-lg border border-gray-100">
+                <div>
+                  <span className="text-[10px] text-gray-400 block font-medium">Amount</span>
+                  <span className="font-bold text-gray-900 text-sm">{inst.amount}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-400 block font-medium">Due Date</span>
+                  <span className="text-gray-700 font-semibold text-xs">{inst.dueDate}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                {inst.status === 'Paid' ? (
+                  <>
+                    <span className="text-[10px] text-gray-400 font-mono truncate">{inst.txnId}</span>
+                    <button className="text-primary-600 hover:text-primary-800 font-bold inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded bg-primary-50">
+                      <LuDownload className="w-3.5 h-3.5" /> PDF
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setShowPayModal(true)}
+                    className="w-full py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs"
+                  >
+                    Pay Now ({inst.amount})
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
               <tr>
@@ -246,7 +298,7 @@ export default function FeesPage() {
             {paymentSuccess ? (
               <div className="py-8 text-center space-y-2">
                 <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-                  <LuCheck className="w-6 h-6" />
+                  <LuCheck className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <h4 className="text-base font-bold text-gray-800">Payment Successful!</h4>
                 <p className="text-xs text-gray-500">Transaction ID: TXN-UPI-994820 • Receipt dispatched to parent email.</p>

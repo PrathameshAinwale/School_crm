@@ -356,18 +356,18 @@ export default function CreateTimetablePage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-scale-up border border-slate-700">
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-scale-up border border-slate-700">
           <LuCircleCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="flex items-center gap-3.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/dashboard')}
             className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
@@ -376,12 +376,12 @@ export default function CreateTimetablePage() {
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-800">Class Timetable Creator & Editor</h1>
+              <h1 className="text-base sm:text-xl font-bold text-slate-800 leading-tight">Class Timetable Creator & Editor</h1>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">
                 Teacher Workspace
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
               Build and customize daily period schedules. Saved changes are instantly synced to students of the selected class.
             </p>
           </div>
@@ -406,7 +406,7 @@ export default function CreateTimetablePage() {
       </div>
 
       {/* Class Selection & In-Charge Banner */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
         {/* Class & Division Selector Dropdowns */}
         <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs flex items-center justify-between gap-4">
           <div className="flex-1">
@@ -509,7 +509,7 @@ export default function CreateTimetablePage() {
       </div>
 
       {/* Interactive Period Rows Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -537,9 +537,9 @@ export default function CreateTimetablePage() {
         </div>
 
         {currentPeriods.length === 0 ? (
-          <div className="p-12 text-center">
+          <div className="p-8 sm:p-12 text-center">
             <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
-              <LuClock className="w-6 h-6" />
+              <LuClock className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <h3 className="text-sm font-bold text-slate-800 mb-1">No Periods Scheduled for {selectedDay}</h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
@@ -553,85 +553,78 @@ export default function CreateTimetablePage() {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
-                <tr>
-                  <th className="px-4 py-3 w-16">Period #</th>
-                  <th className="px-4 py-3 w-44">Time Slot</th>
-                  <th className="px-4 py-3">Subject</th>
-                  <th className="px-4 py-3 w-52">Faculty / Teacher</th>
-                  <th className="px-4 py-3 w-36">Room / Lab</th>
-                  <th className="px-4 py-3 w-44">Type</th>
-                  <th className="px-4 py-3 text-right w-16">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {currentPeriods.map((p, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                    {/* Period Badge */}
-                    <td className="px-4 py-3 font-bold text-slate-800">
-                      <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-700 border border-primary-200 flex items-center justify-center font-mono text-xs font-extrabold">
+          <>
+            {/* Mobile View: Editable Period Cards */}
+            <div className="sm:hidden p-3 space-y-2.5">
+              {currentPeriods.map((p, idx) => (
+                <div key={idx} className="bg-slate-50/70 rounded-xl p-3 border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-primary-50 text-primary-700 border border-primary-200 flex items-center justify-center font-mono text-xs font-extrabold">
                         P{p.period_number || idx + 1}
                       </div>
-                    </td>
-
-                    {/* Time Slot Input */}
-                    <td className="px-4 py-3">
                       <input
                         type="text"
                         value={p.time_slot}
                         onChange={(e) => handlePeriodChange(idx, 'time_slot', e.target.value)}
                         placeholder="8:00 - 8:45 AM"
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:border-primary-500"
+                        className="px-2 py-1 bg-white rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 w-32 focus:outline-none focus:border-primary-500"
                       />
-                    </td>
+                    </div>
+                    <button
+                      onClick={() => handleDeletePeriod(idx)}
+                      className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                    >
+                      <LuTrash2 className="w-4 h-4" />
+                    </button>
+                  </div>
 
-                    {/* Subject Input / Dropdown */}
-                    <td className="px-4 py-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-500 block mb-0.5">Subject</label>
                       <input
                         type="text"
-                        list={`subjects-list-${idx}`}
+                        list={`subjects-list-m-${idx}`}
                         value={p.subject}
                         onChange={(e) => handlePeriodChange(idx, 'subject', e.target.value)}
-                        placeholder="e.g. Mathematics"
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:border-primary-500"
+                        placeholder="Subject"
+                        className="w-full px-2.5 py-1.5 bg-white rounded-lg border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:border-primary-500"
                       />
-                      <datalist id={`subjects-list-${idx}`}>
+                      <datalist id={`subjects-list-m-${idx}`}>
                         {standardSubjects.map((sub) => (
                           <option key={sub} value={sub} />
                         ))}
                       </datalist>
-                    </td>
-
-                    {/* Teacher Name Input */}
-                    <td className="px-4 py-3">
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-500 block mb-0.5">Teacher</label>
                       <input
                         type="text"
                         value={p.teacher_name}
                         onChange={(e) => handlePeriodChange(idx, 'teacher_name', e.target.value)}
-                        placeholder="Teacher Name"
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-primary-500"
+                        placeholder="Teacher"
+                        className="w-full px-2.5 py-1.5 bg-white rounded-lg border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-primary-500"
                       />
-                    </td>
+                    </div>
+                  </div>
 
-                    {/* Room Input */}
-                    <td className="px-4 py-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-500 block mb-0.5">Room</label>
                       <input
                         type="text"
                         value={p.room}
                         onChange={(e) => handlePeriodChange(idx, 'room', e.target.value)}
-                        placeholder="Room 301"
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-primary-500"
+                        placeholder="Room"
+                        className="w-full px-2.5 py-1.5 bg-white rounded-lg border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-primary-500"
                       />
-                    </td>
-
-                    {/* Type Dropdown */}
-                    <td className="px-4 py-3">
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-500 block mb-0.5">Type</label>
                       <select
                         value={p.type || 'Theory'}
                         onChange={(e) => handlePeriodChange(idx, 'type', e.target.value)}
-                        className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-primary-500"
+                        className="w-full px-2 py-1.5 bg-white rounded-lg border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-primary-500"
                       >
                         {periodTypeOptions.map((opt) => (
                           <option key={opt} value={opt}>
@@ -639,30 +632,124 @@ export default function CreateTimetablePage() {
                           </option>
                         ))}
                       </select>
-                    </td>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-                    {/* Delete Action */}
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleDeletePeriod(idx)}
-                        title="Delete Period Slot"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                      >
-                        <LuTrash2 className="w-4 h-4" />
-                      </button>
-                    </td>
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th className="px-4 py-3 w-16">Period #</th>
+                    <th className="px-4 py-3 w-44">Time Slot</th>
+                    <th className="px-4 py-3">Subject</th>
+                    <th className="px-4 py-3 w-52">Faculty / Teacher</th>
+                    <th className="px-4 py-3 w-36">Room / Lab</th>
+                    <th className="px-4 py-3 w-44">Type</th>
+                    <th className="px-4 py-3 text-right w-16">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {currentPeriods.map((p, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                      {/* Period Badge */}
+                      <td className="px-4 py-3 font-bold text-slate-800">
+                        <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-700 border border-primary-200 flex items-center justify-center font-mono text-xs font-extrabold">
+                          P{p.period_number || idx + 1}
+                        </div>
+                      </td>
+
+                      {/* Time Slot Input */}
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          value={p.time_slot}
+                          onChange={(e) => handlePeriodChange(idx, 'time_slot', e.target.value)}
+                          placeholder="8:00 - 8:45 AM"
+                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:border-primary-500"
+                        />
+                      </td>
+
+                      {/* Subject Input / Dropdown */}
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          list={`subjects-list-${idx}`}
+                          value={p.subject}
+                          onChange={(e) => handlePeriodChange(idx, 'subject', e.target.value)}
+                          placeholder="e.g. Mathematics"
+                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:border-primary-500"
+                        />
+                        <datalist id={`subjects-list-${idx}`}>
+                          {standardSubjects.map((sub) => (
+                            <option key={sub} value={sub} />
+                          ))}
+                        </datalist>
+                      </td>
+
+                      {/* Teacher Name Input */}
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          value={p.teacher_name}
+                          onChange={(e) => handlePeriodChange(idx, 'teacher_name', e.target.value)}
+                          placeholder="Teacher Name"
+                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-primary-500"
+                        />
+                      </td>
+
+                      {/* Room Input */}
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          value={p.room}
+                          onChange={(e) => handlePeriodChange(idx, 'room', e.target.value)}
+                          placeholder="Room 301"
+                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-primary-500"
+                        />
+                      </td>
+
+                      {/* Type Dropdown */}
+                      <td className="px-4 py-3">
+                        <select
+                          value={p.type || 'Theory'}
+                          onChange={(e) => handlePeriodChange(idx, 'type', e.target.value)}
+                          className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-primary-500"
+                        >
+                          {periodTypeOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      {/* Delete Action */}
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => handleDeletePeriod(idx)}
+                          title="Delete Period Slot"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        >
+                          <LuTrash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
       {/* Student Timetable Preview Modal */}
       {showPreviewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full my-8 overflow-hidden animate-scale-up">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full my-4 sm:my-8 overflow-hidden animate-scale-up">
             <div className="bg-gradient-to-r from-primary-600 to-indigo-600 p-5 text-white flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-base">Live Student View: {selectedClass} ({selectedDay})</h3>

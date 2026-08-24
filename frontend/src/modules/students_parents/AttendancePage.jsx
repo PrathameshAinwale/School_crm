@@ -170,7 +170,7 @@ export default function AttendancePage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in pb-10">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-10">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center gap-3">
@@ -293,7 +293,55 @@ export default function AttendancePage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile Daily Logs Cards */}
+          <div className="sm:hidden space-y-2">
+            {filteredLogs.map((log, i) => (
+              <div key={i} className="bg-slate-50/70 rounded-xl p-3 border border-slate-200/80 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <span className="font-bold text-gray-800 text-xs">{log.date}</span>
+                    <span className="text-[10px] text-gray-400 font-medium ml-1.5">{log.day}</span>
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                      log.status === 'Present'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : log.status === 'Absent'
+                        ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                        : log.status === 'Late'
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {log.status === 'Present' && <LuUserCheck className="w-2.5 h-2.5" />}
+                    {log.status === 'Absent' && <LuUserX className="w-2.5 h-2.5" />}
+                    {log.status === 'Late' && <LuClock className="w-2.5 h-2.5" />}
+                    {log.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-2 rounded-lg border border-gray-100">
+                  <div>
+                    <span className="text-gray-400 block text-[9px] uppercase font-bold">In / Out</span>
+                    <span className="font-mono text-gray-700 font-semibold">{log.checkIn} - {log.checkOut}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block text-[9px] uppercase font-bold">Mode</span>
+                    <span className="text-gray-600 truncate block">{log.mode}</span>
+                  </div>
+                </div>
+
+                {log.remarks && log.remarks !== 'On Time' && (
+                  <p className="text-[10px] text-amber-700 bg-amber-50/70 px-2 py-0.5 rounded">
+                    {log.remarks}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-xs text-left">
               <thead className="bg-gray-50 text-gray-600 uppercase text-[10px] font-bold tracking-wider">
                 <tr>
@@ -361,7 +409,7 @@ export default function AttendancePage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
             {absenceHistory.map((rec) => (
               <div
                 key={rec.id}
@@ -530,7 +578,7 @@ export default function AttendancePage() {
             {leaveSubmitted ? (
               <div className="py-8 text-center space-y-2">
                 <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-                  <LuCheck className="w-6 h-6" />
+                  <LuCheck className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <h4 className="text-base font-bold text-gray-800">Leave Application Submitted!</h4>
                 <p className="text-xs text-gray-500">Your leave request has been submitted to Dr. Ananya Sen for approval.</p>

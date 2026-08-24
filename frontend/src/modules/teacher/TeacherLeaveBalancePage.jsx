@@ -48,9 +48,9 @@ export default function TeacherLeaveBalancePage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-gray-200/80 shadow-xs">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
-            <LuFileText className="w-6 h-6" />
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
+            <LuFileText className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">Staff Leave Balance & Quotas</h1>
@@ -73,7 +73,7 @@ export default function TeacherLeaveBalancePage() {
           <p className="text-xs text-gray-500 font-medium">Fetching live leave balance...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
           {leaveTypes.map((leave, i) => {
             const Icon = iconMap[leave.code] || LuFileText;
             const percentUsed = leave.total > 0 ? Math.round((leave.used / leave.total) * 100) : 0;
@@ -85,7 +85,7 @@ export default function TeacherLeaveBalancePage() {
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Remaining Balance</p>
-                    <p className="text-2xl font-black text-gray-900">{leave.remaining} Days</p>
+                    <p className="text-xl sm:text-2xl font-black text-gray-900">{leave.remaining} Days</p>
                   </div>
                 </div>
                 <h3 className="text-sm font-bold text-gray-800 mb-3">{leave.type}</h3>
@@ -123,45 +123,96 @@ export default function TeacherLeaveBalancePage() {
             <p className="text-xs text-gray-500 font-medium">Loading history...</p>
           </div>
         ) : leaveHistory.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50/70 text-gray-500 text-[11px] font-bold uppercase tracking-wider border-b border-gray-100">
-                  <th className="p-4 pl-6">Leave Type</th>
-                  <th className="p-4">Duration</th>
-                  <th className="p-4">Days</th>
-                  <th className="p-4">Reason for Leave</th>
-                  <th className="p-4">Application Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-xs">
-                {leaveHistory.map((leave, i) => (
-                  <tr key={i} className="hover:bg-gray-50/60 transition-colors">
-                    <td className="p-4 pl-6 font-bold text-gray-900 whitespace-nowrap">{leave.type}</td>
-                    <td className="p-4 text-gray-600 whitespace-nowrap font-medium">
-                      {leave.from} - {leave.to}
-                    </td>
-                    <td className="p-4 text-gray-700 font-bold whitespace-nowrap">{leave.days} Day(s)</td>
-                    <td className="p-4 text-gray-600 max-w-xs truncate" title={leave.reason}>{leave.reason}</td>
-                    <td className="p-4 whitespace-nowrap">
+          <>
+            {/* Mobile History Cards */}
+            <div className="sm:hidden p-3 space-y-2.5">
+              {leaveHistory.map((leave, i) => (
+                <div key={i} className="bg-slate-50/70 rounded-xl p-3 border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-gray-900 text-xs">{leave.type}</span>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        leave.status === 'Approved'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : leave.status === 'Pending'
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : 'bg-red-50 text-red-700 border border-red-200'
+                      }`}
+                    >
                       <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide inline-flex items-center gap-1 ${
+                        className={`w-1.5 h-1.5 rounded-full ${
                           leave.status === 'Approved'
-                            ? 'bg-emerald-50 text-emerald-700'
+                            ? 'bg-emerald-500'
                             : leave.status === 'Pending'
-                            ? 'bg-amber-50 text-amber-700'
-                            : 'bg-rose-50 text-rose-700'
+                            ? 'bg-amber-500'
+                            : 'bg-red-500'
                         }`}
-                      >
-                        {leave.status === 'Approved' ? <LuCheck className="w-3 h-3" /> : leave.status === 'Pending' ? <LuClock className="w-3 h-3" /> : <LuCircleX className="w-3 h-3" />}
-                        {leave.status}
-                      </span>
-                    </td>
+                      />
+                      {leave.status}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-gray-600 bg-white p-2 rounded-lg border border-gray-100">
+                    <span className="font-medium">{leave.from} → {leave.to}</span>
+                    <span className="font-bold text-gray-800">{leave.days} {leave.days === 1 ? 'Day' : 'Days'}</span>
+                  </div>
+
+                  {leave.reason && (
+                    <p className="text-[11px] text-gray-500 truncate">
+                      <span className="font-semibold text-gray-700">Reason:</span> {leave.reason}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50/70 text-gray-500 text-[11px] font-bold uppercase tracking-wider border-b border-gray-100">
+                    <th className="p-4 pl-6">Leave Type</th>
+                    <th className="p-4">Duration</th>
+                    <th className="p-4">Days</th>
+                    <th className="p-4">Reason for Leave</th>
+                    <th className="p-4">Application Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-xs">
+                  {leaveHistory.map((leave, i) => (
+                    <tr key={i} className="hover:bg-gray-50/60 transition-colors">
+                      <td className="p-4 pl-6 font-bold text-gray-900 whitespace-nowrap">{leave.type}</td>
+                      <td className="p-4 text-gray-600 font-medium whitespace-nowrap">{leave.from} - {leave.to}</td>
+                      <td className="p-4 text-gray-700 font-bold">{leave.days} Days</td>
+                      <td className="p-4 text-gray-500 max-w-xs truncate">{leave.reason}</td>
+                      <td className="p-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                            leave.status === 'Approved'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : leave.status === 'Pending'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-red-50 text-red-700 border border-red-200'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              leave.status === 'Approved'
+                                ? 'bg-emerald-500'
+                                : leave.status === 'Pending'
+                                ? 'bg-amber-500'
+                                : 'bg-red-500'
+                            }`}
+                          />
+                          {leave.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <div className="p-12 text-center text-gray-400 text-xs">
             No leave applications submitted yet.

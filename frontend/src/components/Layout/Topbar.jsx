@@ -187,7 +187,7 @@ export default function Topbar({ onToggleMobileMenu }) {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 top-full mt-1.5 w-84 max-w-[90vw] bg-white rounded-2xl border border-gray-200 shadow-2xl overflow-hidden z-50 animate-fade-in">
+            <div className="fixed inset-x-3 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-1.5 sm:w-84 bg-white rounded-2xl border border-gray-200 shadow-2xl overflow-hidden z-50 animate-fade-in">
               <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/75">
                 <div className="flex items-center gap-2">
                   <h3 className="text-xs font-bold text-gray-900">Notifications & Alerts</h3>

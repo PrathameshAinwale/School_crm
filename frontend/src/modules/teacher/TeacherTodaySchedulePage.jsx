@@ -77,9 +77,9 @@ export default function TeacherTodaySchedulePage() {
   }, [selectedDay]);
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12 max-w-5xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12 max-w-5xl mx-auto">
       {/* Top Header */}
-      <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="flex items-center justify-between bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/dashboard')}
@@ -88,7 +88,7 @@ export default function TeacherTodaySchedulePage() {
             <LuArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Today's Schedule</h1>
+            <h1 className="text-base sm:text-xl font-bold text-slate-800 leading-tight">Today's Schedule</h1>
             <p className="text-xs text-slate-400">Class, division, subject, and timings for {selectedDay}</p>
           </div>
         </div>
@@ -126,7 +126,7 @@ export default function TeacherTodaySchedulePage() {
       </div>
 
       {/* Timetable Card List */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
             <LuCalendarDays className="w-4 h-4 text-primary-600" />

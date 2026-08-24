@@ -112,7 +112,7 @@ export default function HRProfilePage() {
     return (
       <div className="bg-white rounded-3xl border border-slate-200/80 p-16 text-center shadow-xs max-w-5xl mx-auto my-8">
         <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
-          <LuShieldCheck className="w-6 h-6" />
+          <LuShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />
         </div>
         <h3 className="text-base font-bold text-slate-800">HR Profile Not Found</h3>
         <p className="text-xs text-slate-400 mt-1">
@@ -126,7 +126,7 @@ export default function HRProfilePage() {
     <div className="space-y-6 max-w-6xl mx-auto pb-12 animate-fade-in">
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 border border-slate-800 animate-bounce">
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 border border-slate-800 animate-bounce">
           <LuCircleCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -187,7 +187,7 @@ export default function HRProfilePage() {
           <div className="mt-4 sm:mt-0 shrink-0">
             <button
               onClick={() => setEditing(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
               <LuPencil className="w-3.5 h-3.5" /> Edit Profile Contact
             </button>
