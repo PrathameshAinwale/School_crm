@@ -43,25 +43,16 @@ const CALENDAR_MONTHS = [
   'December',
 ];
 
-// Helper to generate full selectable month cycles for all 12 calendar months
-const getAvailableMonths = () => {
+// Helper to generate the 12 months for the current dynamic year (auto-updates when year rolls over)
+const getCurrentYearMonths = () => {
   const currentYear = new Date().getFullYear();
-  const years = [currentYear, currentYear - 1, currentYear + 1];
-  const months = [];
-
-  years.forEach((yr) => {
-    CALENDAR_MONTHS.forEach((m) => {
-      months.push(`${m} ${yr}`);
-    });
-  });
-
-  return months;
+  return CALENDAR_MONTHS.map((m) => `${m} ${currentYear}`);
 };
 
 export default function StaffSalaryPage() {
   const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const [selectedMonth, setSelectedMonth] = useState(currentMonthName);
-  const [availableMonths] = useState(getAvailableMonths());
+  const [availableMonths] = useState(getCurrentYearMonths());
   const [searchQuery, setSearchQuery] = useState('');
   const [deptFilter, setDeptFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -259,17 +250,10 @@ export default function StaffSalaryPage() {
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="h-10 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all cursor-pointer font-medium"
               >
-                {[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() + 1].map((yr) => (
-                  <optgroup key={yr} label={`Year ${yr} (${yr === new Date().getFullYear() ? 'Current' : yr < new Date().getFullYear() ? 'Past' : 'Upcoming'})`}>
-                    {CALENDAR_MONTHS.map((m) => {
-                      const mLabel = `${m} ${yr}`;
-                      return (
-                        <option key={mLabel} value={mLabel}>
-                          {mLabel}
-                        </option>
-                      );
-                    })}
-                  </optgroup>
+                {availableMonths.map((mLabel) => (
+                  <option key={mLabel} value={mLabel}>
+                    {mLabel}
+                  </option>
                 ))}
               </select>
             </div>
