@@ -22,6 +22,7 @@ import {
   LuLoader,
   LuPencil,
   LuRefreshCw,
+  LuCalendarDays,
   LuCircleCheck,
   LuCircleAlert,
 } from 'react-icons/lu';
@@ -34,6 +35,7 @@ const MONTHS = [
 export default function StaffAttendancePage() {
   const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(todayStr);
+  const isTodayDate = selectedDate === todayStr;
   const [searchQuery, setSearchQuery] = useState('');
   const [deptFilter, setDeptFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -264,7 +266,7 @@ export default function StaffAttendancePage() {
                 </button>
 
                 <button
-                  onClick={goToToday}
+                  onClick={setToday}
                   className={`ml-1 px-2.5 py-1 text-[11px] font-bold rounded-lg transition-colors cursor-pointer ${
                     isTodayDate
                       ? 'bg-emerald-600 text-white shadow-xs'
@@ -338,7 +340,7 @@ export default function StaffAttendancePage() {
             </div>
 
             <button
-              onClick={fetchAttendance}
+              onClick={loadAttendance}
               title="Refresh attendance data"
               className="p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 hover:text-emerald-700 transition-colors cursor-pointer"
             >

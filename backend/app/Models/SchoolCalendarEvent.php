@@ -19,6 +19,9 @@ class SchoolCalendarEvent extends Model
         'time_slot',
         'venue',
         'audience',
+        'target_classes',
+        'start_time',
+        'end_time',
         'coordinator',
         'speaker',
         'status',
@@ -29,5 +32,6 @@ class SchoolCalendarEvent extends Model
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
+        'target_classes' => 'array',
     ];
 }

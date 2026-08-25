@@ -12,6 +12,13 @@ export const hrService = {
     return apiRequest(`/hr/salaries${qs ? `?${qs}` : ''}`);
   },
 
+  updateStaffSalary: (id, data) => {
+    return apiRequest(`/hr/salaries/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+
   disburseSalary: (data) => {
     return apiRequest('/hr/salaries/disburse', {
       method: 'POST',

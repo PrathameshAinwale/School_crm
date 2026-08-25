@@ -21,6 +21,7 @@ class Resource extends Model
         'purchase_date',
         'unit_cost',
         'status',
+        'assigned_teacher_id',
         'notes',
     ];
 
@@ -28,4 +29,14 @@ class Resource extends Model
         'purchase_date' => 'date',
         'unit_cost' => 'decimal:2',
     ];
+
+    public function assignedTeacher()
+    {
+        return $this->belongsTo(Teacher::class, 'assigned_teacher_id');
+    }
+
+    public function requests()
+    {
+        return $this->hasMany(ResourceRequest::class, 'resource_id');
+    }
 }

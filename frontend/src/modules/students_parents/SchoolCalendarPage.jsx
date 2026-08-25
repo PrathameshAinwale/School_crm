@@ -12,21 +12,6 @@ import {
   LuLoader,
 } from 'react-icons/lu';
 
-const fallbackCalendarEvents = [
-  { id: 1, title: 'Mid-Term Mathematics Board Pattern Exam', type: 'Exam', date: 'Aug 20, 2026', time: '9:00 AM - 12:00 PM', venue: 'Main Examination Hall A', month: 'August 2026', desc: 'Syllabus: Units 1 to 3. Bring verified board geometry kit and admit card.' },
-  { id: 2, title: 'Science Practical Lab Evaluation & Viva', type: 'Exam', date: 'Aug 22, 2026', time: '10:00 AM - 1:00 PM', venue: 'Senior Physics & Chemistry Labs', month: 'August 2026', desc: 'Submission of completed practical record files is mandatory before entering the lab.' },
-  { id: 3, title: 'Janmashtami Institutional Holiday', type: 'Holiday', date: 'Aug 26, 2026', time: 'Full Day', venue: 'Campus Closed', month: 'August 2026', desc: 'School will remain closed on account of Sri Krishna Janmashtami.' },
-  { id: 4, title: 'Annual Zonal Inter-School Athletics Championship', type: 'Event', date: 'Aug 28, 2026', time: '8:00 AM - 4:00 PM', venue: 'School Sports Arena & Track', month: 'August 2026', desc: 'House athletic competitions across Track & Field events. Parents cordially invited.' },
-  { id: 5, title: 'Distinguished Keynote: "Future of Space STEM" by Dr. K. Radhakrishnan', type: 'Event', date: 'Sep 04, 2026', time: '11:00 AM - 1:00 PM', venue: 'Main Auditorium', month: 'September 2026', desc: 'Special lecture for Grades IX to XII by former ISRO Chairman.' },
-  { id: 6, title: 'Parent-Teacher Meeting (PTM Term 1)', type: 'PTM', date: 'Sep 05, 2026', time: '9:00 AM - 1:00 PM', venue: 'Respective Classrooms', month: 'September 2026', desc: '1-on-1 performance review of Unit Tests and Mid-Term examinations with class teachers.' },
-  { id: 7, title: 'Ganesh Chaturthi Holiday', type: 'Holiday', date: 'Sep 07, 2026', time: 'Full Day', venue: 'Campus Closed', month: 'September 2026', desc: 'Gazetted holiday for Ganesh Chaturthi.' },
-  { id: 8, title: 'Grandparents Day Gathering & Cultural Fiesta', type: 'Event', date: 'Sep 12, 2026', time: '9:30 AM - 1:30 PM', venue: 'Open-Air Amphitheatre', month: 'September 2026', desc: 'Special cultural performances and music dedicated to our grandparents.' },
-  { id: 9, title: 'Inter-House Science & Robotics Innovation Expo 2026', type: 'Event', date: 'Sep 20, 2026', time: '10:00 AM - 3:00 PM', venue: 'Senior Science Wings', month: 'September 2026', desc: 'Working model demonstrations and robotics competition for all student houses.' },
-  { id: 10, title: 'Gandhi Jayanti Holiday', type: 'Holiday', date: 'Oct 02, 2026', time: 'Full Day', venue: 'Campus Closed', month: 'October 2026', desc: 'National holiday on the occasion of Mahatma Gandhi Birthday.' },
-  { id: 11, title: 'Half-Yearly Summative Assessment Exams (SA-1)', type: 'Exam', date: 'Oct 10 - Oct 22, 2026', time: '9:00 AM - 12:30 PM', venue: 'All Classrooms', month: 'October 2026', desc: 'Major mid-session board pattern examinations covering 50% CBSE syllabus.' },
-  { id: 12, title: 'Dussehra & Autumn Vacation', type: 'Holiday', date: 'Oct 23 - Oct 28, 2026', time: '6 Days', venue: 'Campus Closed', month: 'October 2026', desc: 'Autumn break for students and faculty. Classes resume Oct 29.' },
-];
-
 const eventTypeBadgeStyles = {
   Exam: 'bg-rose-50 text-rose-700 border-rose-200',
   Holiday: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -37,7 +22,7 @@ const eventTypeBadgeStyles = {
 export default function SchoolCalendarPage() {
   const navigate = useNavigate();
   const [filterType, setFilterType] = useState('All');
-  const [events, setEvents] = useState(fallbackCalendarEvents);
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,11 +31,17 @@ export default function SchoolCalendarPage() {
       type: filterType === 'All' ? '' : filterType,
     })
       .then((res) => {
-        if (res?.data && res.data.length > 0) {
-          setEvents(res.data);
+        const eventsData = res?.data?.events || res?.data || res?.events;
+        if (Array.isArray(eventsData)) {
+          setEvents(eventsData);
+        } else {
+          setEvents([]);
         }
       })
-      .catch((err) => console.log('Loaded fallback events:', err))
+      .catch((err) => {
+        console.log('Calendar events fetch error:', err);
+        setEvents([]);
+      })
       .finally(() => setLoading(false));
   }, [filterType]);
 

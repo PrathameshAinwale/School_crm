@@ -12,64 +12,15 @@ import {
   LuLoader,
 } from 'react-icons/lu';
 
-const fallbackWeeklyTimetable = {
-  Monday: [
-    { period: 'Period 1', time: '8:00 - 8:45 AM', subject: 'Mathematics', teacher: 'Dr. Ananya Sen', room: 'Room 301', type: 'Theory' },
-    { period: 'Period 2', time: '8:45 - 9:30 AM', subject: 'Science (Physics)', teacher: 'Mr. Vikram Rathore', room: 'Physics Lab 1', type: 'Lab Practical' },
-    { period: 'Period 3', time: '9:45 - 10:30 AM', subject: 'English Core', teacher: 'Ms. Sunita Rao', room: 'Room 301', type: 'Literature' },
-    { period: 'Period 4', time: '10:30 - 11:15 AM', subject: 'Computer Science (AI & Python)', teacher: 'Mrs. Deepa K.', room: 'Computer Lab 2', type: 'Practical' },
-    { period: 'Period 5', time: '11:30 - 12:15 PM', subject: 'Social Science', teacher: 'Mr. Manoj Joshi', room: 'Room 301', type: 'History' },
-    { period: 'Period 6', time: '12:15 - 1:00 PM', subject: 'Physical Education & Athletics', teacher: 'Coach Sandeep', room: 'Sports Arena', type: 'Sports' },
-  ],
-  Tuesday: [
-    { period: 'Period 1', time: '8:00 - 8:45 AM', subject: 'Science (Chemistry)', teacher: 'Mr. Rajesh Mehra', room: 'Chemistry Lab', type: 'Lab Practical' },
-    { period: 'Period 2', time: '8:45 - 9:30 AM', subject: 'Mathematics', teacher: 'Dr. Ananya Sen', room: 'Room 301', type: 'Theory' },
-    { period: 'Period 3', time: '9:45 - 10:30 AM', subject: 'Hindi / 2nd Language', teacher: 'Mr. Suresh Kumar', room: 'Room 301', type: 'Literature' },
-    { period: 'Period 4', time: '10:30 - 11:15 AM', subject: 'Social Science (Geography)', teacher: 'Mr. Manoj Joshi', room: 'Room 301', type: 'Geography' },
-    { period: 'Period 5', time: '11:30 - 12:15 PM', subject: 'English Core', teacher: 'Ms. Sunita Rao', room: 'Room 301', type: 'Grammar' },
-    { period: 'Period 6', time: '12:15 - 1:00 PM', subject: 'Library & Self Study', teacher: 'Mr. R. K. Verma', room: 'Central Library', type: 'Self Study' },
-  ],
-  Wednesday: [
-    { period: 'Period 1', time: '8:00 - 8:45 AM', subject: 'Mathematics', teacher: 'Dr. Ananya Sen', room: 'Room 301', type: 'Theory' },
-    { period: 'Period 2', time: '8:45 - 9:30 AM', subject: 'Science (Biology)', teacher: 'Ms. Deepa Nair', room: 'Biology Lab', type: 'Lab Practical' },
-    { period: 'Period 3', time: '9:45 - 10:30 AM', subject: 'Social Science (Civics)', teacher: 'Mr. Manoj Joshi', room: 'Room 301', type: 'Civics' },
-    { period: 'Period 4', time: '10:30 - 11:15 AM', subject: 'English Core', teacher: 'Ms. Sunita Rao', room: 'Room 301', type: 'Writing Skills' },
-    { period: 'Period 5', time: '11:30 - 12:15 PM', subject: 'Computer Science (Python)', teacher: 'Mrs. Deepa K.', room: 'Computer Lab 2', type: 'Practical' },
-    { period: 'Period 6', time: '12:15 - 1:00 PM', subject: 'Arts & Music', teacher: 'Ms. Pallavi Roy', room: 'Fine Arts Studio', type: 'Activity' },
-  ],
-  Thursday: [
-    { period: 'Period 1', time: '8:00 - 8:45 AM', subject: 'Science (Physics)', teacher: 'Mr. Vikram Rathore', room: 'Room 301', type: 'Theory' },
-    { period: 'Period 2', time: '8:45 - 9:30 AM', subject: 'Mathematics', teacher: 'Dr. Ananya Sen', room: 'Room 301', type: 'Problem Solving' },
-    { period: 'Period 3', time: '9:45 - 10:30 AM', subject: 'English Core', teacher: 'Ms. Sunita Rao', room: 'Room 301', type: 'Literature' },
-    { period: 'Period 4', time: '10:30 - 11:15 AM', subject: 'Social Science (Economics)', teacher: 'Mr. Manoj Joshi', room: 'Room 301', type: 'Economics' },
-    { period: 'Period 5', time: '11:30 - 12:15 PM', subject: 'Hindi / 2nd Language', teacher: 'Mr. Suresh Kumar', room: 'Room 301', type: 'Grammar' },
-    { period: 'Period 6', time: '12:15 - 1:00 PM', subject: 'Robotics & STEM Club', teacher: 'Mr. Alok Verma', room: 'Robotics Lab', type: 'Hands-on' },
-  ],
-  Friday: [
-    { period: 'Period 1', time: '8:00 - 8:45 AM', subject: 'Mathematics', teacher: 'Dr. Ananya Sen', room: 'Room 301', type: 'Theory' },
-    { period: 'Period 2', time: '8:45 - 9:30 AM', subject: 'Science (Chemistry)', teacher: 'Mr. Rajesh Mehra', room: 'Room 301', type: 'Theory' },
-    { period: 'Period 3', time: '9:45 - 10:30 AM', subject: 'Social Science', teacher: 'Mr. Manoj Joshi', room: 'Room 301', type: 'History' },
-    { period: 'Period 4', time: '10:30 - 11:15 AM', subject: 'Computer Science (SQL)', teacher: 'Mrs. Deepa K.', room: 'Computer Lab 2', type: 'Practical' },
-    { period: 'Period 5', time: '11:30 - 12:15 PM', subject: 'English Core', teacher: 'Ms. Sunita Rao', room: 'Room 301', type: 'Comprehension' },
-    { period: 'Period 6', time: '12:15 - 1:00 PM', subject: 'Sports & Games', teacher: 'Coach Sandeep', room: 'Football Ground', type: 'Sports' },
-  ],
-  Saturday: [
-    { period: 'Period 1', time: '8:00 - 8:45 AM', subject: 'Weekly Assessment Test', teacher: 'Class Invigilator', room: 'Room 301', type: 'Test' },
-    { period: 'Period 2', time: '8:45 - 9:30 AM', subject: 'Science Doubt Resolution', teacher: 'Mr. Vikram Rathore', room: 'Room 301', type: 'Remedial' },
-    { period: 'Period 3', time: '9:45 - 10:30 AM', subject: 'Math Doubt Resolution', teacher: 'Dr. Ananya Sen', room: 'Room 301', type: 'Remedial' },
-    { period: 'Period 4', time: '10:30 - 11:15 AM', subject: 'Co-Curricular & Club Activity', teacher: 'Club Incharges', room: 'Activity Hall', type: 'Club' },
-  ],
-};
-
 export default function TimetablePage() {
   const navigate = useNavigate();
   const [selectedDay, setSelectedDay] = useState('Monday');
-  const [timetableData, setTimetableData] = useState(fallbackWeeklyTimetable);
+  const [timetableData, setTimetableData] = useState({});
   const [headerInfo, setHeaderInfo] = useState({
-    className: 'Class 10',
-    sectionName: 'Saffron A',
-    homeroom: 'Room 301',
-    classTeacher: 'Shruti Sen',
+    className: '',
+    sectionName: '',
+    homeroom: '',
+    classTeacher: '',
   });
   const [loading, setLoading] = useState(true);
 
@@ -77,20 +28,20 @@ export default function TimetablePage() {
     studentParentService.getTimetable()
       .then((res) => {
         if (res?.data) {
-          if (res.data.timetable && Object.keys(res.data.timetable).length > 0) {
+          if (res.data.timetable && typeof res.data.timetable === 'object') {
             setTimetableData(res.data.timetable);
           }
           if (res.data.className) {
             setHeaderInfo({
               className: res.data.className,
               sectionName: res.data.sectionName || 'A',
-              homeroom: res.data.homeroom || 'Room 301',
-              classTeacher: res.data.classTeacher || 'Shruti Sen',
+              homeroom: res.data.homeroom || '',
+              classTeacher: res.data.classTeacher || '',
             });
           }
         }
       })
-      .catch((err) => console.log('Loaded fallback timetable:', err))
+      .catch((err) => console.log('Timetable data fetch error:', err))
       .finally(() => setLoading(false));
   }, []);
 

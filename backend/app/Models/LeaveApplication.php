@@ -18,6 +18,8 @@ class LeaveApplication extends Model
         'to_date',
         'days',
         'reason',
+        'photo_proof',
+        'photo_name',
         'status',
         'remarks',
         'approved_by',

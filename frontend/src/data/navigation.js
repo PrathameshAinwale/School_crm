@@ -48,6 +48,7 @@ const navigation = {
     { label: 'Admission', path: '/admission', icon: LuUserPlus },
     { label: 'School vehicles', path: '/school-vehicles', icon: LuBus },
     { label: 'School resources', path: '/school-resources', icon: LuBoxes },
+    { label: 'Calendar & Events', path: '/admin/calendar', icon: LuCalendarDays },
   ],
   teacher: [
     {
@@ -60,7 +61,7 @@ const navigation = {
         { label: 'Student Attendance', path: '/teacher/student-attendance', icon: LuClipboardList },
         { label: 'Student records', path: '/student-records', icon: LuGraduationCap },
         { label: 'Syllabus', path: '/syllabus', icon: LuBookOpen },
-        { label: 'Scoresheet', path: '/scoresheet', icon: LuFileSpreadsheet },
+        { label: 'School resources', path: '/teacher/resources', icon: LuBoxes },
         { label: 'Calendar', path: '/calendar', icon: LuCalendarDays },
         { label: 'Assignments', path: '/assignments', icon: LuClipboardList },
       ],

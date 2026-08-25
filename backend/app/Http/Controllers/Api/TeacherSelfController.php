@@ -406,6 +406,8 @@ class TeacherSelfController extends Controller
             'to_date' => $to->toDateString(),
             'days' => $days,
             'reason' => $request->reason,
+            'photo_proof' => $request->photo_proof ?: $request->photo_url,
+            'photo_name' => $request->photo_name ?: ($request->photo_proof ? 'medical_certificate.png' : null),
             'status' => 'Pending',
         ]);
 

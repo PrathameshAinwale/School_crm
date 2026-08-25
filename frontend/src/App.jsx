@@ -32,6 +32,7 @@ import ClassAttendancePage from './modules/teacher/ClassAttendancePage';
 import TeacherTrainingsPage from './modules/teacher/TeacherTrainingsPage';
 import CreateTimetablePage from './modules/teacher/CreateTimetablePage';
 import TeacherTodaySchedulePage from './modules/teacher/TeacherTodaySchedulePage';
+import TeacherResourcesPage from './modules/teacher/TeacherResourcesPage';
 
 // HR Operations Pages
 import StaffAttendancePage from './modules/hr/StaffAttendancePage';
@@ -48,6 +49,7 @@ import AdminAttendancePage from './modules/admin/AdminAttendancePage';
 import AdminAdmissionPage from './modules/admin/AdminAdmissionPage';
 import AdminVehiclesPage from './modules/admin/AdminVehiclesPage';
 import AdminResourcesPage from './modules/admin/AdminResourcesPage';
+import AdminEventsCalendarPage from './modules/admin/AdminEventsCalendarPage';
 
 // Protected route wrapper
 function ProtectedRoute({ children }) {
@@ -202,9 +204,12 @@ function AppRoutes() {
         <Route path="admissions" element={<RoleRoute allowedRoles={['admin']} moduleName="Admissions"><AdminAdmissionPage /></RoleRoute>} />
         <Route path="school-vehicles" element={<RoleRoute allowedRoles={['admin']} moduleName="School Vehicles"><AdminVehiclesPage /></RoleRoute>} />
         <Route path="school-resources" element={<RoleRoute allowedRoles={['admin']} moduleName="School Resources"><AdminResourcesPage /></RoleRoute>} />
+        <Route path="admin/calendar" element={<RoleRoute allowedRoles={['admin']} moduleName="Calendar & Events"><AdminEventsCalendarPage /></RoleRoute>} />
+        <Route path="admin/events" element={<RoleRoute allowedRoles={['admin']} moduleName="Calendar & Events"><AdminEventsCalendarPage /></RoleRoute>} />
         <Route path="subjects" element={<Placeholder />} />
 
         {/* Teacher & Staff Academic & Self Routes */}
+        <Route path="teacher/resources" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="School Resources"><TeacherResourcesPage /></RoleRoute>} />
         <Route path="teacher/schedule" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Today's Schedule"><TeacherTodaySchedulePage /></RoleRoute>} />
         <Route path="teacher/timetable" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Create Timetable"><CreateTimetablePage /></RoleRoute>} />
         <Route path="teacher/student-attendance" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Student Attendance"><ClassAttendancePage /></RoleRoute>} />

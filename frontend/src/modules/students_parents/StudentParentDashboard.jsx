@@ -4,13 +4,6 @@ import WelcomeCard from '../../components/Dashboard/WelcomeCard';
 import StatCard from '../../components/Dashboard/StatCard';
 import { studentParentService } from '../../services/studentParentService';
 import {
-  studentParentStats,
-  studentSyllabusProgress,
-  studentSchoolCalendar,
-  studentPeriodTimetable,
-  studentAssignmentsList,
-} from '../../data/mockData';
-import {
   LuBookOpen,
   LuCalendarDays,
   LuClock,
@@ -20,6 +13,7 @@ import {
   LuUpload,
   LuMapPin,
   LuUser,
+  LuLoader,
 } from 'react-icons/lu';
 
 const statIcons = [LuBookOpen, LuClock, LuClipboardList, LuCalendarDays];
@@ -38,19 +32,16 @@ export default function StudentParentDashboard() {
   // Mobile Auto-Swipe Carousel State
   const [activeKpiIndex, setActiveKpiIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [loading, setLoading] = useState(true);
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
 
-  // Dynamic Data States
-  const [statsData, setStatsData] = useState(studentParentStats);
-  const [topSyllabus, setTopSyllabus] = useState(studentSyllabusProgress.slice(0, 3));
-  const [topCalendarEvents, setTopCalendarEvents] = useState(studentSchoolCalendar.slice(0, 3));
-  const [topTimetablePeriods, setTopTimetablePeriods] = useState(studentPeriodTimetable.slice(0, 3));
-  const [urgentAssignments, setUrgentAssignments] = useState(
-    studentAssignmentsList.filter(
-      (a) => a.status === 'Pending' || a.priority === 'High' || a.priority === 'Medium'
-    )
-  );
+  // Dynamic Data States (Loaded strictly from Live Backend Database)
+  const [statsData, setStatsData] = useState([]);
+  const [topSyllabus, setTopSyllabus] = useState([]);
+  const [topCalendarEvents, setTopCalendarEvents] = useState([]);
+  const [topTimetablePeriods, setTopTimetablePeriods] = useState([]);
+  const [urgentAssignments, setUrgentAssignments] = useState([]);
 
   useEffect(() => {
     studentParentService.getDashboardStats()
@@ -103,7 +94,8 @@ export default function StudentParentDashboard() {
           }
         }
       })
-      .catch((err) => console.log('Loaded mock fallback dashboard data:', err));
+      .catch((err) => console.log('Failed to load dashboard stats:', err))
+      .finally(() => setLoading(false));
   }, []);
 
   // Auto-swipe timer for mobile (advances every 3.5s)

@@ -57,8 +57,8 @@ export default function Login() {
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 flex items-center justify-center mb-3 shadow-lg shadow-primary-500/30">
             <LuGraduationCap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">EduFlow CRM</h1>
-          <p className="text-slate-500 text-xs mt-0.5 font-medium">Enterprise School Management Platform</p>
+          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">EduFlow SMS</h1>
+          <p className="text-slate-500 text-xs mt-0.5 font-medium">Enterprise School Management System</p>
         </div>
 
         {/* Login Card */}
@@ -201,7 +201,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          Protected by role-based authentication • EduFlow CRM
+          Protected by role-based authentication • EduFlow SMS
         </p>
       </div>
     </div>

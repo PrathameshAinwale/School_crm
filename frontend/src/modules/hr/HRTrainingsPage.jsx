@@ -19,16 +19,11 @@ import {
   LuCheckCheck,
 } from 'react-icons/lu';
 import { hrService } from '../../services/hrService';
-import {
-  getStoredTrainings,
-  saveStoredTrainings,
-  addTrainingProgram,
-  TEACHERS_LIST,
-  TEACHER_GROUPS,
-} from '../../data/trainingsStore';
+import { adminService } from '../../services/adminService';
 
 export default function HRTrainingsPage() {
   const [trainings, setTrainings] = useState([]);
+  const [teachersList, setTeachersList] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedTraining, setSelectedTraining] = useState(null);
@@ -37,21 +32,29 @@ export default function HRTrainingsPage() {
 
   // New Training Form States
   const [targetType, setTargetType] = useState('group'); // 'group' | 'specific'
-  const [selectedGroup, setSelectedGroup] = useState(TEACHER_GROUPS[0].id);
+  const [selectedGroup, setSelectedGroup] = useState('ALL');
   const [selectedSpecificTeachers, setSelectedSpecificTeachers] = useState([]);
 
   const fetchTrainings = async () => {
     setLoading(true);
     try {
-      const res = await hrService.getTrainings();
-      const trainingsList = res?.data?.trainings || res?.trainings;
-      if (trainingsList && Array.isArray(trainingsList) && trainingsList.length > 0) {
-        // Map backend trainings ensuring attendees array
-        const defaultAttendees = TEACHERS_LIST.map((t) => ({
-          teacherId: t.id,
-          teacherName: t.name,
-          role: t.role,
-          dept: t.dept,
+      const [trainingsRes, teachersRes] = await Promise.all([
+        hrService.getTrainings(),
+        adminService.getTeachers(),
+      ]);
+
+      const tList = teachersRes?.data?.teachers || teachersRes?.teachers || teachersRes?.data || [];
+      if (Array.isArray(tList) && tList.length > 0) {
+        setTeachersList(tList);
+      }
+
+      const trainingsList = trainingsRes?.data?.trainings || trainingsRes?.trainings;
+      if (trainingsList && Array.isArray(trainingsList)) {
+        const defaultAttendees = (Array.isArray(tList) && tList.length > 0 ? tList : []).map((t) => ({
+          teacherId: t.teacher_id || t.id,
+          teacherName: t.full_name || t.name,
+          role: t.designation || t.role || 'Faculty',
+          dept: t.department || t.dept || 'Academic',
           status: 'Assigned & Notified',
           markedAt: null,
           feedback: '',
@@ -71,17 +74,17 @@ export default function HRTrainingsPage() {
           targetGroupName: t.target_audience || t.targetGroup || 'All Faculty',
           description: t.description || 'Pedagogical training session.',
           status: t.status || 'Scheduled',
-          attendees: Array.isArray(t.enrolled_teachers || t.enrolledTeachers) && (t.enrolled_teachers || t.enrolledTeachers).length > 0
-            ? (t.enrolled_teachers || t.enrolledTeachers)
+          attendees: Array.isArray(t.enrolled_teachers) && t.enrolled_teachers.length > 0
+            ? t.enrolled_teachers
             : defaultAttendees,
         }));
         setTrainings(mapped);
       } else {
-        setTrainings(getStoredTrainings());
+        setTrainings([]);
       }
     } catch (err) {
-      console.log('Using local training store:', err);
-      setTrainings(getStoredTrainings());
+      console.log('Error fetching trainings:', err);
+      setTrainings([]);
     } finally {
       setLoading(false);
     }
@@ -123,34 +126,56 @@ export default function HRTrainingsPage() {
     let targetGroupName = '';
 
     if (targetType === 'group') {
-      const groupObj = TEACHER_GROUPS.find((g) => g.id === selectedGroup);
-      targetGroupName = groupObj ? groupObj.name : 'Teacher Group';
-      const teacherIds = groupObj ? groupObj.teacherIds : [];
-      assignedAttendees = TEACHERS_LIST.filter((t) => teacherIds.includes(t.id)).map((t) => ({
-        teacherId: t.id,
-        teacherName: t.name,
-        role: t.role,
-        dept: t.dept,
-        status: 'Assigned & Notified',
-        markedAt: null,
-        feedback: '',
-      }));
+      if (selectedGroup === 'ALL') {
+        targetGroupName = 'All Teaching Faculty';
+        assignedAttendees = teachersList.map((t) => ({
+          teacherId: t.teacher_id || t.id,
+          teacherName: t.full_name || t.name,
+          role: t.designation || t.role || 'Faculty',
+          dept: t.department || t.dept || 'Academic',
+          status: 'Assigned & Notified',
+          markedAt: null,
+          feedback: '',
+        }));
+      } else {
+        targetGroupName = `${selectedGroup} Department`;
+        assignedAttendees = teachersList
+          .filter((t) => (t.department || t.dept) === selectedGroup)
+          .map((t) => ({
+            teacherId: t.teacher_id || t.id,
+            teacherName: t.full_name || t.name,
+            role: t.designation || t.role || 'Faculty',
+            dept: t.department || t.dept || 'Academic',
+            status: 'Assigned & Notified',
+            markedAt: null,
+            feedback: '',
+          }));
+      }
     } else {
       targetGroupName = `${selectedSpecificTeachers.length} Selected Faculty`;
-      assignedAttendees = TEACHERS_LIST.filter((t) => selectedSpecificTeachers.includes(t.id)).map((t) => ({
-        teacherId: t.id,
-        teacherName: t.name,
-        role: t.role,
-        dept: t.dept,
+      assignedAttendees = teachersList
+        .filter((t) => selectedSpecificTeachers.includes(t.teacher_id || t.id))
+        .map((t) => ({
+          teacherId: t.teacher_id || t.id,
+          teacherName: t.full_name || t.name,
+          role: t.designation || t.role || 'Faculty',
+          dept: t.department || t.dept || 'Academic',
+          status: 'Assigned & Notified',
+          markedAt: null,
+          feedback: '',
+        }));
+    }
+
+    if (assignedAttendees.length === 0 && teachersList.length > 0) {
+      assignedAttendees = teachersList.map((t) => ({
+        teacherId: t.teacher_id || t.id,
+        teacherName: t.full_name || t.name,
+        role: t.designation || t.role || 'Faculty',
+        dept: t.department || t.dept || 'Academic',
         status: 'Assigned & Notified',
         markedAt: null,
         feedback: '',
       }));
-    }
-
-    if (assignedAttendees.length === 0) {
-      alert('Please select at least one teacher or group for this training program.');
-      return;
     }
 
     const title = formData.get('title');
@@ -695,9 +720,10 @@ export default function HRTrainingsPage() {
                       onChange={(e) => setSelectedGroup(e.target.value)}
                       className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none font-semibold text-gray-800"
                     >
-                      {TEACHER_GROUPS.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.name} ({g.teacherIds.length} Teachers)
+                      <option value="ALL">All Faculty ({teachersList.length} Teachers)</option>
+                      {[...new Set(teachersList.map((t) => t.department || t.dept).filter(Boolean))].map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept} Department ({teachersList.filter((t) => (t.department || t.dept) === dept).length} Teachers)
                         </option>
                       ))}
                     </select>
@@ -708,11 +734,12 @@ export default function HRTrainingsPage() {
                       Check Individual Teachers ({selectedSpecificTeachers.length} Selected)
                     </label>
                     <div className="bg-white border border-gray-200 rounded-lg p-2 max-h-36 overflow-y-auto divide-y divide-gray-100">
-                      {TEACHERS_LIST.map((t) => {
-                        const isChecked = selectedSpecificTeachers.includes(t.id);
+                      {teachersList.map((t) => {
+                        const tId = t.teacher_id || t.id;
+                        const isChecked = selectedSpecificTeachers.includes(tId);
                         return (
                           <label
-                            key={t.id}
+                            key={tId}
                             className="flex items-center justify-between p-1.5 hover:bg-gray-50 rounded cursor-pointer"
                           >
                             <div className="flex items-center gap-2">
@@ -721,21 +748,21 @@ export default function HRTrainingsPage() {
                                 checked={isChecked}
                                 onChange={(e) => {
                                   if (e.target.checked) {
-                                    setSelectedSpecificTeachers([...selectedSpecificTeachers, t.id]);
+                                    setSelectedSpecificTeachers([...selectedSpecificTeachers, tId]);
                                   } else {
                                     setSelectedSpecificTeachers(
-                                      selectedSpecificTeachers.filter((id) => id !== t.id)
+                                      selectedSpecificTeachers.filter((id) => id !== tId)
                                     );
                                   }
                                 }}
                                 className="text-primary-600 rounded"
                               />
                               <div>
-                                <span className="font-semibold text-gray-800">{t.name}</span>
-                                <span className="text-[10px] text-gray-400 block">{t.role}</span>
+                                <span className="font-semibold text-gray-800">{t.full_name || t.name}</span>
+                                <span className="text-[10px] text-gray-400 block">{t.designation || t.role || 'Faculty'}</span>
                               </div>
                             </div>
-                            <span className="text-[10px] font-mono text-gray-500">{t.dept}</span>
+                            <span className="text-[10px] font-mono text-gray-500">{t.department || t.dept || 'Academic'}</span>
                           </label>
                         );
                       })}

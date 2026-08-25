@@ -19,6 +19,8 @@ class Vehicle extends Model
         'driver_phone',
         'driver_license',
         'route_name',
+        'route_from',
+        'route_to',
         'route_stops',
         'fuel_type',
         'insurance_expiry',

@@ -17,6 +17,7 @@ import {
   LuCircleCheck,
   LuCircleAlert,
   LuClock,
+  LuUser ,
   LuX,
   LuCheck,
   LuBriefcase,
@@ -48,6 +49,19 @@ const ALL_DEFAULT_CLASSES = [
   { name: 'Nursery', label: 'Nursery' },
 ];
 
+export const calculateAge = (dobString) => {
+  if (!dobString) return '';
+  const birthDate = new Date(dobString);
+  if (isNaN(birthDate.getTime())) return '';
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age >= 0 ? `${age} Years` : '';
+};
+
 export default function ManageTeachersPage() {
   const [teachers, setTeachers] = useState([]);
   const [classList, setClassList] = useState(ALL_DEFAULT_CLASSES);
@@ -73,6 +87,9 @@ export default function ManageTeachersPage() {
     last_name: '',
     email: '',
     phone: '',
+    gender: 'Male',
+    blood_group: 'O+',
+    date_of_birth: '',
     department: 'Mathematics',
     qualification: '',
     experience: '',
@@ -97,6 +114,9 @@ export default function ManageTeachersPage() {
     last_name: '',
     email: '',
     phone: '',
+    gender: 'Male',
+    blood_group: 'O+',
+    date_of_birth: '',
     department: 'Mathematics',
     qualification: '',
     experience: '',
@@ -244,6 +264,9 @@ export default function ManageTeachersPage() {
           last_name: '',
           email: '',
           phone: '',
+          gender: 'Male',
+          blood_group: 'O+',
+          date_of_birth: '',
           department: 'Mathematics',
           qualification: '',
           experience: '',
@@ -282,6 +305,9 @@ export default function ManageTeachersPage() {
       last_name: teacher.last_name || '',
       email: teacher.email || '',
       phone: teacher.phone || '',
+      gender: teacher.gender || 'Male',
+      blood_group: teacher.blood_group || 'O+',
+      date_of_birth: teacher.date_of_birth ? teacher.date_of_birth.split('T')[0] : '',
       department: teacher.department || (resolvedRole === 'hr' ? 'Human Resources' : 'Mathematics'),
       qualification: teacher.qualification || '',
       experience: teacher.experience || '',
@@ -833,6 +859,90 @@ export default function ManageTeachersPage() {
                 </div>
               </div>
 
+              {/* Personal, Demographic & Health Details */}
+              <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200 space-y-3">
+                <div className="flex items-center gap-2">
+                  <LuUser className="w-4 h-4 text-blue-600" />
+                  <label className="text-xs font-bold text-blue-950">Personal, Demographic & Health Details</label>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-blue-900 mb-1">
+                      Gender <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.gender}
+                      onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-blue-900 mb-1">
+                      Date of Birth (DOB)
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.date_of_birth}
+                      onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-blue-900 mb-1">
+                      Age <span className="text-[10px] text-blue-600 font-normal">(Auto)</span>
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      disabled
+                      value={calculateAge(formData.date_of_birth) || 'Auto from DOB'}
+                      title="Age is automatically calculated from Date of Birth and cannot be manually entered"
+                      className="w-full px-3 py-2 bg-blue-100/60 border border-blue-200 text-slate-700 font-semibold rounded-xl text-xs cursor-not-allowed select-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-blue-900 mb-1">
+                      Blood Group
+                    </label>
+                    <select
+                      value={formData.blood_group}
+                      onChange={(e) => setFormData({ ...formData, blood_group: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-blue-900 mb-1">
+                    Residential Address
+                  </label>
+                  <textarea
+                    rows="2"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="Enter permanent or residential street address, city, pin code..."
+                    className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-500 resize-none"
+                  ></textarea>
+                </div>
+              </div>
+
               {/* Salary & Allowances Section */}
               <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-3">
                 <div className="flex items-center justify-between">
@@ -1144,6 +1254,90 @@ export default function ManageTeachersPage() {
                 </div>
               </div>
 
+              {/* Personal, Demographic & Health Details */}
+              <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-3">
+                <div className="flex items-center gap-2">
+                  <LuUser className="w-4 h-4 text-amber-600" />
+                  <label className="text-xs font-bold text-amber-950">Personal, Demographic & Health Details</label>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-amber-900 mb-1">
+                      Gender <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={editFormData.gender}
+                      onChange={(e) => setEditFormData({ ...editFormData, gender: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-amber-900 mb-1">
+                      Date of Birth (DOB)
+                    </label>
+                    <input
+                      type="date"
+                      value={editFormData.date_of_birth}
+                      onChange={(e) => setEditFormData({ ...editFormData, date_of_birth: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-amber-900 mb-1">
+                      Age <span className="text-[10px] text-amber-700 font-normal">(Auto)</span>
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      disabled
+                      value={calculateAge(editFormData.date_of_birth) || 'Auto from DOB'}
+                      title="Age is automatically calculated from Date of Birth and cannot be manually entered"
+                      className="w-full px-3 py-2 bg-amber-100/60 border border-amber-200 text-slate-700 font-semibold rounded-xl text-xs cursor-not-allowed select-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-amber-900 mb-1">
+                      Blood Group
+                    </label>
+                    <select
+                      value={editFormData.blood_group}
+                      onChange={(e) => setEditFormData({ ...editFormData, blood_group: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer font-bold text-rose-700"
+                    >
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-amber-900 mb-1">
+                    Residential Address
+                  </label>
+                  <textarea
+                    rows="2"
+                    value={editFormData.address}
+                    onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                    placeholder="Enter permanent or residential street address, city, pin code..."
+                    className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-amber-500 resize-none"
+                  ></textarea>
+                </div>
+              </div>
+
               {/* Salary & Allowances Section */}
               <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-3">
                 <div className="flex items-center justify-between">
@@ -1439,6 +1633,43 @@ export default function ManageTeachersPage() {
                     <div className="text-xs font-bold text-slate-800">{selectedTeacher.phone || 'N/A'}</div>
                   </div>
                 </div>
+              </div>
+
+              {/* Personal, Demographic & Health Details */}
+              <div>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
+                  Personal, Demographic & Health
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <div className="text-[11px] text-slate-400 font-medium mb-1">Gender</div>
+                    <div className="text-xs font-bold text-slate-800">{selectedTeacher.gender || 'Not Specified'}</div>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <div className="text-[11px] text-slate-400 font-medium mb-1">Date of Birth (DOB)</div>
+                    <div className="text-xs font-bold text-slate-800">
+                      {selectedTeacher.date_of_birth ? new Date(selectedTeacher.date_of_birth).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not Provided'}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <div className="text-[11px] text-slate-400 font-medium mb-1">Age</div>
+                    <div className="text-xs font-bold text-slate-800">
+                      {selectedTeacher.date_of_birth ? calculateAge(selectedTeacher.date_of_birth) || 'N/A' : 'N/A'}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <div className="text-[11px] text-slate-400 font-medium mb-1">Blood Group</div>
+                    <div className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md inline-block border border-rose-200">
+                      {selectedTeacher.blood_group || 'O+'}
+                    </div>
+                  </div>
+                </div>
+                {selectedTeacher.address && (
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <div className="text-[11px] text-slate-400 font-medium mb-1">Residential Address</div>
+                    <div className="text-xs text-slate-700 font-medium leading-relaxed">{selectedTeacher.address}</div>
+                  </div>
+                )}
               </div>
 
               {/* Academic & Professional Details */}

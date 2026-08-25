@@ -45,7 +45,7 @@ export default function Sidebar({
           {(!collapsed || mobileMenuOpen) && (
             <div>
               <h1 className="text-lg font-bold text-gray-800 leading-tight">EduFlow</h1>
-              <p className="text-[10px] text-gray-400">School CRM</p>
+              <p className="text-[10px] text-gray-400">SMS</p>
             </div>
           )}
         </div>

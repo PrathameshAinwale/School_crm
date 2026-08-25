@@ -101,11 +101,7 @@ class HRController extends Controller
                         'subtext' => 'Mandatory NCERT & CBSE pedagogical modules',
                     ],
                 ],
-                'upcomingEvents' => $events->count() > 0 ? $events : [
-                    ['id' => 1, 'title' => 'Annual Faculty Pedagogical & AI Workshop', 'category' => 'Workshop', 'date' => 'Aug 22, 2026', 'time' => '09:00 AM', 'venue' => 'Main Auditorium'],
-                    ['id' => 2, 'title' => 'Inter-School Athletics & Sports Championship', 'category' => 'Sports', 'date' => 'Aug 26, 2026', 'time' => '08:30 AM', 'venue' => 'Athletics Ground'],
-                    ['id' => 3, 'title' => 'Science & Robotics Innovation Expo', 'category' => 'Exhibition', 'date' => 'Sep 02, 2026', 'time' => '10:00 AM', 'venue' => 'Tinkering Lab'],
-                ],
+                'upcomingEvents' => $events,
             ],
         ]);
     }
@@ -200,10 +196,13 @@ class HRController extends Controller
                 'name' => $staffName,
                 'role' => $staffRole,
                 'type' => $leaveType,
+                'raw_type' => $leave->type,
                 'startDate' => $startDateStr,
                 'endDate' => $endDateStr,
                 'days' => $leave->days,
                 'reason' => $leave->reason,
+                'photo_proof' => $leave->photo_proof,
+                'photo_name' => $leave->photo_name,
                 'status' => $leave->status ?: 'Pending',
                 'remarks' => $leave->remarks,
                 'created_at' => $leave->created_at ? $leave->created_at->format('d M Y') : '-',
@@ -447,16 +446,18 @@ class HRController extends Controller
             $baseSalary = (float) ($t->salary ?? 50000);
             $allowance = (float) ($t->allowance ?? 0);
             $gross = $baseSalary + $allowance;
-            $deduction = round($gross * 0.12, 2); // 12% statutory deduction of (base + allowance)
-            $net = round($gross - $deduction, 2);
+            $defaultDeduction = round($gross * 0.12, 2); // 12% statutory deduction of (base + allowance)
 
             $existing = StaffSalary::where('teacher_id', $t->id)
                 ->where('month', $month)
                 ->first();
 
             if ($existing) {
-                // If not yet disbursed, ensure base salary & allowance and 12% deduction stay synchronized
+                // If not yet disbursed, ensure base salary & allowance stay synchronized
                 if ($existing->status !== 'Disbursed') {
+                    $deductionToUse = $existing->is_custom_deduction ? (float) $existing->deduction : $defaultDeduction;
+                    $netToUse = round($gross - $deductionToUse, 2);
+
                     $existing->update([
                         'employee_id' => $t->teacher_id ?: ('TCH-' . str_pad($t->id, 3, '0', STR_PAD_LEFT)),
                         'name' => $t->full_name,
@@ -465,13 +466,14 @@ class HRController extends Controller
                         'base_salary' => $baseSalary,
                         'allowance' => $allowance,
                         'special_allowance' => $allowance,
-                        'deduction' => $deduction,
-                        'pf_deduction' => $deduction,
+                        'deduction' => $deductionToUse,
+                        'pf_deduction' => $existing->is_custom_deduction ? $existing->pf_deduction : $defaultDeduction,
                         'gross_salary' => $gross,
-                        'net_salary' => $net,
+                        'net_salary' => $netToUse,
                     ]);
                 }
             } else {
+                $net = round($gross - $defaultDeduction, 2);
                 StaffSalary::create([
                     'teacher_id' => $t->id,
                     'employee_id' => $t->teacher_id ?: ('TCH-' . str_pad($t->id, 3, '0', STR_PAD_LEFT)),
@@ -488,8 +490,9 @@ class HRController extends Controller
                     'hra' => round($baseSalary * 0.20, 2),
                     'da' => round($baseSalary * 0.10, 2),
                     'special_allowance' => $allowance,
-                    'deduction' => $deduction,
-                    'pf_deduction' => $deduction,
+                    'deduction' => $defaultDeduction,
+                    'is_custom_deduction' => false,
+                    'pf_deduction' => $defaultDeduction,
                     'tds_deduction' => 0.00,
                     'unpaid_leave_deduction' => 0.00,
                     'gross_salary' => $gross,
@@ -507,7 +510,7 @@ class HRController extends Controller
             $base = (float) $s->base_salary;
             $allowance = (float) ($s->allowance ?: $s->special_allowance ?: 0);
             $gross = $base + $allowance;
-            $deduction = (float) ($s->deduction ?: round($gross * 0.12, 2));
+            $deduction = (float) ($s->deduction !== null ? $s->deduction : round($gross * 0.12, 2));
             $net = (float) ($s->net_salary ?: ($gross - $deduction));
 
             return [
@@ -527,7 +530,9 @@ class HRController extends Controller
                 'hra' => (float) $s->hra,
                 'da' => (float) $s->da,
                 'deduction' => $deduction,
-                'pfDeduction' => $deduction,
+                'isCustomDeduction' => (bool) $s->is_custom_deduction,
+                'customDeductionReason' => $s->custom_deduction_reason,
+                'pfDeduction' => (float) ($s->pf_deduction ?: $deduction),
                 'tdsDeduction' => (float) $s->tds_deduction,
                 'grossSalary' => $gross,
                 'netSalary' => $net,
@@ -558,6 +563,51 @@ class HRController extends Controller
                 ],
             ],
             'salaries' => $mapped,
+        ]);
+    }
+
+    /**
+     * Update Staff Salary & Deductions (HR adjustment).
+     */
+    public function updateStaffSalary(Request $request, $id)
+    {
+        $numericId = is_numeric($id) ? (int) $id : (int) preg_replace('/[^0-9]/', '', $id);
+        $salary = StaffSalary::find($numericId);
+
+        if (!$salary) {
+            return response()->json(['success' => false, 'message' => 'Salary record not found.'], 404);
+        }
+
+        $baseSalary = $request->has('base_salary') ? (float) $request->input('base_salary') : (float) $salary->base_salary;
+        $allowance = $request->has('allowance') ? (float) $request->input('allowance') : (float) $salary->allowance;
+        $deduction = $request->has('deduction') ? (float) $request->input('deduction') : (float) $salary->deduction;
+        
+        $gross = round($baseSalary + $allowance, 2);
+        $net = round($gross - $deduction, 2);
+
+        $updateData = [
+            'base_salary' => $baseSalary,
+            'allowance' => $allowance,
+            'special_allowance' => $allowance,
+            'deduction' => $deduction,
+            'gross_salary' => $gross,
+            'net_salary' => $net,
+            'is_custom_deduction' => true,
+        ];
+
+        if ($request->has('custom_deduction_reason')) {
+            $updateData['custom_deduction_reason'] = $request->input('custom_deduction_reason');
+        }
+        if ($request->has('status')) {
+            $updateData['status'] = $request->input('status');
+        }
+
+        $salary->update($updateData);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Salary calculation and deductions updated successfully for {$salary->name}!",
+            'data' => $salary,
         ]);
     }
 

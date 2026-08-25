@@ -11,38 +11,6 @@ import {
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-// Fallback initial schedule with exact 4 fields: class, division, subject, timing
-const fallbackLectures = {
-  Monday: [
-    { id: 1, class_name: 'Class 10', division: 'Div A', subject: 'Mathematics', time_slot: '8:00 - 8:45 AM' },
-    { id: 2, class_name: 'Class 9', division: 'Div A', subject: 'Mathematics (Algebra)', time_slot: '8:45 - 9:30 AM' },
-    { id: 3, class_name: 'Class 9', division: 'Div B', subject: 'Advanced Geometry', time_slot: '10:30 - 11:15 AM' },
-    { id: 4, class_name: 'Class 8', division: 'Div A', subject: 'Foundation Mathematics', time_slot: '11:30 - 12:15 PM' },
-  ],
-  Tuesday: [
-    { id: 5, class_name: 'Class 9', division: 'Div A', subject: 'Mathematics', time_slot: '8:00 - 8:45 AM' },
-    { id: 6, class_name: 'Class 10', division: 'Div A', subject: 'Mathematics (AP & Quadratics)', time_slot: '8:45 - 9:30 AM' },
-    { id: 7, class_name: 'Class 8', division: 'Div B', subject: 'Mathematics (Pre-Algebra)', time_slot: '10:30 - 11:15 AM' },
-  ],
-  Wednesday: [
-    { id: 8, class_name: 'Class 10', division: 'Div A', subject: 'Mathematics', time_slot: '8:00 - 8:45 AM' },
-    { id: 9, class_name: 'Class 9', division: 'Div A', subject: 'Math Lab & Geometry', time_slot: '8:45 - 9:30 AM' },
-    { id: 10, class_name: 'Class 8', division: 'Div A', subject: 'Linear Equations', time_slot: '10:30 - 11:15 AM' },
-  ],
-  Thursday: [
-    { id: 11, class_name: 'Class 9', division: 'Div B', subject: 'Mathematics', time_slot: '8:00 - 8:45 AM' },
-    { id: 12, class_name: 'Class 8', division: 'Div A', subject: 'Foundation Maths', time_slot: '9:45 - 10:30 AM' },
-  ],
-  Friday: [
-    { id: 13, class_name: 'Class 10', division: 'Div A', subject: 'Mathematics (Triangles)', time_slot: '8:00 - 8:45 AM' },
-    { id: 14, class_name: 'Class 9', division: 'Div A', subject: 'Algebraic Expressions', time_slot: '9:45 - 10:30 AM' },
-    { id: 15, class_name: 'Class 8', division: 'Div B', subject: 'Math Olympiad Club', time_slot: '11:30 - 12:15 PM' },
-  ],
-  Saturday: [
-    { id: 16, class_name: 'Class 9', division: 'Div A', subject: 'Weekly Math Quiz', time_slot: '8:45 - 9:30 AM' },
-  ],
-};
-
 export default function TeacherTodaySchedulePage() {
   const navigate = useNavigate();
 
@@ -51,21 +19,20 @@ export default function TeacherTodaySchedulePage() {
   const todayDay = daysOfWeek.includes(currentDayName) ? currentDayName : 'Monday';
 
   const [selectedDay, setSelectedDay] = useState(todayDay);
-  const [lectures, setLectures] = useState(fallbackLectures[todayDay] || []);
+  const [lectures, setLectures] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchSchedule = async (day) => {
     try {
       const res = await studentParentService.getTeacherSchedule({ day });
-      if (res?.success && res.data?.lectures?.length > 0) {
+      if (res?.success && Array.isArray(res.data?.lectures)) {
         setLectures(res.data.lectures);
-      } else if (fallbackLectures[day]) {
-        setLectures(fallbackLectures[day]);
       } else {
         setLectures([]);
       }
     } catch (err) {
-      setLectures(fallbackLectures[day] || []);
+      console.log('Error fetching teacher schedule:', err);
+      setLectures([]);
     } finally {
       setLoading(false);
     }

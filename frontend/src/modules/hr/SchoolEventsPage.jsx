@@ -18,61 +18,6 @@ import {
   LuLoader,
 } from 'react-icons/lu';
 
-const INITIAL_EVENTS = [
-  {
-    id: 'EVT-01',
-    title: 'Annual Faculty Pedagogical & AI Workshop',
-    category: 'Workshop',
-    date: '22 Aug 2026',
-    time: '09:00 AM - 01:30 PM',
-    venue: 'Main Auditorium',
-    audience: 'All Teaching Faculty (184 Members)',
-    coordinator: 'Mrs. Deepa Krishnan (IT Head)',
-    speaker: 'Dr. Arvind Swamy (NCERT Advisor)',
-    status: 'Upcoming',
-    description: 'Hands-on training session on modern digital teaching aids, AI-assisted assessment generation, and inclusive classroom techniques.',
-  },
-  {
-    id: 'EVT-02',
-    title: 'Inter-School Athletics & Sports Championship',
-    category: 'Sports',
-    date: '26 Aug 2026',
-    time: '08:30 AM - 04:00 PM',
-    venue: 'School Athletics Stadium',
-    audience: 'Grade 6 to 12 & Parents',
-    coordinator: 'Mr. Harish Chandra (Sports Dept)',
-    speaker: 'Olympic Bronze Medalist Guest',
-    status: 'Upcoming',
-    description: 'Track and field events including 100m sprint, relay, long jump, and inter-house football tournament finals.',
-  },
-  {
-    id: 'EVT-03',
-    title: 'Science & Robotics Innovation Expo 2026',
-    category: 'Exhibition',
-    date: '02 Sep 2026',
-    time: '10:00 AM - 03:00 PM',
-    venue: 'Senior Science & Tinkering Labs',
-    audience: 'Students, Faculty & Visiting Parents',
-    coordinator: 'Mr. Vikram Rathore (PGT Physics)',
-    speaker: 'Dr. Meera Nambiar (ISRO Scientist)',
-    status: 'Upcoming',
-    description: 'Student-built prototypes showcasing renewable energy models, automated irrigation sensors, and robotics automation.',
-  },
-  {
-    id: 'EVT-04',
-    title: 'Parent-Teacher Consultative Meeting (Term 1)',
-    category: 'PTM',
-    date: '10 Sep 2026',
-    time: '08:30 AM - 01:00 PM',
-    venue: 'Classrooms (Wing A & B)',
-    audience: 'Parents & Class Teachers (All Grades)',
-    coordinator: 'Mr. Rajesh Sharma (Admin)',
-    speaker: 'Principal Address at 08:30 AM',
-    status: 'Upcoming',
-    description: 'Comprehensive one-on-one academic feedback and progress review following unit tests and mid-term preparatory scores.',
-  },
-];
-
 const categoryColorStyles = {
   Workshop: 'bg-purple-50 text-purple-700 border-purple-200',
   Sports: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -83,7 +28,7 @@ const categoryColorStyles = {
 };
 
 export default function SchoolEventsPage() {
-  const [events, setEvents] = useState(INITIAL_EVENTS);
+  const [events, setEvents] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -105,11 +50,14 @@ export default function SchoolEventsPage() {
     try {
       const res = await hrService.getSchoolEvents();
       const eventsList = res?.data?.events || res?.events || (Array.isArray(res?.data) ? res.data : null);
-      if (eventsList && Array.isArray(eventsList) && eventsList.length > 0) {
+      if (eventsList && Array.isArray(eventsList)) {
         setEvents(eventsList);
+      } else {
+        setEvents([]);
       }
     } catch (err) {
       console.log('Error fetching events:', err);
+      setEvents([]);
     } finally {
       setLoading(false);
     }

@@ -42,25 +42,25 @@ export const adminService = {
     });
   },
 
-  // Students (Read-only for Admin, Managed by Teacher)
+  // Students (Admin Managed)
   getStudents(params = {}) {
     const qs = new URLSearchParams(params).toString();
     return apiRequest(`/admin/students${qs ? `?${qs}` : ''}`);
   },
   createStudent(data) {
-    return apiRequest('/teacher/students', {
+    return apiRequest('/admin/students', {
       method: 'POST',
       body: data,
     });
   },
   updateStudent(id, data) {
-    return apiRequest(`/teacher/students/${id}`, {
+    return apiRequest(`/admin/students/${id}`, {
       method: 'PUT',
       body: data,
     });
   },
   deleteStudent(id) {
-    return apiRequest(`/teacher/students/${id}`, {
+    return apiRequest(`/admin/students/${id}`, {
       method: 'DELETE',
     });
   },
@@ -143,6 +143,56 @@ export const adminService = {
   },
   deleteResource(id) {
     return apiRequest(`/admin/resources/${id}`, {
+      method: 'DELETE',
+    });
+  },
+  getResourceRequests(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/resources/requests${qs ? `?${qs}` : ''}`);
+  },
+  actionResourceRequest(id, data) {
+    return apiRequest(`/admin/resources/requests/${id}/action`, {
+      method: 'POST',
+      body: data,
+    });
+  },
+
+  // Teacher Resources Self Operations
+  getTeacherResources(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/teacher/resources${qs ? `?${qs}` : ''}`);
+  },
+  getTeacherResourceRequests(params = {}) {
+    const query = { my_requests: '1', ...params };
+    const qs = new URLSearchParams(query).toString();
+    return apiRequest(`/teacher/resources/requests${qs ? `?${qs}` : ''}`);
+  },
+  submitResourceRequest(formData) {
+    return apiRequest('/teacher/resources/requests', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  // School Calendar & Events (Admin / HR)
+  getAdminEvents(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/events${qs ? `?${qs}` : ''}`);
+  },
+  createAdminEvent(data) {
+    return apiRequest('/admin/events', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  updateAdminEvent(id, data) {
+    return apiRequest(`/admin/events/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  deleteAdminEvent(id) {
+    return apiRequest(`/admin/events/${id}`, {
       method: 'DELETE',
     });
   },

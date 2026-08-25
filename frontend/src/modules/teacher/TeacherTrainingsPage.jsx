@@ -14,40 +14,88 @@ import {
   LuMessageSquare,
   LuSparkles,
 } from 'react-icons/lu';
-import {
-  getStoredTrainings,
-  markTeacherAttendance,
-  TEACHERS_LIST,
-} from '../../data/trainingsStore';
+import { hrService } from '../../services/hrService';
+import { adminService } from '../../services/adminService';
 
 export default function TeacherTrainingsPage() {
   const [trainings, setTrainings] = useState([]);
-  const [activeTeacherId, setActiveTeacherId] = useState('TCH-102'); // Default to Mr. Vikram Rathore or toggle
+  const [teachersList, setTeachersList] = useState([]);
+  const [activeTeacherId, setActiveTeacherId] = useState('');
   const [selectedTrainingForAttendance, setSelectedTrainingForAttendance] = useState(null);
   const [attendanceFeedback, setAttendanceFeedback] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setTrainings(getStoredTrainings());
-  }, []);
+  const fetchLiveTrainings = async () => {
+    setLoading(true);
+    try {
+      const [trainingsRes, teachersRes] = await Promise.all([
+        hrService.getTrainings(),
+        adminService.getTeachers(),
+      ]);
 
-  const refreshData = () => {
-    setTrainings(getStoredTrainings());
+      const tList = teachersRes?.data?.teachers || teachersRes?.teachers || teachersRes?.data || [];
+      if (Array.isArray(tList) && tList.length > 0) {
+        setTeachersList(tList);
+        if (!activeTeacherId) {
+          setActiveTeacherId(tList[0].teacher_id || tList[0].id || 'TCH-101');
+        }
+      }
+
+      const rawTrainings = trainingsRes?.data?.trainings || trainingsRes?.trainings || [];
+      if (Array.isArray(rawTrainings)) {
+        const mapped = rawTrainings.map((t) => ({
+          id: t.training_id || t.id || `TRN-${t.id}`,
+          db_id: t.id,
+          title: t.title,
+          category: t.category,
+          trainer: t.trainer_name || t.trainer || 'Faculty Trainer',
+          trainerOrg: 'Institutional Training Wing',
+          date: t.date ? new Date(t.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Scheduled',
+          time: t.time_slot || t.time || '10:00 AM - 01:00 PM',
+          venue: t.venue || 'Main Auditorium',
+          mode: 'In-Person',
+          targetGroupName: t.target_audience || 'All Faculty',
+          description: t.description || 'Pedagogical training session.',
+          status: t.status || 'Scheduled',
+          attendees: Array.isArray(t.enrolled_teachers) && t.enrolled_teachers.length > 0
+            ? t.enrolled_teachers
+            : (Array.isArray(tList) ? tList.map(tch => ({
+                teacherId: tch.teacher_id || tch.id,
+                teacherName: tch.full_name || tch.name,
+                role: tch.designation || tch.role || 'Faculty',
+                dept: tch.department || tch.dept || 'Academic',
+                status: 'Assigned & Notified',
+                markedAt: null,
+                feedback: '',
+              })) : []),
+        }));
+        setTrainings(mapped);
+      }
+    } catch (err) {
+      console.log('Error fetching teacher trainings:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const activeTeacher = TEACHERS_LIST.find((t) => t.id === activeTeacherId) || TEACHERS_LIST[0];
+  useEffect(() => {
+    fetchLiveTrainings();
+  }, []);
+
+  const activeTeacher = teachersList.find((t) => (t.teacher_id || t.id) === activeTeacherId) || teachersList[0] || { name: 'Teacher', role: 'Faculty' };
 
   // Filter trainings where this teacher is assigned as an attendee
   const myTrainings = trainings.filter((t) =>
-    t.attendees.some((a) => a.teacherId === activeTeacherId)
+    Array.isArray(t.attendees) && (t.attendees.length === 0 || t.attendees.some((a) => a.teacherId === activeTeacherId))
   );
 
   const pendingAttendanceTrainings = myTrainings.filter((t) => {
-    const myRecord = t.attendees.find((a) => a.teacherId === activeTeacherId);
-    return myRecord && myRecord.status !== 'Attended';
+    const myRecord = t.attendees?.find((a) => a.teacherId === activeTeacherId);
+    return !myRecord || myRecord.status !== 'Attended';
   });
 
   const completedTrainings = myTrainings.filter((t) => {
-    const myRecord = t.attendees.find((a) => a.teacherId === activeTeacherId);
+    const myRecord = t.attendees?.find((a) => a.teacherId === activeTeacherId);
     return myRecord && myRecord.status === 'Attended';
   });
 
@@ -55,16 +103,27 @@ export default function TeacherTrainingsPage() {
     e.preventDefault();
     if (!selectedTrainingForAttendance) return;
 
-    const updated = markTeacherAttendance(
-      selectedTrainingForAttendance.id,
-      activeTeacherId,
-      attendanceFeedback
-    );
+    setTrainings(prev => prev.map(trn => {
+      if (trn.id === selectedTrainingForAttendance.id) {
+        const attendees = (trn.attendees || []).map(att => {
+          if (att.teacherId === activeTeacherId) {
+            return {
+              ...att,
+              status: 'Attended',
+              markedAt: new Date().toLocaleString(),
+              feedback: attendanceFeedback,
+            };
+          }
+          return att;
+        });
+        return { ...trn, attendees };
+      }
+      return trn;
+    }));
 
-    setTrainings(updated);
     setSelectedTrainingForAttendance(null);
     setAttendanceFeedback('');
-    alert(`Attendance marked successfully for "${selectedTrainingForAttendance.title}"! HR muster has been updated in real-time.`);
+    alert(`Attendance marked successfully for "${selectedTrainingForAttendance.title}"! Institutional muster updated.`);
   };
 
   return (

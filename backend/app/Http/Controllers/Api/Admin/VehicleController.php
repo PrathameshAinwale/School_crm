@@ -18,7 +18,9 @@ class VehicleController extends Controller
                 $q->where('vehicle_number', 'like', "%{$search}%")
                   ->orWhere('driver_name', 'like', "%{$search}%")
                   ->orWhere('driver_phone', 'like', "%{$search}%")
-                  ->orWhere('route_name', 'like', "%{$search}%");
+                  ->orWhere('route_name', 'like', "%{$search}%")
+                  ->orWhere('route_from', 'like', "%{$search}%")
+                  ->orWhere('route_to', 'like', "%{$search}%");
             });
         }
 
@@ -44,6 +46,8 @@ class VehicleController extends Controller
             'driver_name' => 'required|string|max:255',
             'driver_phone' => 'required|string|max:20',
             'driver_license' => 'nullable|string',
+            'route_from' => 'nullable|string|max:255',
+            'route_to' => 'nullable|string|max:255',
             'route_name' => 'nullable|string',
             'route_stops' => 'nullable|array',
             'fuel_type' => 'nullable|string',
@@ -52,7 +56,18 @@ class VehicleController extends Controller
             'status' => 'nullable|string|in:Active,Maintenance,Out of Service',
         ]);
 
-        $vehicle = Vehicle::create($request->all());
+        $data = $request->all();
+        if (empty($data['route_name'])) {
+            if (!empty($data['route_from']) && !empty($data['route_to'])) {
+                $data['route_name'] = "{$data['route_from']} ➔ {$data['route_to']}";
+            } elseif (!empty($data['route_from'])) {
+                $data['route_name'] = $data['route_from'];
+            } elseif (!empty($data['route_to'])) {
+                $data['route_name'] = $data['route_to'];
+            }
+        }
+
+        $vehicle = Vehicle::create($data);
 
         return response()->json([
             'success' => true,

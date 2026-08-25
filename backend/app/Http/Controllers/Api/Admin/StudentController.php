@@ -102,7 +102,11 @@ class StudentController extends Controller
             'school_class_id' => 'nullable',
             'section_id' => 'nullable',
             'admission_date' => 'nullable|date',
-            'guardian_name' => 'required|string|max:255',
+            'father_name' => 'nullable|string|max:255',
+            'father_occupation' => 'nullable|string|max:255',
+            'mother_name' => 'nullable|string|max:255',
+            'mother_occupation' => 'nullable|string|max:255',
+            'guardian_name' => 'nullable|string|max:255',
             'guardian_phone' => 'required|string|max:20',
             'guardian_email' => 'nullable|email',
             'guardian_relation' => 'nullable|string|max:100',
@@ -157,6 +161,9 @@ class StudentController extends Controller
             // 2. Auto-generate secure random password for Parent login (e.g. Prnt#9821!)
             $generatedPassword = 'Prnt#' . rand(1000, 9999) . '!';
 
+            // Resolve Guardian Name (Fallback to Father / Mother if empty)
+            $guardianName = $request->guardian_name ?: ($request->father_name ?: ($request->mother_name ?: 'Parent'));
+
             // 3. Find or Create User for parent's mobile number (checks active and trashed accounts)
             $cleanPhone = preg_replace('/[^0-9]/', '', $request->guardian_phone);
             $user = User::withTrashed()
@@ -173,7 +180,7 @@ class StudentController extends Controller
                 if ($user->trashed()) {
                     $user->restore();
                 }
-                $user->name = $request->guardian_name . ' (' . $request->first_name . ')';
+                $user->name = $guardianName . ' (' . $request->first_name . ')';
                 if ($request->guardian_email) {
                     $user->email = $request->guardian_email;
                 }
@@ -184,7 +191,7 @@ class StudentController extends Controller
                 $user->save();
             } else {
                 $user = User::create([
-                    'name' => $request->guardian_name . ' (' . $request->first_name . ')',
+                    'name' => $guardianName . ' (' . $request->first_name . ')',
                     'email' => $request->guardian_email,
                     'phone' => $cleanPhone ?: $request->guardian_phone,
                     'password' => Hash::make($generatedPassword),
@@ -208,7 +215,11 @@ class StudentController extends Controller
                 'school_class_id' => $classId,
                 'section_id' => $sectionId,
                 'admission_date' => $request->admission_date ?? now()->toDateString(),
-                'guardian_name' => $request->guardian_name,
+                'guardian_name' => $guardianName,
+                'father_name' => $request->father_name,
+                'father_occupation' => $request->father_occupation,
+                'mother_name' => $request->mother_name,
+                'mother_occupation' => $request->mother_occupation,
                 'guardian_phone' => $request->guardian_phone,
                 'guardian_email' => $request->guardian_email,
                 'guardian_relation' => $request->guardian_relation ?? 'Parent',
@@ -260,11 +271,18 @@ class StudentController extends Controller
         $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
-            'admission_number' => 'required|string|unique:students,admission_number,' . $student->id,
-            'roll_number' => 'nullable|string|max:50',
-            'school_class_id' => 'nullable|exists:school_classes,id',
-            'section_id' => 'nullable|exists:sections,id',
-            'guardian_name' => 'required|string|max:255',
+            'admission_number' => 'nullable|string|unique:students,admission_number,' . $student->id,
+            'roll_number' => 'required|string|max:50',
+            'school_class_id' => 'nullable',
+            'section_id' => 'nullable',
+            'gender' => 'nullable|string|in:Male,Female,Other',
+            'blood_group' => 'nullable|string|max:10',
+            'date_of_birth' => 'nullable|date',
+            'father_name' => 'nullable|string|max:255',
+            'father_occupation' => 'nullable|string|max:255',
+            'mother_name' => 'nullable|string|max:255',
+            'mother_occupation' => 'nullable|string|max:255',
+            'guardian_name' => 'nullable|string|max:255',
             'guardian_phone' => 'required|string|max:20',
             'guardian_email' => 'nullable|email',
             'guardian_relation' => 'nullable|string|max:100',
@@ -272,7 +290,43 @@ class StudentController extends Controller
             'status' => 'nullable|string|in:Active,Inactive,Graduated,Transferred',
         ]);
 
-        $student->update($request->all());
+        $classId = $request->school_class_id ?? $student->school_class_id;
+        if ($classId && !is_numeric($classId)) {
+            $cls = \App\Models\SchoolClass::firstOrCreate(['name' => $classId]);
+            $classId = $cls->id;
+        }
+
+        $sectionId = $request->section_id ?? $student->section_id;
+        if ($sectionId && !is_numeric($sectionId)) {
+            $secName = trim(str_ireplace('Division', '', $sectionId));
+            $sec = \App\Models\Section::firstOrCreate(
+                ['school_class_id' => $classId, 'name' => $secName],
+                ['capacity' => 40]
+            );
+            $sectionId = $sec->id;
+        }
+
+        // Enforce Roll Number Uniqueness within the Class & Division
+        $roll = trim($request->roll_number);
+        $existingStudent = Student::where('school_class_id', $classId)
+            ->where('section_id', $sectionId)
+            ->where('roll_number', $roll)
+            ->where('id', '!=', $student->id)
+            ->first();
+
+        if ($existingStudent) {
+            return response()->json([
+                'success' => false,
+                'message' => "Roll Number '{$roll}' is already assigned to student {$existingStudent->first_name} {$existingStudent->last_name} in this class and division.",
+            ], 422);
+        }
+
+        $data = $request->all();
+        $data['school_class_id'] = $classId;
+        $data['section_id'] = $sectionId;
+        $data['guardian_name'] = $request->guardian_name ?: ($request->father_name ?: ($request->mother_name ?: $student->guardian_name));
+
+        $student->update($data);
 
         return response()->json([
             'success' => true,

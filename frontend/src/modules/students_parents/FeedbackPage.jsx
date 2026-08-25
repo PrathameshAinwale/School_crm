@@ -13,43 +13,10 @@ import {
   LuTrash2,
 } from 'react-icons/lu';
 
-const initialFeedbackList = [
-  {
-    id: 1,
-    subject: 'Mathematics',
-    teacher: 'Dr. Ananya Sen (PGT)',
-    date: 'Aug 10, 2026',
-    rating: 5,
-    categories: { clarity: 5, doubtResolution: 5, homeworkPace: 5 },
-    comment: 'Exceptional teaching methodology in Quadratic Equations and board exam problem sets. Regular weekly tests have significantly improved Aarav confidence.',
-    adminResponse: 'Thank you for your valuable feedback! Dr. Ananya has been commended for her dedication in senior academic reviews.',
-  },
-  {
-    id: 2,
-    subject: 'Science (Physics)',
-    teacher: 'Mr. Vikram Rathore (PGT)',
-    date: 'Aug 04, 2026',
-    rating: 4.5,
-    categories: { clarity: 5, doubtResolution: 4, homeworkPace: 4.5 },
-    comment: 'Practical sessions in Ray Optics and lab demonstrations are very engaging. Requesting additional practice questions for numericals.',
-    adminResponse: 'Noted with thanks. Additional chapterwise numerical question banks have been uploaded to the Study Material tab.',
-  },
-  {
-    id: 3,
-    subject: 'English Core',
-    teacher: 'Ms. Sunita Rao (TGT)',
-    date: 'Jul 28, 2026',
-    rating: 4,
-    categories: { clarity: 4, doubtResolution: 4, homeworkPace: 4 },
-    comment: 'Good grammar explanations and essay writing feedback. Thorough correction of worksheets.',
-    adminResponse: null,
-  },
-];
-
 export default function FeedbackPage() {
   const navigate = useNavigate();
-  const [feedbacks, setFeedbacks] = useState(initialFeedbackList);
-  const [avgRating, setAvgRating] = useState(4.8);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [avgRating, setAvgRating] = useState(0);
   const [selectedSubject, setSelectedSubject] = useState('Mathematics (Dr. Ananya Sen)');
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
@@ -62,15 +29,15 @@ export default function FeedbackPage() {
     studentParentService.getFeedback()
       .then((res) => {
         if (res?.data) {
-          if (res.data.feedbacks && res.data.feedbacks.length > 0) {
+          if (res.data.feedbacks && Array.isArray(res.data.feedbacks)) {
             setFeedbacks(res.data.feedbacks);
           }
-          if (res.data.avgRating) {
+          if (res.data.avgRating !== undefined) {
             setAvgRating(res.data.avgRating);
           }
         }
       })
-      .catch((err) => console.log('Loaded mock feedbacks:', err))
+      .catch((err) => console.log('Feedback fetch error:', err))
       .finally(() => setLoading(false));
   };
 

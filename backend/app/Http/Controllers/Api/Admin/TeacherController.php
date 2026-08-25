@@ -58,6 +58,9 @@ class TeacherController extends Controller
             'last_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:users,email|unique:teachers,email',
             'phone' => 'nullable|string|max:20',
+            'gender' => 'nullable|string|in:Male,Female,Other',
+            'blood_group' => 'nullable|string|max:10',
+            'date_of_birth' => 'nullable|date',
             'department' => 'nullable|string|max:255',
             'qualification' => 'nullable|string|max:255',
             'experience' => 'nullable|string|max:255',
@@ -148,6 +151,7 @@ class TeacherController extends Controller
                 'email' => strtolower($request->email),
                 'phone' => $request->phone,
                 'gender' => $request->gender,
+                'blood_group' => $request->blood_group,
                 'date_of_birth' => $request->date_of_birth,
                 'joining_date' => $request->joining_date ?? now()->toDateString(),
                 'department' => $dept,
@@ -243,6 +247,9 @@ class TeacherController extends Controller
             'last_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:teachers,email,' . $teacher->id . '|unique:users,email,' . ($teacher->user_id ?? 0),
             'phone' => 'nullable|string|max:20',
+            'gender' => 'nullable|string|in:Male,Female,Other',
+            'blood_group' => 'nullable|string|max:10',
+            'date_of_birth' => 'nullable|date',
             'department' => 'nullable|string|max:255',
             'qualification' => 'nullable|string|max:255',
             'experience' => 'nullable|string|max:255',
@@ -272,7 +279,7 @@ class TeacherController extends Controller
             }
 
             $teacher->update($request->only([
-                'first_name', 'last_name', 'email', 'phone', 'gender',
+                'first_name', 'last_name', 'email', 'phone', 'gender', 'blood_group',
                 'date_of_birth', 'joining_date', 'department', 'qualification',
                 'experience', 'salary', 'allowance', 'assigned_subjects', 'assigned_classes',
                 'class_teacher_class', 'class_teacher_division',

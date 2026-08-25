@@ -12,49 +12,6 @@ import {
   LuLoader,
 } from 'react-icons/lu';
 
-const fallbackNoticesData = [
-  {
-    id: 1,
-    title: 'Registration Open for Inter-School STEM & Robotics Innovation Expo 2026',
-    category: 'Academic',
-    priority: 'Important',
-    sender: 'Principal Office & STEM Innovation Cell',
-    date: 'Aug 16, 2026',
-    desc: 'Students of Grades IX to XII with keen interest in Robotics, AI, IoT, and Clean Energy innovations are invited to register their working projects by Aug 25. Selected models will represent the school at the National TechFest with full mentorship and sponsorship.',
-    attachment: 'STEM_Expo_Registration_Guidelines_2026.pdf',
-  },
-  {
-    id: 2,
-    title: 'Mandatory CBSE Board Candidate Registration Data Verification for Class X',
-    category: 'Examination',
-    priority: 'Urgent',
-    sender: 'Examination Controller',
-    date: 'Aug 14, 2026',
-    desc: 'All Class X parents are requested to verify their child’s spelling, Date of Birth, Aadhaar details, and subject selection (Math Standard/Basic) in the CBSE LOC portal before Aug 22. Any discrepancy after final submission will not be entertainable by the board.',
-    attachment: 'CBSE_LOC_Verification_Form.pdf',
-  },
-  {
-    id: 3,
-    title: 'Annual Comprehensive Eye & Dental Health Checkup Camp in Campus',
-    category: 'Health & Wellness',
-    priority: 'Normal',
-    sender: 'School Health & Wellness Department',
-    date: 'Aug 12, 2026',
-    desc: 'A team of specialist doctors from Apollo Super Specialty Hospitals will conduct free eye, dental, and general pediatric checkups for all students on Aug 24 in the campus infirmary. Individual health report cards will be shared with parents via portal.',
-    attachment: null,
-  },
-  {
-    id: 4,
-    title: 'Switch to Compulsory Winter Uniform from October 15, 2026',
-    category: 'Administrative',
-    priority: 'Normal',
-    sender: 'Administrative Office',
-    date: 'Aug 08, 2026',
-    desc: 'Parents are advised that winter school uniform (Navy blue blazer, grey woolen trousers/skirt, school tie, and navy sweater) will be mandatory starting from Oct 15. The official uniform store is open on all working days from 9 AM to 3 PM.',
-    attachment: 'Uniform_Specifications_2026.pdf',
-  },
-];
-
 const categoryBadgeStyles = {
   Academic: 'bg-blue-50 text-blue-700 border-blue-200',
   Examination: 'bg-rose-50 text-rose-700 border-rose-200',
@@ -66,7 +23,7 @@ export default function NoticesPage() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [notices, setNotices] = useState(fallbackNoticesData);
+  const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -76,11 +33,17 @@ export default function NoticesPage() {
       search: searchQuery,
     })
       .then((res) => {
-        if (res?.data && res.data.length > 0) {
-          setNotices(res.data);
+        const noticesData = res?.data?.notices || res?.data || res?.notices;
+        if (Array.isArray(noticesData)) {
+          setNotices(noticesData);
+        } else {
+          setNotices([]);
         }
       })
-      .catch((err) => console.log('Loaded fallback notices:', err))
+      .catch((err) => {
+        console.log('Error fetching notices:', err);
+        setNotices([]);
+      })
       .finally(() => setLoading(false));
   }, [selectedCategory, searchQuery]);
 

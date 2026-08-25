@@ -23,71 +23,6 @@ import {
   LuLoader,
 } from 'react-icons/lu';
 
-// Fallback absence records data
-const fallbackAbsenceRecords = [
-  {
-    id: 'ABS-01',
-    date: 'Wednesday, Aug 05, 2026',
-    reason: 'Viral Fever & Medical Rest',
-    leaveType: 'Medical Leave',
-    approvalStatus: 'Approved by Class Teacher',
-    approvedBy: 'Dr. Ananya Sen',
-    medicalCert: 'Submitted (Dr. Mehta Clinic.pdf)',
-    teacherRemarks: 'Medical certificate verified. Granted 1 day medical leave.',
-  },
-  {
-    id: 'ABS-02',
-    date: 'Saturday, Jul 18, 2026',
-    reason: 'Family Function (Sibling Wedding)',
-    leaveType: 'Casual / Planned Leave',
-    approvalStatus: 'Approved in Advance',
-    approvedBy: 'Dr. Ananya Sen',
-    medicalCert: 'Not Applicable',
-    teacherRemarks: 'Prior leave letter submitted on Jul 14.',
-  },
-  {
-    id: 'ABS-03',
-    date: 'Friday, Jun 26, 2026',
-    reason: 'Severe Waterlogging / Transit Disruption',
-    leaveType: 'Excused Weather Absence',
-    approvalStatus: 'Auto-Excused by School',
-    approvedBy: 'Principal Office',
-    medicalCert: 'Not Applicable',
-    teacherRemarks: 'Excused due to civic transport advisories.',
-  },
-  {
-    id: 'ABS-04',
-    date: 'Thursday, May 14, 2026',
-    reason: 'Dental Surgery & Recovery',
-    leaveType: 'Medical Leave',
-    approvalStatus: 'Approved by Class Teacher',
-    approvedBy: 'Dr. Ananya Sen',
-    medicalCert: 'Submitted (Max Dental Care.pdf)',
-    teacherRemarks: 'Exempted from physical education.',
-  },
-];
-
-// Fallback daily logs
-const fallbackDailyLogs = [
-  { date: 'Aug 17, 2026', day: 'Monday', checkIn: '7:52 AM', checkOut: 'In Session', status: 'Present', mode: 'RFID Smart Gate 1', remarks: 'On Time' },
-  { date: 'Aug 16, 2026', day: 'Sunday', checkIn: '—', checkOut: '—', status: 'Weekend', mode: '—', remarks: 'Sunday Holiday' },
-  { date: 'Aug 15, 2026', day: 'Saturday', checkIn: '7:45 AM', checkOut: '11:30 AM', status: 'Present', mode: 'Biometric Turnstile', remarks: 'Independence Day Assembly' },
-  { date: 'Aug 14, 2026', day: 'Friday', checkIn: '7:50 AM', checkOut: '1:15 PM', status: 'Present', mode: 'RFID Smart Gate 1', remarks: 'On Time' },
-  { date: 'Aug 13, 2026', day: 'Thursday', checkIn: '8:05 AM', checkOut: '1:15 PM', status: 'Late', mode: 'Manual Attendance', remarks: 'Late Arrival (10 mins bus delay)' },
-  { date: 'Aug 12, 2026', day: 'Wednesday', checkIn: '7:54 AM', checkOut: '1:15 PM', status: 'Present', mode: 'RFID Smart Gate 1', remarks: 'On Time' },
-  { date: 'Aug 11, 2026', day: 'Tuesday', checkIn: '7:48 AM', checkOut: '1:15 PM', status: 'Present', mode: 'RFID Smart Gate 1', remarks: 'On Time' },
-  { date: 'Aug 10, 2026', day: 'Monday', checkIn: '7:51 AM', checkOut: '1:15 PM', status: 'Present', mode: 'RFID Smart Gate 1', remarks: 'On Time' },
-  { date: 'Aug 09, 2026', day: 'Sunday', checkIn: '—', checkOut: '—', status: 'Weekend', mode: '—', remarks: 'Sunday Holiday' },
-  { date: 'Aug 08, 2026', day: 'Saturday', checkIn: '7:55 AM', checkOut: '12:30 PM', status: 'Present', mode: 'RFID Smart Gate 2', remarks: 'On Time' },
-  { date: 'Aug 07, 2026', day: 'Friday', checkIn: '7:53 AM', checkOut: '1:15 PM', status: 'Present', mode: 'RFID Smart Gate 1', remarks: 'On Time' },
-  { date: 'Aug 06, 2026', day: 'Thursday', checkIn: '7:49 AM', checkOut: '1:15 PM', status: 'Present', mode: 'RFID Smart Gate 1', remarks: 'On Time' },
-  { date: 'Aug 05, 2026', day: 'Wednesday', checkIn: '—', checkOut: '—', status: 'Absent', mode: 'Absence Recorded', remarks: 'Medical Leave (Viral Fever)' },
-  { date: 'Aug 04, 2026', day: 'Tuesday', checkIn: '7:50 AM', checkOut: '1:15 PM', status: 'Present', mode: 'RFID Smart Gate 1', remarks: 'On Time' },
-  { date: 'Aug 03, 2026', day: 'Monday', checkIn: '7:52 AM', checkOut: '1:15 PM', status: 'Present', mode: 'RFID Smart Gate 1', remarks: 'On Time' },
-  { date: 'Aug 02, 2026', day: 'Sunday', checkIn: '—', checkOut: '—', status: 'Weekend', mode: '—', remarks: 'Sunday Holiday' },
-  { date: 'Aug 01, 2026', day: 'Saturday', checkIn: '7:56 AM', checkOut: '12:30 PM', status: 'Present', mode: 'RFID Smart Gate 1', remarks: 'On Time' },
-];
-
 export default function AttendancePage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('daily'); // 'daily', 'absence', 'calendar'
@@ -97,17 +32,17 @@ export default function AttendancePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Dynamic States
+  // Dynamic States from Live Database
   const [summary, setSummary] = useState({
-    totalDays: 118,
-    presentDays: 112,
-    absentDays: 4,
-    lateDays: 2,
-    overallPercentage: 94.9,
-    onTimeStreak: '14 Days',
+    totalDays: 0,
+    presentDays: 0,
+    absentDays: 0,
+    lateDays: 0,
+    overallPercentage: 0,
+    onTimeStreak: '0 Days',
   });
-  const [dailyLogs, setDailyLogs] = useState(fallbackDailyLogs);
-  const [absenceHistory, setAbsenceHistory] = useState(fallbackAbsenceRecords);
+  const [dailyLogs, setDailyLogs] = useState([]);
+  const [absenceHistory, setAbsenceHistory] = useState([]);
 
   // Leave Form State
   const [leaveFrom, setLeaveFrom] = useState('');
@@ -121,11 +56,11 @@ export default function AttendancePage() {
       .then((res) => {
         if (res?.data) {
           if (res.data.summary) setSummary(res.data.summary);
-          if (res.data.dailyLogs && res.data.dailyLogs.length > 0) setDailyLogs(res.data.dailyLogs);
-          if (res.data.absenceHistory && res.data.absenceHistory.length > 0) setAbsenceHistory(res.data.absenceHistory);
+          if (res.data.dailyLogs && Array.isArray(res.data.dailyLogs)) setDailyLogs(res.data.dailyLogs);
+          if (res.data.absenceHistory && Array.isArray(res.data.absenceHistory)) setAbsenceHistory(res.data.absenceHistory);
         }
       })
-      .catch((err) => console.log('Loaded mock attendance:', err))
+      .catch((err) => console.log('Attendance fetch error:', err))
       .finally(() => setLoading(false));
   };
 

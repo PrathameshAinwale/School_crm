@@ -36,7 +36,7 @@ class StudentDashboardController extends Controller
         // 1. Overall Attendance Rate
         $totalDays = StudentAttendance::where('student_id', $studentId)->count();
         $presentDays = StudentAttendance::where('student_id', $studentId)->where('status', 'Present')->count();
-        $attendanceRate = $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 1) : 96.2;
+        $attendanceRate = $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 1) : 0;
 
         // 2. Average Syllabus Completion
         $syllabuses = Syllabus::with('units')->where(function ($q) use ($classId, $className) {
@@ -46,7 +46,7 @@ class StudentDashboardController extends Controller
 
         $avgSyllabus = $syllabuses->count() > 0
             ? round($syllabuses->avg('completion_percentage'))
-            : 79;
+            : 0;
 
         // 3. Pending Assignments
         $allAssignments = Assignment::where(function ($q) use ($classId) {
@@ -63,22 +63,21 @@ class StudentDashboardController extends Controller
 
         // 4. Upcoming Events count
         $upcomingEventsCount = SchoolCalendarEvent::where('start_date', '>=', Carbon::now()->toDateString())->count();
-        if ($upcomingEventsCount === 0) $upcomingEventsCount = 6;
 
         // 5. KPI Stats Cards
         $stats = [
             [
                 'title' => 'Syllabus Covered',
                 'value' => "{$avgSyllabus}%",
-                'change' => '+6% this month',
+                'change' => $avgSyllabus > 0 ? "{$avgSyllabus}% completed" : 'In Progress',
                 'trend' => 'up',
                 'link' => '/syllabus',
-                'subtext' => 'Term 1 progress on track',
+                'subtext' => 'Academic Term Progress',
             ],
             [
                 'title' => 'Overall Attendance',
                 'value' => "{$attendanceRate}%",
-                'change' => '+1.4% vs last term',
+                'change' => "{$presentDays} of {$totalDays} days",
                 'trend' => 'up',
                 'link' => '/attendance',
                 'subtext' => "{$presentDays} of {$totalDays} days present",
@@ -89,15 +88,15 @@ class StudentDashboardController extends Controller
                 'change' => $pendingAssignments->count() > 0 ? 'Due soon' : 'All clear',
                 'trend' => $pendingAssignments->count() > 0 ? 'down' : 'up',
                 'link' => '/assignment',
-                'subtext' => 'Next: Quadratic Equations',
+                'subtext' => $pendingAssignments->count() > 0 ? ($pendingAssignments->count() . ' pending task(s)') : 'All tasks completed',
             ],
             [
                 'title' => 'Upcoming Events',
                 'value' => (string) $upcomingEventsCount,
-                'change' => 'Next: Math Board Exam',
+                'change' => "{$upcomingEventsCount} Scheduled",
                 'trend' => 'up',
                 'link' => '/calendar',
-                'subtext' => 'Academic & Exam Calendar',
+                'subtext' => 'School Calendar Events',
             ],
         ];
 
@@ -132,12 +131,12 @@ class StudentDashboardController extends Controller
             'success' => true,
             'data' => [
                 'student' => [
-                    'id' => $student ? $student->id : 1,
-                    'name' => $student ? $student->full_name : 'Aarav Patel',
-                    'admissionNo' => $student ? $student->admission_number : 'STU-2024-X-101',
-                    'rollNo' => $student ? ($student->roll_number ?: '101') : '101',
+                    'id' => $student ? $student->id : null,
+                    'name' => $student ? $student->full_name : 'Student',
+                    'admissionNo' => $student ? $student->admission_number : '',
+                    'rollNo' => $student ? ($student->roll_number ?: '') : '',
                     'className' => $className,
-                    'section' => $student && $student->section ? $student->section->name : 'Saffron A',
+                    'section' => $student && $student->section ? $student->section->name : '',
                     'attendanceRate' => "{$attendanceRate}%",
                 ],
                 'stats' => $stats,

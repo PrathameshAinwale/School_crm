@@ -76,6 +76,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         // Academic Structure
         Route::post('/academic/classes', [AcademicController::class, 'storeClass']);
 
+        // Students Management (Admin Only Full CRUD)
+        Route::apiResource('students', StudentController::class);
+        Route::post('students/{student}/reset-password', [StudentController::class, 'resetPassword']);
+
         // Teachers (Staff Management)
         Route::apiResource('teachers', TeacherController::class);
         Route::post('teachers/{teacher}/reset-password', [TeacherController::class, 'resetPassword']);
@@ -88,8 +92,16 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         // School Transport / Vehicles
         Route::apiResource('vehicles', VehicleController::class);
 
-        // School Resources & Assets
+        // School Resources & Assets & Maintenance Requests
+        Route::get('resources/requests', [ResourceController::class, 'requests']);
+        Route::post('resources/requests/{id}/action', [ResourceController::class, 'actionRequest']);
         Route::apiResource('resources', ResourceController::class);
+
+        // School Calendar & Events (Admin & HR)
+        Route::get('events', [SchoolCalendarController::class, 'index']);
+        Route::post('events', [SchoolCalendarController::class, 'store']);
+        Route::put('events/{id}', [SchoolCalendarController::class, 'update']);
+        Route::delete('events/{id}', [SchoolCalendarController::class, 'destroy']);
     });
 
     // Teacher & Staff Self Operations (Accessible to Teacher, HR, Admin)
@@ -97,12 +109,17 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         // Teacher Realtime Dashboard
         Route::get('/dashboard', [TeacherSelfController::class, 'dashboard']);
 
-        // Teacher Self Attendance & Punching
+        // Teacher Resources & Issue Requests
+        Route::get('/resources', [ResourceController::class, 'index']);
+        Route::get('/resources/requests', [ResourceController::class, 'requests']);
+        Route::post('/resources/requests', [ResourceController::class, 'storeRequest']);
+
+        // Timetable creation & schedule
+        Route::get('/schedule', [TeacherSelfController::class, 'schedule']);
+
+        // Teacher Attendance punch & history
         Route::get('/my-attendance', [TeacherSelfController::class, 'attendance']);
         Route::post('/punch', [TeacherSelfController::class, 'punch']);
-
-        // Teacher Daily & Weekly Lecture Schedule
-        Route::get('/schedule', [TeacherSelfController::class, 'schedule']);
 
         // Teacher Profile
         Route::get('/profile', [TeacherSelfController::class, 'profile']);
@@ -112,16 +129,14 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/leaves', [TeacherSelfController::class, 'leaveBalance']);
         Route::post('/leaves/apply', [TeacherSelfController::class, 'applyLeave']);
 
-        // Student Directory & Academic CRUD
+        // Student Directory & Academic (Read-Only for Teacher)
         Route::get('/classes', [AcademicController::class, 'classes']);
         Route::get('/subjects', [AcademicController::class, 'subjects']);
         Route::get('/attendance', [AttendanceController::class, 'index']);
         Route::post('/attendance', [AttendanceController::class, 'store']);
         Route::get('/students', [StudentController::class, 'index']);
-        Route::post('/students', [StudentController::class, 'store']);
         Route::get('/students/{student}', [StudentController::class, 'show']);
-        Route::put('/students/{student}', [StudentController::class, 'update']);
-        Route::delete('/students/{student}', [StudentController::class, 'destroy']);
+        Route::get('/trainings', [HRController::class, 'trainings']);
     });
 
     // -------------------------------------------------------------
@@ -173,6 +188,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         // School Calendar & Events (Posted by HR/Admin)
         Route::get('/calendar', [SchoolCalendarController::class, 'index']);
         Route::post('/calendar', [SchoolCalendarController::class, 'store'])->middleware('role:admin,hr');
+        Route::put('/calendar/{id}', [SchoolCalendarController::class, 'update'])->middleware('role:admin,hr');
+        Route::delete('/calendar/{id}', [SchoolCalendarController::class, 'destroy'])->middleware('role:admin,hr');
 
         // School Notices & Circulars
         Route::get('/notices', [NoticeController::class, 'index']);
@@ -188,6 +205,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/profile', [HRController::class, 'profile']);
         Route::put('/profile', [HRController::class, 'updateProfile']);
         Route::get('/salaries', [HRController::class, 'salaries']);
+        Route::put('/salaries/{id}', [HRController::class, 'updateStaffSalary']);
+        Route::post('/salaries/{id}', [HRController::class, 'updateStaffSalary']);
         Route::post('/salaries/disburse', [HRController::class, 'disburseSalary']);
         Route::get('/staff-attendance', [HRController::class, 'staffAttendance']);
         Route::post('/staff-attendance/mark', [HRController::class, 'markStaffAttendance']);

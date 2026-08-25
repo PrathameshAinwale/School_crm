@@ -13,51 +13,15 @@ import {
   LuLoader,
 } from 'react-icons/lu';
 
-const defaultAvailableSlots = [
-  '9:00 AM - 9:30 AM',
-  '9:30 AM - 10:00 AM',
-  '10:00 AM - 10:30 AM',
-  '10:30 AM - 11:00 AM (Current)',
-  '11:30 AM - 12:00 PM',
-  '12:00 PM - 12:30 PM',
-];
-
-const fallbackPastPtmHistory = [
-  {
-    id: 1,
-    term: 'Orientation & Term 1 Initial PTM',
-    date: 'May 02, 2026',
-    teacher: 'Dr. Ananya Sen (Class Teacher)',
-    venue: 'Room 301',
-    discussion: 'Discussion on Class X curriculum pace, board examination registration, and focus areas for mathematics problem solving.',
-    keyDecisions: 'Parent agreed to monitor 2 hours daily study schedule. Aarav enrolled in weekly advanced problem-solving club.',
-  },
-  {
-    id: 2,
-    term: 'Class IX Annual Final PTM',
-    date: 'Mar 24, 2026',
-    teacher: 'Mr. Vikram Rathore (Ex-Class Teacher)',
-    venue: 'Science Block Lab 2',
-    discussion: 'Class IX Annual report card discussion. Overall Grade: 91.8% (A1). Commended for excellent lab work.',
-    keyDecisions: 'Recommended for Senior Mathematics Standard in Class X.',
-  },
-];
-
 export default function PTMPage() {
   const navigate = useNavigate();
-  const [selectedSlot, setSelectedSlot] = useState('10:30 AM - 11:00 AM (Current)');
-  const [availableSlots, setAvailableSlots] = useState(defaultAvailableSlots);
+  const [selectedSlot, setSelectedSlot] = useState('');
+  const [availableSlots, setAvailableSlots] = useState([]);
   const [rescheduledSuccess, setRescheduledSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [agendaNotes, setAgendaNotes] = useState('Would like to discuss mid-term preparation and recommended reference books for Class X Math.');
-  const [upcoming, setUpcoming] = useState({
-    term: 'Upcoming PTM Term 1',
-    date: 'Saturday, September 05, 2026',
-    timeSlot: '10:30 AM - 11:00 AM',
-    teacher: 'Dr. Ananya Sen (Class Teacher)',
-    venue: 'Room 301, Senior Academic Wing',
-  });
-  const [pastHistory, setPastHistory] = useState(fallbackPastPtmHistory);
+  const [agendaNotes, setAgendaNotes] = useState('');
+  const [upcoming, setUpcoming] = useState(null);
+  const [pastHistory, setPastHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchPtm = () => {
@@ -67,18 +31,18 @@ export default function PTMPage() {
         if (res?.data) {
           if (res.data.upcoming) {
             setUpcoming(res.data.upcoming);
-            setSelectedSlot(res.data.upcoming.timeSlot);
+            setSelectedSlot(res.data.upcoming.timeSlot || '');
             if (res.data.upcoming.agendaNotes) setAgendaNotes(res.data.upcoming.agendaNotes);
           }
-          if (res.data.availableSlots && res.data.availableSlots.length > 0) {
+          if (res.data.availableSlots && Array.isArray(res.data.availableSlots)) {
             setAvailableSlots(res.data.availableSlots);
           }
-          if (res.data.pastHistory && res.data.pastHistory.length > 0) {
+          if (res.data.pastHistory && Array.isArray(res.data.pastHistory)) {
             setPastHistory(res.data.pastHistory);
           }
         }
       })
-      .catch((err) => console.log('Loaded fallback PTM data:', err))
+      .catch((err) => console.log('PTM data fetch error:', err))
       .finally(() => setLoading(false));
   };
 

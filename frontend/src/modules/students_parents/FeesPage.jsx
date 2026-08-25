@@ -14,15 +14,6 @@ import {
   LuLoader,
 } from 'react-icons/lu';
 
-const fallbackFeeInstallments = [
-  { id: 1, term: 'Quarter 1 (Apr - Jun 2026)', amount: '₹30,000', dueDate: 'Apr 15, 2026', status: 'Paid', paidDate: 'Apr 10, 2026', txnId: 'TXN-HDFC-991823', mode: 'Net Banking' },
-  { id: 2, term: 'Quarter 2 (Jul - Sep 2026)', amount: '₹30,000', dueDate: 'Jul 15, 2026', status: 'Paid', paidDate: 'Jul 12, 2026', txnId: 'TXN-UPI-883192', mode: 'UPI (GPay)' },
-  { id: 3, term: 'Transport & Transit (Annual)', amount: '₹15,000', dueDate: 'Apr 15, 2026', status: 'Paid', paidDate: 'Apr 10, 2026', txnId: 'TXN-HDFC-991824', mode: 'Net Banking' },
-  { id: 4, term: 'Science & Lab Fee (Annual)', amount: '₹15,000', dueDate: 'Jul 15, 2026', status: 'Paid', paidDate: 'Jul 12, 2026', txnId: 'TXN-UPI-883193', mode: 'UPI' },
-  { id: 5, term: 'Quarter 3 (Oct - Dec 2026)', amount: '₹15,000', dueDate: 'Sep 15, 2026', status: 'Pending', paidDate: '—', txnId: '—', mode: '—' },
-  { id: 6, term: 'Quarter 4 (Jan - Mar 2027)', amount: '₹15,000', dueDate: 'Dec 15, 2026', status: 'Upcoming', paidDate: '—', txnId: '—', mode: '—' },
-];
-
 export default function FeesPage() {
   const navigate = useNavigate();
   const [showPayModal, setShowPayModal] = useState(false);
@@ -31,19 +22,19 @@ export default function FeesPage() {
   const [paying, setPaying] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Dynamic States
+  // Dynamic States from Live Database
   const [summary, setSummary] = useState({
-    totalAnnual: '₹1,20,000',
-    paidAmount: '₹90,000',
-    outstandingAmount: '₹30,000',
-    clearancePercentage: 75.0,
+    totalAnnual: '₹0',
+    paidAmount: '₹0',
+    outstandingAmount: '₹0',
+    clearancePercentage: 0,
     isGoodStanding: true,
   });
-  const [installments, setInstallments] = useState(fallbackFeeInstallments);
+  const [installments, setInstallments] = useState([]);
   const [studentInfo, setStudentInfo] = useState({
-    name: 'Aarav Patel',
-    admissionNo: 'STU-2024-X-101',
-    classSection: 'Class X-A',
+    name: 'Student',
+    admissionNo: '—',
+    classSection: '—',
   });
 
   const fetchFees = () => {
@@ -52,11 +43,11 @@ export default function FeesPage() {
       .then((res) => {
         if (res?.data) {
           if (res.data.summary) setSummary(res.data.summary);
-          if (res.data.installments && res.data.installments.length > 0) setInstallments(res.data.installments);
+          if (res.data.installments && Array.isArray(res.data.installments)) setInstallments(res.data.installments);
           if (res.data.student) setStudentInfo(res.data.student);
         }
       })
-      .catch((err) => console.log('Loaded mock fees:', err))
+      .catch((err) => console.log('Fee data fetch error:', err))
       .finally(() => setLoading(false));
   };
 

@@ -13,18 +13,9 @@ import {
   LuLoader,
 } from 'react-icons/lu';
 
-const fallbackStudyMaterialData = [
-  { id: 'SM-01', title: 'Class X Mathematics: All Board Formulas & Solved Exemplar Problems 2026', subject: 'Mathematics', type: 'PDF', size: '4.2 MB', uploader: 'Dr. Ananya Sen (PGT)', date: 'Aug 12, 2026', downloads: 142, desc: 'Complete formula sheet covering Quadratic Equations, AP, Triangles, and Coordinate Geometry with 50+ solved CBSE previous year questions.' },
-  { id: 'SM-02', title: 'Science NCERT Exemplar Solutions & Comprehensive Physics Lab Manual', subject: 'Science', type: 'PDF', size: '6.8 MB', uploader: 'Mr. Vikram Rathore (PGT)', date: 'Aug 10, 2026', downloads: 188, desc: 'Step-by-step practical record write-ups for Ray Optics and Chemical Reactions with ray diagrams and expected viva questions.' },
-  { id: 'SM-03', title: 'English Literature Question Bank & Reference Guide (First Flight)', subject: 'English', type: 'PDF', size: '3.1 MB', uploader: 'Ms. Sunita Rao (TGT)', date: 'Aug 08, 2026', downloads: 95, desc: 'Character sketches, theme summaries, extract-based multiple choice questions, and standard letter formats.' },
-  { id: 'SM-04', title: 'Social Science: Nationalism in India Complete Mindmaps & Map Practice', subject: 'Social Science', type: 'PDF', size: '5.5 MB', uploader: 'Mr. Manoj Joshi (TGT)', date: 'Aug 05, 2026', downloads: 110, desc: 'Visual flowcharts of the Freedom Movement, historical dates timeline, and high-resolution state maps for board practice.' },
-  { id: 'SM-05', title: 'Computer Science: Python 3 Cheatsheet & SQL Database Practice Queries', subject: 'Computer Science', type: 'ZIP', size: '8.4 MB', uploader: 'Mrs. Deepa K. (PGT)', date: 'Aug 02, 2026', downloads: 160, desc: 'Code examples for Python functions, list comprehensions, and ready-to-run SQL schema creation scripts for board project.' },
-  { id: 'SM-06', title: 'Mathematics: Chapterwise Mock Test Papers with Marking Scheme', subject: 'Mathematics', type: 'PDF', size: '3.8 MB', uploader: 'Dr. Ananya Sen (PGT)', date: 'Jul 28, 2026', downloads: 204, desc: 'Five 80-mark sample papers following the latest 2026-27 CBSE pattern with detailed solution keys and marking distribution.' },
-];
-
 export default function StudyMaterialPage() {
   const navigate = useNavigate();
-  const [materials, setMaterials] = useState(fallbackStudyMaterialData);
+  const [materials, setMaterials] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -36,11 +27,17 @@ export default function StudyMaterialPage() {
       search: searchQuery,
     })
       .then((res) => {
-        if (res?.data && res.data.length > 0) {
-          setMaterials(res.data);
+        const matList = res?.data?.materials || res?.data || res?.materials;
+        if (Array.isArray(matList)) {
+          setMaterials(matList);
+        } else {
+          setMaterials([]);
         }
       })
-      .catch((err) => console.log('Loaded mock study materials:', err))
+      .catch((err) => {
+        console.log('Error fetching study materials:', err);
+        setMaterials([]);
+      })
       .finally(() => setLoading(false));
   };
 

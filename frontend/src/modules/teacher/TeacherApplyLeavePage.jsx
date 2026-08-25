@@ -9,6 +9,10 @@ import {
   LuCircleCheck,
   LuArrowLeft,
   LuInfo,
+  LuImage,
+  LuUpload,
+  LuTrash2,
+  LuPaperclip,
 } from 'react-icons/lu';
 
 export default function TeacherApplyLeavePage() {
@@ -21,6 +25,8 @@ export default function TeacherApplyLeavePage() {
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [reason, setReason] = useState('');
+  const [photoProof, setPhotoProof] = useState(null);
+  const [photoName, setPhotoName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -38,6 +44,28 @@ export default function TeacherApplyLeavePage() {
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image file size must be under 5MB.');
+      return;
+    }
+
+    setPhotoName(file.name);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoProof(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removePhoto = () => {
+    setPhotoProof(null);
+    setPhotoName('');
   };
 
   const handleSubmit = async (e) => {
@@ -58,6 +86,8 @@ export default function TeacherApplyLeavePage() {
         from_date: fromDate,
         to_date: toDate,
         reason: reason,
+        photo_proof: photoProof,
+        photo_name: photoName,
       });
 
       if (res.success) {
@@ -162,6 +192,61 @@ export default function TeacherApplyLeavePage() {
             </span>
           </div>
 
+          {/* Photo Proof Field (Active for Sick Leave) */}
+          {leaveType === 'SL' && (
+            <div className="p-4 bg-rose-50/60 border border-rose-200/80 rounded-2xl space-y-3 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-rose-900 flex items-center gap-1.5">
+                  <LuImage className="w-4 h-4 text-rose-600" /> Medical Certificate / Photo Proof
+                </label>
+                <span className="text-[10px] font-semibold text-rose-600 bg-rose-100/80 px-2 py-0.5 rounded-md">
+                  Sick Leave Attachment
+                </span>
+              </div>
+              <p className="text-[11px] text-rose-700 leading-relaxed">
+                Attach a doctor's prescription, clinic slip, or medical report photo for verification.
+              </p>
+
+              {photoProof ? (
+                <div className="flex items-center justify-between gap-3 p-3 bg-white border border-rose-200 rounded-xl">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={photoProof}
+                      alt="Medical Proof"
+                      className="w-12 h-12 object-cover rounded-lg border border-slate-200 shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-800 truncate">{photoName || 'Medical_Proof.png'}</p>
+                      <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                        <LuCircleCheck className="w-3 h-3" /> Image attached successfully
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removePhoto}
+                    className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                    title="Remove Photo"
+                  >
+                    <LuTrash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-rose-300 rounded-xl bg-white/80 hover:bg-rose-50/50 transition-colors cursor-pointer text-center group">
+                  <LuUpload className="w-6 h-6 text-rose-400 group-hover:text-rose-600 mb-1.5 transition-colors" />
+                  <span className="text-xs font-bold text-slate-700">Click to upload medical photo proof</span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, JPEG, WEBP up to 5MB</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1.5">
               Reason / Remarks <span className="text-rose-500">*</span>
@@ -169,7 +254,7 @@ export default function TeacherApplyLeavePage() {
             <textarea
               rows={4}
               required
-              placeholder="State the purpose of your leave (e.g. Attending brother's wedding, Medical emergency)..."
+              placeholder="State the purpose of your leave (e.g. Diagnosed with viral fever, prescribed 3 days bed rest)..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="w-full p-3.5 rounded-xl border border-gray-200 text-xs text-gray-800 bg-gray-50 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all resize-none font-medium"
@@ -187,7 +272,7 @@ export default function TeacherApplyLeavePage() {
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 active:bg-primary-800 transition-all shadow-md shadow-primary-500/20 flex items-center gap-1.5 disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 active:bg-primary-800 transition-all shadow-md shadow-primary-500/20 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
               {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCircleCheck className="w-4 h-4" />}
               {submitting ? 'Submitting Application...' : 'Submit Application'}

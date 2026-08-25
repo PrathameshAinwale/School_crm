@@ -18,6 +18,7 @@ class Teacher extends Model
         'email',
         'phone',
         'gender',
+        'blood_group',
         'date_of_birth',
         'joining_date',
         'department',
@@ -51,6 +52,16 @@ class Teacher extends Model
     public function attendances()
     {
         return $this->hasMany(StaffAttendance::class, 'teacher_id');
+    }
+
+    public function assignedResources()
+    {
+        return $this->hasMany(Resource::class, 'assigned_teacher_id');
+    }
+
+    public function resourceRequests()
+    {
+        return $this->hasMany(ResourceRequest::class, 'teacher_id');
     }
 
     public function getFullNameAttribute(): string

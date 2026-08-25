@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://ninety-queens-mate.loca.lt/api/v1';
+const API_BASE_URL = ' http://localhost:8000/api/v1';
 
 /**
  * Universal API Request Helper
