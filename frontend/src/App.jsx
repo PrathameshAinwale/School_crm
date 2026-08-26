@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import DashboardLayout from './components/Layout/DashboardLayout';
 import Login from './modules/auth/Login';
 import AdminDashboard from './modules/admin/AdminDashboard';
-import TeacherDashboard from './modules/teachers/TeacherDashboard';
+import TeacherDashboard from './modules/teacher/TeacherDashboard';
 import StudentParentDashboard from './modules/students_parents/StudentParentDashboard';
 import HRDashboard from './modules/hr/HRDashboard';
 import Placeholder from './modules/common/Placeholder';

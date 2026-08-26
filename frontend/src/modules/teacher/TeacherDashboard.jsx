@@ -9,17 +9,13 @@ import {
   LuBookOpen,
   LuArrowRight,
   LuClock,
-  LuUsers,
-  LuTimer,
   LuCalendarDays,
-  LuCheck,
   LuSparkles,
   LuMapPin,
   LuBell,
   LuChevronRight,
   LuRefreshCw,
   LuAward,
-  LuCheckCheck,
 } from 'react-icons/lu';
 
 export default function TeacherDashboard() {
@@ -143,11 +139,9 @@ export default function TeacherDashboard() {
                 onClick={() => navigate(card.path)}
                 className="bg-white rounded-xl sm:rounded-2xl p-3.5 sm:p-5 border border-gray-200/80 shadow-xs hover:shadow-lg hover:border-primary-300 hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between group relative overflow-hidden"
               >
-                {/* Top Accent Stripe on hover */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-primary-600 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                 <div>
-                  {/* Card Header */}
                   <div className="flex items-center justify-between mb-2.5 sm:mb-3.5">
                     <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl ${card.iconBg} flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform`}>
                       <Icon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
@@ -157,7 +151,6 @@ export default function TeacherDashboard() {
                     </span>
                   </div>
 
-                  {/* Card Title & Main Highlight */}
                   <h3 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
                     {card.title}
                   </h3>
@@ -177,7 +170,6 @@ export default function TeacherDashboard() {
                   </p>
                 </div>
 
-                {/* Card Action Link */}
                 <div className="mt-3.5 sm:mt-4 pt-2.5 sm:pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] sm:text-xs font-bold text-primary-600 group-hover:text-primary-700">
                   <span>{card.actionText}</span>
                   <LuArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -188,9 +180,8 @@ export default function TeacherDashboard() {
         </div>
       </div>
 
-      {/* Two Clean Detail Sections Below */}
+      {/* Detail Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 sm:gap-6">
-        {/* Left 2 Cols: Today's Lecture Schedule Timeline (Real-time from Timetable) */}
         <div className="lg:col-span-2 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200/80 shadow-xs">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
             <div className="flex items-center gap-2.5">
@@ -278,9 +269,8 @@ export default function TeacherDashboard() {
           )}
         </div>
 
-        {/* Right 1 Col: Daily Staff Announcements & Quick Actions */}
+        {/* Staff Announcements */}
         <div className="space-y-5">
-          {/* Quick Notice Board from live Notices */}
           <div className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
@@ -307,7 +297,6 @@ export default function TeacherDashboard() {
             </div>
           </div>
 
-          {/* Quick Syllabus Shortcut Card */}
           <div
             onClick={() => navigate('/syllabus')}
             className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-3xl p-6 text-white shadow-md hover:shadow-xl transition-all cursor-pointer group flex items-center justify-between"
