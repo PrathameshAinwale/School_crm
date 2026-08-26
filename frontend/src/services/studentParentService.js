@@ -117,6 +117,10 @@ export const studentParentService = {
     const qs = new URLSearchParams(params).toString();
     return apiRequest(`/student/timetable${qs ? `?${qs}` : ''}`);
   },
+  getAllTimetableSlots(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/student/timetable/all-slots${qs ? `?${qs}` : ''}`);
+  },
   saveTimetableSlot(data) {
     return apiRequest('/student/timetable', {
       method: 'POST',

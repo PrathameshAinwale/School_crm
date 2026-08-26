@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { adminService } from '../../services/adminService';
 import {
   LuClipboardCheck,
@@ -15,6 +16,10 @@ import {
   LuLoader,
   LuCircleCheck,
   LuClock,
+  LuLock,
+  LuShieldAlert,
+  LuCircleAlert,
+  LuInfo,
 } from 'react-icons/lu';
 
 const STANDARD_CLASSES = [
@@ -35,6 +40,11 @@ const DIVISIONS = [
 ];
 
 export default function ClassAttendancePage() {
+  const { user } = useAuth();
+  const isTeacher = user?.role === 'teacher';
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedDivision, setSelectedDivision] = useState('');
   const [classList, setClassList] = useState(STANDARD_CLASSES);
@@ -48,6 +58,11 @@ export default function ClassAttendancePage() {
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
+
+  // Check if viewing past date and locked for teachers
+  const isPastDate = selectedDate < todayStr;
+  const isToday = selectedDate === todayStr;
+  const isLocked = isTeacher && isPastDate;
 
   // 1. Initial Load: Auto-resolve teacher's assigned class & division
   useEffect(() => {
@@ -130,10 +145,21 @@ export default function ClassAttendancePage() {
   const shiftDate = (deltaDays) => {
     const d = new Date(selectedDate);
     d.setDate(d.getDate() + deltaDays);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    const newDateStr = d.toISOString().split('T')[0];
+
+    // Prevent teachers from navigating into future dates
+    if (isTeacher && newDateStr > todayStr) {
+      showToast('Cannot navigate to future dates for attendance marking.');
+      return;
+    }
+    setSelectedDate(newDateStr);
   };
 
   const handleStatusChange = (index, newStatus) => {
+    if (isLocked) {
+      showToast('Attendance for past dates is locked and cannot be edited by teachers.');
+      return;
+    }
     const updated = [...records];
     updated[index].status = newStatus;
     setRecords(updated);
@@ -141,12 +167,17 @@ export default function ClassAttendancePage() {
   };
 
   const handleRemarksChange = (index, remarks) => {
+    if (isLocked) return;
     const updated = [...records];
     updated[index].remarks = remarks;
     setRecords(updated);
   };
 
   const markAllPresent = () => {
+    if (isLocked) {
+      showToast('Attendance for past dates is locked.');
+      return;
+    }
     const updated = records.map((r) => ({ ...r, status: 'Present' }));
     setRecords(updated);
     recomputeSummary(updated);
@@ -163,6 +194,10 @@ export default function ClassAttendancePage() {
   };
 
   const handleSaveAttendance = async () => {
+    if (isLocked) {
+      showToast('Attendance for past dates is locked and cannot be edited by teachers.');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -181,7 +216,7 @@ export default function ClassAttendancePage() {
         loadAttendance();
       }
     } catch (err) {
-      showToast(err.data?.message || 'Failed to save student attendance.');
+      showToast(err.data?.message || err.message || 'Failed to save student attendance.');
     } finally {
       setSaving(false);
     }
@@ -197,6 +232,8 @@ export default function ClassAttendancePage() {
     }
     return true;
   });
+
+  const isAnyMarked = records.some((r) => r.is_marked);
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12">
@@ -215,9 +252,21 @@ export default function ClassAttendancePage() {
             <LuClipboardCheck className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h1 className="text-base sm:text-xl font-bold text-slate-800 leading-tight">Student Attendance Marking</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base sm:text-xl font-bold text-slate-800 leading-tight">Student Attendance Register</h1>
+              {isToday && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                  Live Today
+                </span>
+              )}
+              {isLocked && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 inline-flex items-center gap-1">
+                  <LuLock className="w-3 h-3" /> Locked & Archived
+                </span>
+              )}
+            </div>
             <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
-              Select class and division to mark daily student presence (Present, Absent, Late)
+              Take roll call and record daily presence. Records for completed days are automatically locked for historical integrity.
             </p>
           </div>
         </div>
@@ -235,20 +284,76 @@ export default function ClassAttendancePage() {
             <LuCalendar className="w-4 h-4 text-primary-600" />
             <input
               type="date"
+              max={isTeacher ? todayStr : undefined}
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (isTeacher && val > todayStr) {
+                  showToast('Cannot select future dates for attendance.');
+                  return;
+                }
+                setSelectedDate(val);
+              }}
               className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
             />
           </div>
           <button
             onClick={() => shiftDate(1)}
-            title="Next Day"
-            className="p-1.5 hover:bg-white rounded-lg text-slate-600 hover:text-slate-900 transition-colors shadow-xs"
+            disabled={isTeacher && selectedDate >= todayStr}
+            title={isTeacher && selectedDate >= todayStr ? "Cannot navigate to future date" : "Next Day"}
+            className="p-1.5 hover:bg-white rounded-lg text-slate-600 hover:text-slate-900 transition-colors shadow-xs disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <LuChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
+
+      {/* Locked Past Date Warning Banner */}
+      {isLocked && (
+        <div className="bg-amber-50 border border-amber-300 p-4 rounded-2xl flex items-start gap-3.5 text-amber-900 shadow-xs">
+          <div className="w-8 h-8 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 shrink-0">
+            <LuLock className="w-4 h-4" />
+          </div>
+          <div className="text-xs">
+            <p className="font-bold text-amber-900 text-sm">Attendance Locked for Completed Day ({selectedDate})</p>
+            <p className="text-amber-800 mt-1 leading-relaxed">
+              Student attendance records for past dates are archived in read-only mode and cannot be modified by teachers. Once a day has finished, attendance records are finalized to preserve compliance. For any retroactive corrections, please contact the Principal or Admin office.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Today's Submission Status Callout */}
+      {isToday && (
+        <div className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 text-xs ${
+          isAnyMarked
+            ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
+            : 'bg-blue-50/80 border-blue-200 text-blue-900'
+        }`}>
+          <div className="flex items-center gap-2.5">
+            {isAnyMarked ? (
+              <LuCircleCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+            ) : (
+              <LuInfo className="w-5 h-5 text-blue-600 shrink-0" />
+            )}
+            <div>
+              <span className="font-bold">
+                {isAnyMarked
+                  ? "Today's Attendance is Recorded in Database"
+                  : "Today's Attendance Roll is Pending Submission"}
+              </span>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                {isAnyMarked
+                  ? `Roll call marked and synchronized for ${selectedClass} (${selectedDivision}). Click "Save Attendance Roll" anytime to submit updates.`
+                  : `Please review presence for all students below and click "Save Attendance Roll" before the end of the school day.`}
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0 font-bold px-2.5 py-1 rounded-lg text-[11px] uppercase tracking-wider bg-white border border-slate-200 shadow-2xs">
+            {isAnyMarked ? '✓ Logged' : '● Action Required'}
+          </div>
+        </div>
+      )}
 
       {/* KPI Metric Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
@@ -341,18 +446,24 @@ export default function ClassAttendancePage() {
         <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
           <button
             onClick={markAllPresent}
-            disabled={records.length === 0}
-            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+            disabled={isLocked || records.length === 0}
+            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <LuCheck className="w-3.5 h-3.5 text-emerald-600" /> Mark All Present
           </button>
           <button
             onClick={handleSaveAttendance}
-            disabled={saving || records.length === 0}
-            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+            disabled={isLocked || saving || records.length === 0}
+            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {saving ? <LuLoader className="w-3.5 h-3.5 animate-spin" /> : <LuCircleCheck className="w-3.5 h-3.5" />}
-            {saving ? 'Saving...' : 'Save Attendance Roll'}
+            {saving ? (
+              <LuLoader className="w-3.5 h-3.5 animate-spin" />
+            ) : isLocked ? (
+              <LuLock className="w-3.5 h-3.5" />
+            ) : (
+              <LuCircleCheck className="w-3.5 h-3.5" />
+            )}
+            {saving ? 'Saving...' : isLocked ? 'Attendance Locked' : 'Save Attendance Roll'}
           </button>
         </div>
       </div>
@@ -397,33 +508,42 @@ export default function ClassAttendancePage() {
                   <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-xl">
                     <button
                       type="button"
+                      disabled={isLocked}
                       onClick={() => handleStatusChange(realIndex, 'Present')}
-                      className={`py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
+                      className={`py-1.5 rounded-lg text-xs font-bold transition-all text-center ${
                         student.status === 'Present'
                           ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:bg-slate-200'
+                          : isLocked
+                          ? 'text-slate-400 cursor-not-allowed opacity-50'
+                          : 'text-slate-600 hover:bg-slate-200 cursor-pointer'
                       }`}
                     >
                       Present
                     </button>
                     <button
                       type="button"
+                      disabled={isLocked}
                       onClick={() => handleStatusChange(realIndex, 'Absent')}
-                      className={`py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
+                      className={`py-1.5 rounded-lg text-xs font-bold transition-all text-center ${
                         student.status === 'Absent'
                           ? 'bg-rose-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:bg-slate-200'
+                          : isLocked
+                          ? 'text-slate-400 cursor-not-allowed opacity-50'
+                          : 'text-slate-600 hover:bg-slate-200 cursor-pointer'
                       }`}
                     >
                       Absent
                     </button>
                     <button
                       type="button"
+                      disabled={isLocked}
                       onClick={() => handleStatusChange(realIndex, 'Late')}
-                      className={`py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
+                      className={`py-1.5 rounded-lg text-xs font-bold transition-all text-center ${
                         student.status === 'Late'
                           ? 'bg-amber-500 text-white shadow-xs'
-                          : 'text-slate-600 hover:bg-slate-200'
+                          : isLocked
+                          ? 'text-slate-400 cursor-not-allowed opacity-50'
+                          : 'text-slate-600 hover:bg-slate-200 cursor-pointer'
                       }`}
                     >
                       Late
@@ -433,10 +553,11 @@ export default function ClassAttendancePage() {
                   {/* Remarks input */}
                   <input
                     type="text"
-                    placeholder="Remarks / reason (optional)..."
+                    disabled={isLocked}
+                    placeholder={isLocked ? "No remarks" : "Remarks / reason (optional)..."}
                     value={student.remarks || ''}
                     onChange={(e) => handleRemarksChange(realIndex, e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-primary-500"
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-primary-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                   />
                 </div>
               );
@@ -486,33 +607,42 @@ export default function ClassAttendancePage() {
                           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-fit border border-slate-200/60">
                             <button
                               type="button"
+                              disabled={isLocked}
                               onClick={() => handleStatusChange(realIndex, 'Present')}
-                              className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all ${
                                 student.status === 'Present'
                                   ? 'bg-emerald-600 text-white shadow-xs'
-                                  : 'text-slate-600 hover:bg-slate-200'
+                                  : isLocked
+                                  ? 'text-slate-400 cursor-not-allowed opacity-50'
+                                  : 'text-slate-600 hover:bg-slate-200 cursor-pointer'
                               }`}
                             >
                               Present
                             </button>
                             <button
                               type="button"
+                              disabled={isLocked}
                               onClick={() => handleStatusChange(realIndex, 'Absent')}
-                              className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all ${
                                 student.status === 'Absent'
                                   ? 'bg-rose-600 text-white shadow-xs'
-                                  : 'text-slate-600 hover:bg-slate-200'
+                                  : isLocked
+                                  ? 'text-slate-400 cursor-not-allowed opacity-50'
+                                  : 'text-slate-600 hover:bg-slate-200 cursor-pointer'
                               }`}
                             >
                               Absent
                             </button>
                             <button
                               type="button"
+                              disabled={isLocked}
                               onClick={() => handleStatusChange(realIndex, 'Late')}
-                              className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all ${
                                 student.status === 'Late'
                                   ? 'bg-amber-500 text-white shadow-xs'
-                                  : 'text-slate-600 hover:bg-slate-200'
+                                  : isLocked
+                                  ? 'text-slate-400 cursor-not-allowed opacity-50'
+                                  : 'text-slate-600 hover:bg-slate-200 cursor-pointer'
                               }`}
                             >
                               Late
@@ -522,10 +652,11 @@ export default function ClassAttendancePage() {
                         <td className="px-5 py-4">
                           <input
                             type="text"
-                            placeholder="e.g. Fever, Leave note..."
+                            disabled={isLocked}
+                            placeholder={isLocked ? "—" : "e.g. Fever, Leave note..."}
                             value={student.remarks || ''}
                             onChange={(e) => handleRemarksChange(realIndex, e.target.value)}
-                            className="w-full max-w-xs px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-primary-500"
+                            className="w-full max-w-xs px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-primary-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                           />
                         </td>
                       </tr>

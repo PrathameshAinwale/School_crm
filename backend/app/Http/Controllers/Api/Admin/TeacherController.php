@@ -35,8 +35,12 @@ class TeacherController extends Controller
             $query->where('department', $request->department);
         }
 
-        if ($request->filled('status') && strtolower($request->status) !== 'all') {
-            $query->where('status', $request->status);
+        if ($request->boolean('all') || $request->input('per_page') == 100) {
+            $teachers = $query->orderBy('first_name', 'asc')->get();
+            return response()->json([
+                'success' => true,
+                'data' => $teachers,
+            ]);
         }
 
         $teachers = $query->orderBy('created_at', 'desc')->paginate($request->input('per_page', 50));

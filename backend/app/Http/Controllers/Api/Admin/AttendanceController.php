@@ -203,7 +203,25 @@ class AttendanceController extends Controller
 
         $date = $request->date;
         $type = $request->type;
-        $markedBy = $request->user()->id;
+        $user = $request->user();
+        $markedBy = $user->id;
+
+        // Restriction for Teachers: Past date attendance is locked once the day is completed; future dates are blocked
+        if ($user->role === 'teacher') {
+            $today = Carbon::today()->toDateString();
+            if ($date < $today) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Attendance for past dates is locked and cannot be modified by teachers. Once a day is completed, records are archived.',
+                ], 403);
+            }
+            if ($date > $today) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Attendance cannot be recorded in advance for future dates.',
+                ], 422);
+            }
+        }
 
         DB::transaction(function () use ($request, $date, $type, $markedBy) {
             foreach ($request->records as $record) {

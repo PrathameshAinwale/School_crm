@@ -109,6 +109,13 @@ class TimetableController extends Controller
                 'timetable' => $grouped,
                 'availableClasses' => $classesList,
                 'availableDivisions' => ['Div A', 'Div B', 'Div C', 'Div D'],
+                'availableTeachers' => Teacher::where('status', 'Active')->orWhereNull('status')->orderBy('first_name')->get()->map(function($t) {
+                    return [
+                        'id' => $t->id,
+                        'name' => $t->full_name,
+                        'department' => $t->department ?: '',
+                    ];
+                }),
                 'teacherInfo' => $teacher ? [
                     'id' => $teacher->id,
                     'name' => $teacher->full_name,
@@ -285,4 +292,37 @@ class TimetableController extends Controller
             'message' => "Schedule for {$request->day_of_week} cleared.",
         ]);
     }
+
+    /**
+     * Get all timetable periods across all classes for conflict checking.
+     */
+    public function allSlots(Request $request)
+    {
+        $query = Timetable::query();
+        if ($request->filled('day_of_week')) {
+            $query->where('day_of_week', $request->day_of_week);
+        }
+
+        $slots = $query->orderBy('day_of_week')->orderBy('period_number')->get([
+            'id',
+            'class_name',
+            'division',
+            'day_of_week',
+            'period_name',
+            'period_number',
+            'time_slot',
+            'subject',
+            'teacher_name',
+            'room',
+            'type',
+            'created_by_teacher_id'
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $slots,
+            'total' => $slots->count(),
+        ]);
+    }
 }
+

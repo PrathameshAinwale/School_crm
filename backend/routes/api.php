@@ -64,6 +64,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('admin/students', [StudentController::class, 'index'])->middleware('role:admin,teacher');
     Route::get('admin/students/{student}', [StudentController::class, 'show'])->middleware('role:admin,teacher');
 
+    // Teachers Directory (Accessible to Admin, Teacher)
+    Route::get('admin/teachers', [TeacherController::class, 'index'])->middleware('role:admin,teacher');
+
     // Attendance (Accessible to Admin, Teacher)
     Route::get('/admin/attendance', [AttendanceController::class, 'index'])->middleware('role:admin,teacher');
     Route::post('/admin/attendance', [AttendanceController::class, 'store'])->middleware('role:admin,teacher');
@@ -77,11 +80,11 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/academic/classes', [AcademicController::class, 'storeClass']);
 
         // Students Management (Admin Only Full CRUD)
-        Route::apiResource('students', StudentController::class);
+        Route::apiResource('students', StudentController::class)->except(['index', 'show']);
         Route::post('students/{student}/reset-password', [StudentController::class, 'resetPassword']);
 
         // Teachers (Staff Management)
-        Route::apiResource('teachers', TeacherController::class);
+        Route::apiResource('teachers', TeacherController::class)->except(['index']);
         Route::post('teachers/{teacher}/reset-password', [TeacherController::class, 'resetPassword']);
 
         // Admissions Pipeline
@@ -136,6 +139,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/attendance', [AttendanceController::class, 'store']);
         Route::get('/students', [StudentController::class, 'index']);
         Route::get('/students/{student}', [StudentController::class, 'show']);
+        Route::get('/teachers', [TeacherController::class, 'index']);
         Route::get('/trainings', [HRController::class, 'trainings']);
     });
 
@@ -180,6 +184,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
         // School Period Timetable (Class specific & Teacher editor)
         Route::get('/timetable', [TimetableController::class, 'index']);
+        Route::get('/timetable/all-slots', [TimetableController::class, 'allSlots']);
         Route::post('/timetable', [TimetableController::class, 'store'])->middleware('role:teacher,admin');
         Route::post('/timetable/bulk', [TimetableController::class, 'saveBulk'])->middleware('role:teacher,admin');
         Route::post('/timetable/clear-day', [TimetableController::class, 'clearDay'])->middleware('role:teacher,admin');

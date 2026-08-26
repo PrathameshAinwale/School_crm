@@ -15,9 +15,13 @@ export const adminService = {
   },
 
   // Teachers (Staff)
-  getTeachers(params = {}) {
+  async getTeachers(params = {}) {
     const qs = new URLSearchParams(params).toString();
-    return apiRequest(`/admin/teachers${qs ? `?${qs}` : ''}`);
+    try {
+      return await apiRequest(`/admin/teachers${qs ? `?${qs}` : ''}`);
+    } catch (err) {
+      return await apiRequest(`/teacher/teachers${qs ? `?${qs}` : ''}`);
+    }
   },
   createTeacher(data) {
     return apiRequest('/admin/teachers', {

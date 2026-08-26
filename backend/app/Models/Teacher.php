@@ -44,6 +44,8 @@ class Teacher extends Model
         'joining_date' => 'date',
     ];
 
+    protected $appends = ['full_name'];
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
