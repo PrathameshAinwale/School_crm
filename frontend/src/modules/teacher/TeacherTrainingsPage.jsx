@@ -16,11 +16,12 @@ import {
 } from 'react-icons/lu';
 import { hrService } from '../../services/hrService';
 import { adminService } from '../../services/adminService';
+import { TEACHERS_LIST } from '../../data/trainingsStore';
 
 export default function TeacherTrainingsPage() {
   const [trainings, setTrainings] = useState([]);
-  const [teachersList, setTeachersList] = useState([]);
-  const [activeTeacherId, setActiveTeacherId] = useState('');
+  const [teachersList, setTeachersList] = useState(TEACHERS_LIST);
+  const [activeTeacherId, setActiveTeacherId] = useState(TEACHERS_LIST[0]?.id || 'TCH-101');
   const [selectedTrainingForAttendance, setSelectedTrainingForAttendance] = useState(null);
   const [attendanceFeedback, setAttendanceFeedback] = useState('');
   const [loading, setLoading] = useState(true);
@@ -82,7 +83,8 @@ export default function TeacherTrainingsPage() {
     fetchLiveTrainings();
   }, []);
 
-  const activeTeacher = teachersList.find((t) => (t.teacher_id || t.id) === activeTeacherId) || teachersList[0] || { name: 'Teacher', role: 'Faculty' };
+  const activeTeacher = (teachersList.length > 0 ? teachersList : TEACHERS_LIST).find((t) => (t.teacher_id || t.id) === activeTeacherId) || (teachersList.length > 0 ? teachersList[0] : TEACHERS_LIST[0]) || { name: 'Teacher', role: 'Faculty' };
+  const activeTeacherDisplayName = activeTeacher.full_name || activeTeacher.name || 'Teacher';
 
   // Filter trainings where this teacher is assigned as an attendee
   const myTrainings = trainings.filter((t) =>
@@ -148,11 +150,16 @@ export default function TeacherTrainingsPage() {
             onChange={(e) => setActiveTeacherId(e.target.value)}
             className="py-1.5 px-3 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-800 focus:outline-none"
           >
-            {TEACHERS_LIST.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name} ({t.dept})
-              </option>
-            ))}
+            {(teachersList && teachersList.length > 0 ? teachersList : TEACHERS_LIST).map((t) => {
+              const id = t.teacher_id || t.id;
+              const name = t.full_name || t.name;
+              const dept = t.department || t.dept || 'Faculty';
+              return (
+                <option key={id} value={id}>
+                  {name} ({dept})
+                </option>
+              );
+            })}
           </select>
         </div>
       </div>
@@ -208,7 +215,7 @@ export default function TeacherTrainingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-gray-800">
-              Assigned Training Roster for {activeTeacher.name}
+              Assigned Training Roster for {activeTeacherDisplayName}
             </h2>
             <p className="text-xs text-gray-400">Review schedule, topics, venue, and confirm your presence</p>
           </div>
@@ -311,7 +318,7 @@ export default function TeacherTrainingsPage() {
             <div className="bg-white border-b border-gray-200 p-5 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-gray-800">Mark Training Attendance</h3>
-                <p className="text-xs text-gray-400">Confirm presence for {activeTeacher.name}</p>
+                <p className="text-xs text-gray-400">Confirm presence for {activeTeacherDisplayName}</p>
               </div>
               <button
                 onClick={() => setSelectedTrainingForAttendance(null)}

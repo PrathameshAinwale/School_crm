@@ -14,29 +14,30 @@ export default function StatCard({ label, value, trend, trendUp, color = 'blue',
   const c = colorMap[color] || colorMap.blue;
 
   return (
-    <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4.5 border border-gray-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between h-full">
-      <div className="flex items-center justify-between gap-1.5 mb-1.5 sm:mb-2">
-        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl ${c.iconBg} flex items-center justify-center shrink-0`}>
-          {Icon ? <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${c.text}`} /> : <div className={`w-2.5 h-2.5 rounded-full ${c.bg}`} />}
+    <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-200/80 shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-2.5 h-full relative overflow-hidden">
+      <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
+        <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl ${c.iconBg} flex items-center justify-center shrink-0`}>
+          {Icon ? <Icon className={`w-5 h-5 sm:w-5.5 sm:h-5.5 ${c.text}`} /> : <div className={`w-2.5 h-2.5 rounded-full ${c.bg}`} />}
         </div>
-        {trend && (
-          <span
-            className={`inline-flex items-center gap-0.5 text-[9px] sm:text-[11px] font-bold px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full whitespace-nowrap shrink-0 ${
-              trendUp
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : 'bg-rose-50 text-rose-700 border border-rose-200'
-            }`}
-          >
-            {trendUp ? <LuTrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> : <LuTrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />}
-            <span className="truncate max-w-[80px] sm:max-w-[120px]">{trend}</span>
-          </span>
-        )}
+        <div className="min-w-0 flex-1">
+          <h3 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight leading-tight truncate">{value}</h3>
+          <p className="text-[11px] sm:text-xs font-semibold text-gray-500 truncate">{label}</p>
+        </div>
       </div>
 
-      <div className="mt-0.5">
-        <h3 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight leading-none">{value}</h3>
-        <p className="text-[11px] sm:text-xs font-semibold text-gray-500 mt-1 truncate">{label}</p>
-      </div>
+      {trend && (
+        <span
+          className={`inline-flex items-center gap-0.5 text-[9px] sm:text-[11px] font-bold px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full whitespace-nowrap shrink-0 self-center ${
+            trendUp
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-rose-50 text-rose-700 border border-rose-200'
+          }`}
+        >
+          {trendUp ? <LuTrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> : <LuTrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />}
+          <span className="truncate max-w-[70px] sm:max-w-[110px]">{trend}</span>
+        </span>
+      )}
     </div>
   );
 }
+

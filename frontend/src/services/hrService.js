@@ -26,6 +26,13 @@ export const hrService = {
     });
   },
 
+  requestSalaryDisbursement: (data) => {
+    return apiRequest('/hr/salaries/request-disbursement', {
+      method: 'POST',
+      body: data,
+    });
+  },
+
   // 3. Staff Attendance
   getStaffAttendance: (params = {}) => {
     const qs = new URLSearchParams(params).toString();

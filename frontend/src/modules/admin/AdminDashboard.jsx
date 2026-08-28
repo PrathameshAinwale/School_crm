@@ -112,7 +112,6 @@ export default function AdminDashboard() {
           <StatCard
             label="Faculty & Staff"
             value={metrics.total_teachers}
-            trend={metrics.active_teachers + " Active"}
             trendUp={true}
             icon={LuUsers}
             color="blue"
@@ -122,7 +121,6 @@ export default function AdminDashboard() {
           <StatCard
             label="Total Students"
             value={metrics.total_students}
-            trend={metrics.total_classes + " Classes"}
             trendUp={true}
             icon={LuGraduationCap}
             color="green"
@@ -132,7 +130,6 @@ export default function AdminDashboard() {
           <StatCard
             label="Active Admissions"
             value={metrics.total_admissions}
-            trend={metrics.pending_admissions + " Pending"}
             trendUp={true}
             icon={LuUserPlus}
             color="violet"
@@ -142,7 +139,6 @@ export default function AdminDashboard() {
           <StatCard
             label="Attendance Rate"
             value={`${metrics.attendance_rate}%`}
-            trend="Today's muster"
             trendUp={metrics.attendance_rate >= 80}
             icon={LuClipboardList}
             color="amber"

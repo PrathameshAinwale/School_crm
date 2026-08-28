@@ -17,6 +17,7 @@ class Admission extends Model
         'date_of_birth',
         'gender',
         'school_class_id',
+        'with_transport',
         'academic_year',
         'guardian_name',
         'guardian_phone',
@@ -31,6 +32,7 @@ class Admission extends Model
     ];
 
     protected $casts = [
+        'with_transport' => 'boolean',
         'date_of_birth' => 'date',
     ];
 

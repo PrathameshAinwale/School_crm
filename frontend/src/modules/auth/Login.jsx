@@ -151,7 +151,7 @@ export default function Login() {
             <p className="text-[11px] font-semibold uppercase text-slate-400 tracking-wider mb-2.5 text-center">
               Quick Test Credentials
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => fillCredentials('admin@school.com', '111111')}
@@ -159,9 +159,31 @@ export default function Login() {
               >
                 <div className="text-xs font-semibold text-slate-700 group-hover:text-primary-700 flex items-center gap-1.5">
                   <LuShieldCheck className="w-3.5 h-3.5 text-primary-500" />
-                  Admin
+                  DPS School Admin
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">admin@school.com</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => fillCredentials('admin@stxavier.com', '111111')}
+                className="p-2.5 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 border border-slate-200 rounded-xl text-left transition-all group"
+              >
+                <div className="text-xs font-semibold text-slate-700 group-hover:text-indigo-700 flex items-center gap-1.5">
+                  <LuShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
+                  St. Xavier Admin
+                </div>
+                <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">admin@stxavier.com</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => fillCredentials('accounts@school.com', '111111')}
+                className="p-2.5 bg-slate-50 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 rounded-xl text-left transition-all group"
+              >
+                <div className="text-xs font-semibold text-slate-700 group-hover:text-teal-700 flex items-center gap-1.5">
+                  <LuShieldCheck className="w-3.5 h-3.5 text-teal-500" />
+                  Accounts (Vikram)
+                </div>
+                <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">accounts@school.com</div>
               </button>
               <button
                 type="button"
@@ -170,7 +192,7 @@ export default function Login() {
               >
                 <div className="text-xs font-semibold text-slate-700 group-hover:text-amber-700 flex items-center gap-1.5">
                   <LuShieldCheck className="w-3.5 h-3.5 text-amber-500" />
-                  HR Manager (Pooja)
+                  HR Head (Pooja)
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">hr@school.com</div>
               </button>
@@ -188,11 +210,11 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => fillCredentials('rajesh@school.com', '111111')}
-                className="p-2.5 bg-slate-50 hover:bg-purple-50 hover:border-purple-200 border border-slate-200 rounded-xl text-left transition-all group"
+                className="p-2.5 bg-slate-50 hover:bg-purple-50 hover:border-purple-200 border border-slate-200 rounded-xl text-left transition-all group sm:col-span-2"
               >
                 <div className="text-xs font-semibold text-slate-700 group-hover:text-purple-700 flex items-center gap-1.5">
                   <LuShieldCheck className="w-3.5 h-3.5 text-purple-500" />
-                  Student/Parent
+                  Parent (Rajesh Patel)
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">rajesh@school.com</div>
               </button>

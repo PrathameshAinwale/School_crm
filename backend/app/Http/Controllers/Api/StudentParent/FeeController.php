@@ -20,10 +20,14 @@ class FeeController extends Controller
         $user = $request->user();
         $student = null;
         if ($user) {
-            $student = Student::where('user_id', $user->id)->first();
+            $student = Student::with(['schoolClass', 'section'])
+                ->where('user_id', $user->id)
+                ->orWhere('guardian_email', $user->email)
+                ->orWhere('guardian_phone', $user->phone)
+                ->first();
         }
         if (!$student) {
-            $student = Student::first();
+            $student = Student::with(['schoolClass', 'section'])->first();
         }
         $studentId = $student ? $student->id : 1;
 
@@ -34,7 +38,11 @@ class FeeController extends Controller
         $totalAnnual = $fees->sum('amount');
         $paidAmount = $fees->where('status', 'Paid')->sum('amount');
         $outstandingAmount = $fees->whereIn('status', ['Pending', 'Overdue'])->sum('amount');
-        $clearancePercentage = $totalAnnual > 0 ? round(($paidAmount / $totalAnnual) * 100, 1) : 75.0;
+        $clearancePercentage = $totalAnnual > 0 ? round(($paidAmount / $totalAnnual) * 100, 1) : 0;
+
+        $paidCount = $fees->where('status', 'Paid')->count();
+        $pendingCount = $fees->where('status', 'Pending')->count();
+        $overdueCount = $fees->where('status', 'Overdue')->count();
 
         $installments = $fees->map(function ($fee) {
             return [
@@ -43,6 +51,7 @@ class FeeController extends Controller
                 'amount' => '₹' . number_format($fee->amount),
                 'rawAmount' => (float) $fee->amount,
                 'dueDate' => $fee->due_date ? Carbon::parse($fee->due_date)->format('M d, Y') : '—',
+                'rawDueDate' => $fee->due_date ? Carbon::parse($fee->due_date)->toDateString() : null,
                 'status' => $fee->status,
                 'paidDate' => $fee->paid_date ? Carbon::parse($fee->paid_date)->format('M d, Y') : '—',
                 'txnId' => $fee->transaction_id ?: '—',
@@ -52,6 +61,66 @@ class FeeController extends Controller
             ];
         });
 
+        $paidInstallments = $installments->filter(fn ($f) => $f['status'] === 'Paid')->values();
+        $upcomingInstallments = $installments->filter(fn ($f) => $f['status'] !== 'Paid')->values();
+
+        // Fetch notifications pushed by Finance/Accounts department for this parent/student
+        $userId = $user ? $user->id : null;
+        $financeNotifsQuery = Notification::orderBy('created_at', 'desc')
+            ->where(function ($q) use ($userId) {
+                if ($userId) {
+                    $q->where('user_id', $userId)
+                      ->orWhereNull('user_id');
+                } else {
+                    $q->whereNull('user_id');
+                }
+            })
+            ->where(function ($q) {
+                $q->where('type', 'fee')
+                  ->orWhere('type', 'alert')
+                  ->orWhere('title', 'like', '%Fee%')
+                  ->orWhere('title', 'like', '%Payment%')
+                  ->orWhere('title', 'like', '%Accounts%')
+                  ->orWhere('message', 'like', '%Accounts%')
+                  ->orWhere('message', 'like', '%fee%')
+                  ->orWhere('message', 'like', '%due%');
+            });
+
+        $financeNotifications = $financeNotifsQuery->take(10)->get()->map(function ($notif) {
+            return [
+                'id' => $notif->id,
+                'title' => $notif->title,
+                'message' => $notif->message,
+                'type' => $notif->type,
+                'is_read' => (bool) $notif->is_read,
+                'created_at' => $notif->created_at ? $notif->created_at->format('d M Y, h:i A') : '—',
+                'time_ago' => $notif->created_at ? $notif->created_at->diffForHumans() : 'Recently',
+            ];
+        });
+
+        // Class Fee Structure configured by Admin
+        $classFeeStructure = null;
+        if ($student && $student->school_class_id) {
+            $fs = \App\Models\FeeStructure::where('school_class_id', $student->school_class_id)->first();
+            if ($fs) {
+                $classFeeStructure = [
+                    'tuitionFee' => '₹' . number_format($fs->tuition_fee),
+                    'transportFee' => '₹' . number_format($fs->transport_fee),
+                    'labLibraryFee' => '₹' . number_format($fs->lab_library_fee),
+                    'activityFee' => '₹' . number_format($fs->activity_fee),
+                    'otherFee' => '₹' . number_format($fs->other_fee),
+                    'totalAnnualFee' => '₹' . number_format($fs->total_annual_fee),
+                    'rawTuition' => (float) $fs->tuition_fee,
+                    'rawTransport' => (float) $fs->transport_fee,
+                    'rawLab' => (float) $fs->lab_library_fee,
+                    'rawActivity' => (float) $fs->activity_fee,
+                    'rawOther' => (float) $fs->other_fee,
+                    'rawTotal' => (float) $fs->total_annual_fee,
+                    'notes' => $fs->notes,
+                ];
+            }
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -59,18 +128,30 @@ class FeeController extends Controller
                     'id' => $student ? $student->id : 1,
                     'name' => $student ? $student->full_name : 'Aarav Patel',
                     'admissionNo' => $student ? $student->admission_number : 'STU-2024-X-101',
-                    'classSection' => $student ? ($student->schoolClass ? $student->schoolClass->name . ' - ' . ($student->section ? $student->section->name : 'A') : 'Class X-A') : 'Class X-A',
+                    'classSection' => $student ? ($student->schoolClass ? $student->schoolClass->name . ' - ' . ($student->section ? $student->section->name : 'A') : 'Class 10-A') : 'Class 10-A',
+                    'withTransport' => $student ? (bool) $student->with_transport : false,
+                    'transportStatus' => ($student && $student->with_transport) ? 'School Vehicle Transit Opted' : 'Without School Transport',
                 ],
                 'summary' => [
                     'totalAnnual' => '₹' . number_format($totalAnnual),
                     'paidAmount' => '₹' . number_format($paidAmount),
                     'outstandingAmount' => '₹' . number_format($outstandingAmount),
+                    'rawTotalAnnual' => (float) $totalAnnual,
+                    'rawPaid' => (float) $paidAmount,
                     'rawOutstanding' => (float) $outstandingAmount,
+                    'paidCount' => $paidCount,
+                    'pendingCount' => $pendingCount,
+                    'overdueCount' => $overdueCount,
                     'clearancePercentage' => $clearancePercentage,
-                    'isGoodStanding' => $outstandingAmount <= 30000,
-                    'session' => 'Session 2026-27',
+                    'isGoodStanding' => $overdueCount === 0,
+                    'withTransport' => $student ? (bool) $student->with_transport : false,
+                    'session' => 'Academic Session 2026-27',
                 ],
+                'classFeeStructure' => $classFeeStructure,
                 'installments' => $installments,
+                'paidInstallments' => $paidInstallments,
+                'upcomingInstallments' => $upcomingInstallments,
+                'financeNotifications' => $financeNotifications,
             ],
         ]);
     }
@@ -83,10 +164,14 @@ class FeeController extends Controller
         $user = $request->user();
         $student = null;
         if ($user) {
-            $student = Student::where('user_id', $user->id)->first();
+            $student = Student::with(['schoolClass', 'section'])
+                ->where('user_id', $user->id)
+                ->orWhere('guardian_email', $user->email)
+                ->orWhere('guardian_phone', $user->phone)
+                ->first();
         }
         if (!$student) {
-            $student = Student::first();
+            $student = Student::with(['schoolClass', 'section'])->first();
         }
         $studentId = $student ? $student->id : 1;
 
@@ -136,26 +221,43 @@ class FeeController extends Controller
             }
         }
 
-        // Create student & parent notification
+        $paidFee = (isset($fee) && $fee) ? $fee : (isset($nextPending) && $nextPending ? $nextPending : null);
+        $amountVal = $paidFee ? $paidFee->amount : 30000;
+        $termVal = $paidFee ? $paidFee->term_name : 'Fee Installment';
+        $studentName = $student ? $student->full_name : 'Student';
+
+        // 1. Create student & parent notification
         if ($user) {
             Notification::create([
                 'user_id' => $user->id,
+                'role' => 'student_parent',
                 'title' => 'Fee Payment Successful',
-                'message' => "Payment of ₹30,000 received via {$modeLabel}. Txn ID: {$txnId}. Receipt #{$receiptNo} generated.",
+                'message' => "Payment of ₹" . number_format($amountVal) . " for {$termVal} received via {$modeLabel}. Txn ID: {$txnId}. Receipt #{$receiptNo} generated.",
                 'type' => 'fee',
                 'link' => '/fees',
                 'is_read' => false,
             ]);
         }
 
+        // 2. Notify Accounts department about online fee payment
+        Notification::create([
+            'role' => 'accounts',
+            'title' => 'Online Fee Received',
+            'message' => "₹" . number_format($amountVal) . " paid by {$studentName} for {$termVal} via {$modeLabel} (Receipt #{$receiptNo}).",
+            'type' => 'fee',
+            'link' => '/accounts/fees',
+            'is_read' => false,
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => "Payment of ₹30,000 processed successfully. Transaction ID: {$txnId}",
+            'message' => "Payment of ₹" . number_format($amountVal) . " processed successfully. Transaction ID: {$txnId}",
             'data' => [
                 'txnId' => $txnId,
                 'receiptNumber' => $receiptNo,
                 'paidDate' => $now->format('M d, Y'),
                 'paymentMode' => $modeLabel,
+                'amount' => $amountVal,
             ],
         ]);
     }

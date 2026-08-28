@@ -57,7 +57,7 @@ class TeacherController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'role' => 'nullable|string|in:teacher,hr',
+            'role' => 'nullable|string|in:teacher,hr,admin,accountant',
             'first_name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:users,email|unique:teachers,email',
@@ -82,10 +82,10 @@ class TeacherController extends Controller
 
         return DB::transaction(function () use ($request) {
             $staffRole = $request->input('role', 'teacher');
-            $isHR = ($staffRole === 'hr');
+            $isNonTeaching = in_array($staffRole, ['hr', 'admin', 'accountant']);
 
             // If assigning as Class Teacher, unassign any existing teacher for this class/division
-            if ($request->filled('class_teacher_class')) {
+            if (!$isNonTeaching && $request->filled('class_teacher_class')) {
                 $existingQuery = Teacher::where('class_teacher_class', $request->class_teacher_class);
                 if ($request->filled('class_teacher_division')) {
                     $existingQuery->where('class_teacher_division', $request->class_teacher_division);
@@ -96,16 +96,38 @@ class TeacherController extends Controller
                 ]);
             }
 
-            // 1. Generate unique staff ID based on role
-            $count = Teacher::count() + 1;
-            $prefix = $isHR ? 'HR-' : 'TCH-';
-            $teacherId = $prefix . str_pad($count, 3, '0', STR_PAD_LEFT);
+            $currentSchoolId = auth()->user()?->school_id;
+            $school = auth()->user()?->school;
+            $schoolPrefix = $school ? ($school->code . '-') : '';
+
+            // 1. Generate unique staff ID based on role and school
+            $rolePrefixMap = [
+                'admin' => $schoolPrefix . 'ADM-',
+                'accountant' => $schoolPrefix . 'ACC-',
+                'hr' => $schoolPrefix . 'HR-',
+                'teacher' => $schoolPrefix . 'TCH-',
+            ];
+            $prefix = $rolePrefixMap[$staffRole] ?? ($schoolPrefix . 'STF-');
+
+            $nextCount = Teacher::withoutGlobalScopes()->where('school_id', $currentSchoolId)->count() + 1;
+            $teacherId = $request->input('teacher_id') ?: ($prefix . str_pad($nextCount, 3, '0', STR_PAD_LEFT));
+
+            while (Teacher::withoutGlobalScopes()->where('teacher_id', $teacherId)->exists()) {
+                $nextCount++;
+                $teacherId = $prefix . str_pad($nextCount, 3, '0', STR_PAD_LEFT);
+            }
 
             // 2. Auto-generate secure random temporary password
-            $pwdPrefix = $isHR ? 'Hr#' : 'Tch#';
+            $pwdPrefixMap = [
+                'admin' => 'Adm#',
+                'accountant' => 'Acc#',
+                'hr' => 'Hr#',
+                'teacher' => 'Tch#',
+            ];
+            $pwdPrefix = $pwdPrefixMap[$staffRole] ?? 'Stf#';
             $generatedPassword = $pwdPrefix . Str::random(6) . '!';
 
-            // 3. Create or Restore User account with designated role ('teacher' or 'hr')
+            // 3. Create or Restore User account with designated role ('admin', 'accountant', 'hr', 'teacher')
             $fullName = trim($request->first_name . ' ' . $request->last_name);
             $user = User::withTrashed()
                 ->where('email', strtolower($request->email))
@@ -120,6 +142,7 @@ class TeacherController extends Controller
                 if ($user->trashed()) {
                     $user->restore();
                 }
+                $user->school_id = $currentSchoolId;
                 $user->name = $fullName;
                 $user->email = strtolower($request->email);
                 $user->phone = $request->phone;
@@ -131,6 +154,7 @@ class TeacherController extends Controller
                 $user->save();
             } else {
                 $user = User::create([
+                    'school_id' => $currentSchoolId,
                     'name' => $fullName,
                     'email' => strtolower($request->email),
                     'phone' => $request->phone,
@@ -142,10 +166,16 @@ class TeacherController extends Controller
                 ]);
             }
 
-            // 4. Create Teacher/Staff profile linked to user
-            $baseSalary = (float) ($request->salary ?? ($isHR ? 55000 : 50000));
+            // 4. Default department and salary
+            $defaultDeptMap = [
+                'admin' => 'Administration',
+                'accountant' => 'Accounts & Finance',
+                'hr' => 'Human Resources',
+                'teacher' => 'General',
+            ];
+            $dept = $request->department ?: ($defaultDeptMap[$staffRole] ?? 'General');
+            $baseSalary = (float) ($request->salary ?? ($staffRole === 'admin' ? 75000 : ($staffRole === 'accountant' ? 60000 : ($staffRole === 'hr' ? 55000 : 50000))));
             $allowance = (float) ($request->allowance ?? 0);
-            $dept = $request->department ?: ($isHR ? 'Human Resources' : 'General');
 
             $teacher = Teacher::create([
                 'user_id' => $user->id,
@@ -163,10 +193,10 @@ class TeacherController extends Controller
                 'experience' => $request->experience,
                 'salary' => $baseSalary,
                 'allowance' => $allowance,
-                'assigned_subjects' => $isHR ? [] : ($request->assigned_subjects ?? []),
-                'assigned_classes' => $isHR ? [] : ($request->assigned_classes ?? []),
-                'class_teacher_class' => $isHR ? null : $request->class_teacher_class,
-                'class_teacher_division' => $isHR ? null : $request->class_teacher_division,
+                'assigned_subjects' => $isNonTeaching ? [] : ($request->assigned_subjects ?? []),
+                'assigned_classes' => $isNonTeaching ? [] : ($request->assigned_classes ?? []),
+                'class_teacher_class' => $isNonTeaching ? null : $request->class_teacher_class,
+                'class_teacher_division' => $isNonTeaching ? null : $request->class_teacher_division,
                 'address' => $request->address,
                 'emergency_contact' => $request->emergency_contact,
                 'status' => $request->status ?? 'Active',
@@ -175,8 +205,15 @@ class TeacherController extends Controller
             // 5. Create / Sync StaffSalary record for current month
             $currentMonth = \Carbon\Carbon::now()->format('F Y');
             $gross = $baseSalary + $allowance;
-            $deduction = round($gross * 0.12, 2); // 12% deduction of base + allowance
+            $deduction = round($gross * 0.12, 2);
             $net = round($gross - $deduction, 2);
+
+            $roleTitleMap = [
+                'admin' => 'School Administrator',
+                'accountant' => 'Accounts & Finance Lead',
+                'hr' => 'HR Operations & Talent Manager',
+                'teacher' => ($dept . ' Faculty'),
+            ];
 
             \App\Models\StaffSalary::updateOrCreate(
                 [
@@ -186,7 +223,7 @@ class TeacherController extends Controller
                 [
                     'employee_id' => $teacherId,
                     'name' => $fullName,
-                    'role' => $isHR ? 'HR Operations & Talent Manager' : ($dept . ' Faculty'),
+                    'role' => $roleTitleMap[$staffRole] ?? ($dept . ' Staff'),
                     'department' => $dept,
                     'base_salary' => $baseSalary,
                     'allowance' => $allowance,
@@ -208,9 +245,16 @@ class TeacherController extends Controller
                 ]
             );
 
+            $roleLabelMap = [
+                'admin' => 'School Administrator',
+                'accountant' => 'Accounts & Finance Officer',
+                'hr' => 'HR Manager',
+                'teacher' => 'Teaching Faculty',
+            ];
+
             return response()->json([
                 'success' => true,
-                'message' => ($isHR ? 'HR Staff member' : 'Teacher') . ' created successfully with auto-generated login credentials.',
+                'message' => ($roleLabelMap[$staffRole] ?? 'Staff member') . ' onboarded successfully with auto-generated login credentials.',
                 'data' => $teacher->load('user'),
                 'credentials' => [
                     'teacher_id' => $teacherId,
@@ -219,7 +263,7 @@ class TeacherController extends Controller
                     'email' => strtolower($request->email),
                     'temporary_password' => $generatedPassword,
                     'must_change_password' => true,
-                    'note' => "Credentials issued for {$staffRole} portal access. User will change password on first login.",
+                    'note' => "Credentials issued for {$staffRole} portal access. User will access only their designated module upon login.",
                 ],
             ], 201);
         });
@@ -246,7 +290,7 @@ class TeacherController extends Controller
         $teacher = Teacher::findOrFail($id);
 
         $request->validate([
-            'role' => 'nullable|string|in:teacher,hr',
+            'role' => 'nullable|string|in:teacher,hr,admin,accountant',
             'first_name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:teachers,email,' . $teacher->id . '|unique:users,email,' . ($teacher->user_id ?? 0),
@@ -269,8 +313,11 @@ class TeacherController extends Controller
         ]);
 
         return DB::transaction(function () use ($request, $teacher) {
+            $staffRole = $request->input('role', $teacher->user?->role ?? 'teacher');
+            $isNonTeaching = in_array($staffRole, ['hr', 'admin', 'accountant']);
+
             // If assigning/changing class teacher assignment, unassign any other teacher holding it
-            if ($request->filled('class_teacher_class')) {
+            if (!$isNonTeaching && $request->filled('class_teacher_class')) {
                 $existingQuery = Teacher::where('class_teacher_class', $request->class_teacher_class)
                     ->where('id', '!=', $teacher->id);
                 if ($request->filled('class_teacher_division')) {
@@ -282,13 +329,22 @@ class TeacherController extends Controller
                 ]);
             }
 
-            $teacher->update($request->only([
+            $updateData = $request->only([
                 'first_name', 'last_name', 'email', 'phone', 'gender', 'blood_group',
                 'date_of_birth', 'joining_date', 'department', 'qualification',
                 'experience', 'salary', 'allowance', 'assigned_subjects', 'assigned_classes',
                 'class_teacher_class', 'class_teacher_division',
                 'address', 'emergency_contact', 'status'
-            ]));
+            ]);
+
+            if ($isNonTeaching) {
+                $updateData['assigned_subjects'] = [];
+                $updateData['assigned_classes'] = [];
+                $updateData['class_teacher_class'] = null;
+                $updateData['class_teacher_division'] = null;
+            }
+
+            $teacher->update($updateData);
 
             if ($teacher->user) {
                 $userUpdates = [

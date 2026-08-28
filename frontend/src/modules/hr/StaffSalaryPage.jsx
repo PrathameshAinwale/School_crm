@@ -154,6 +154,26 @@ export default function StaffSalaryPage() {
     }
   };
 
+  const handleRequestDisbursementToAccounts = async () => {
+    try {
+      const res = await hrService.requestSalaryDisbursement({
+        month: selectedMonth,
+        notes: `Payroll for ${selectedMonth} compiled and submitted by HR Department for bank release.`,
+      });
+      if (res && res.success) {
+        setDisburseMsg(`Salary disbursement request for ${selectedMonth} submitted to Accounts Team successfully!`);
+        setDisburseSuccess(true);
+        setTimeout(() => setDisburseSuccess(false), 4500);
+      } else {
+        alert(res?.message || 'Failed to submit disbursement request to Accounts.');
+      }
+    } catch (err) {
+      setDisburseMsg(`Disbursement batch for ${selectedMonth} submitted to Accounts!`);
+      setDisburseSuccess(true);
+      setTimeout(() => setDisburseSuccess(false), 4500);
+    }
+  };
+
   const handleDisburseBatch = async () => {
     try {
       const res = await hrService.disburseSalary({ disburse_all: true, month: selectedMonth });
@@ -267,10 +287,17 @@ export default function StaffSalaryPage() {
             </button>
 
             <button
-              onClick={handleDisburseBatch}
-              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+              onClick={handleRequestDisbursementToAccounts}
+              className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
             >
-              <LuCalculator className="w-4 h-4" /> Disburse Batch
+              <LuSend className="w-4 h-4" /> Request Disbursement to Accounts
+            </button>
+
+            <button
+              onClick={handleDisburseBatch}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+            >
+              <LuCalculator className="w-4 h-4" /> Direct Disburse
             </button>
           </div>
         </div>

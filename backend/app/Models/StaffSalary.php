@@ -37,6 +37,9 @@ class StaffSalary extends Model
         'disbursed_at',
         'account_no',
         'bank_name',
+        'ifsc_code',
+        'disbursement_request_id',
+        'payment_reference',
     ];
 
     protected $casts = [
@@ -58,5 +61,10 @@ class StaffSalary extends Model
     public function teacher()
     {
         return $this->belongsTo(Teacher::class);
+    }
+
+    public function disbursementRequest()
+    {
+        return $this->belongsTo(SalaryDisbursementRequest::class, 'disbursement_request_id');
     }
 }

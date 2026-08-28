@@ -27,7 +27,7 @@ return new class extends Migration
             $table->foreignId('marked_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
 
-            $table->unique(['date', 'student_id'], 'unique_student_daily_attendance');
+            $table->unique(['date', 'student_id'], 'unique_student_attendance_log');
         });
 
         // 2. Create staff_attendances table

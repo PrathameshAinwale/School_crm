@@ -69,7 +69,6 @@ class StudentDashboardController extends Controller
             [
                 'title' => 'Syllabus Covered',
                 'value' => "{$avgSyllabus}%",
-                'change' => $avgSyllabus > 0 ? "{$avgSyllabus}% completed" : 'In Progress',
                 'trend' => 'up',
                 'link' => '/syllabus',
                 'subtext' => 'Academic Term Progress',
@@ -77,7 +76,6 @@ class StudentDashboardController extends Controller
             [
                 'title' => 'Overall Attendance',
                 'value' => "{$attendanceRate}%",
-                'change' => "{$presentDays} of {$totalDays} days",
                 'trend' => 'up',
                 'link' => '/attendance',
                 'subtext' => "{$presentDays} of {$totalDays} days present",
@@ -85,7 +83,6 @@ class StudentDashboardController extends Controller
             [
                 'title' => 'Pending Homework',
                 'value' => (string) $pendingAssignments->count(),
-                'change' => $pendingAssignments->count() > 0 ? 'Due soon' : 'All clear',
                 'trend' => $pendingAssignments->count() > 0 ? 'down' : 'up',
                 'link' => '/assignment',
                 'subtext' => $pendingAssignments->count() > 0 ? ($pendingAssignments->count() . ' pending task(s)') : 'All tasks completed',
@@ -93,7 +90,6 @@ class StudentDashboardController extends Controller
             [
                 'title' => 'Upcoming Events',
                 'value' => (string) $upcomingEventsCount,
-                'change' => "{$upcomingEventsCount} Scheduled",
                 'trend' => 'up',
                 'link' => '/calendar',
                 'subtext' => 'School Calendar Events',

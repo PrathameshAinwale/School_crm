@@ -14,6 +14,9 @@ import {
   LuMapPin,
   LuUser,
   LuLoader,
+  LuReceipt,
+  LuCreditCard,
+  LuWallet,
 } from 'react-icons/lu';
 
 const statIcons = [LuBookOpen, LuClock, LuClipboardList, LuCalendarDays];
@@ -42,8 +45,10 @@ export default function StudentParentDashboard() {
   const [topCalendarEvents, setTopCalendarEvents] = useState([]);
   const [topTimetablePeriods, setTopTimetablePeriods] = useState([]);
   const [urgentAssignments, setUrgentAssignments] = useState([]);
+  const [feeSummary, setFeeSummary] = useState(null);
 
   useEffect(() => {
+    // Load dashboard stats
     studentParentService.getDashboardStats()
       .then((res) => {
         if (res?.data) {
@@ -96,6 +101,15 @@ export default function StudentParentDashboard() {
       })
       .catch((err) => console.log('Failed to load dashboard stats:', err))
       .finally(() => setLoading(false));
+
+    // Load Fee ledger summary
+    studentParentService.getFees()
+      .then((res) => {
+        if (res?.success && res.data) {
+          setFeeSummary(res.data);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Auto-swipe timer for mobile (advances every 3.5s)
@@ -166,6 +180,51 @@ export default function StudentParentDashboard() {
           </div>
         ))}
       </div>
+
+      {/* Quick Fee & Installment Status Card */}
+      {feeSummary && (
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${feeSummary.summary?.rawOutstanding > 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+              <LuReceipt className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-bold text-slate-800">
+                  School Fee Account • {feeSummary.student?.classSection || 'Class Standard'}
+                </h3>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${feeSummary.summary?.rawOutstanding > 0 ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                  {feeSummary.summary?.rawOutstanding > 0 ? `${feeSummary.summary?.pendingCount + feeSummary.summary?.overdueCount} Due Terms` : 'Fees Cleared'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Total Annual: <strong className="text-slate-700">{feeSummary.summary?.totalAnnual}</strong> • Paid so far: <strong className="text-emerald-600">{feeSummary.summary?.paidAmount}</strong> ({feeSummary.summary?.clearancePercentage}% cleared)
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 self-end md:self-auto shrink-0">
+            <div className="text-right hidden sm:block">
+              <div className="text-[11px] text-slate-400 font-medium">Outstanding Balance</div>
+              <div className={`text-base font-extrabold font-mono ${feeSummary.summary?.rawOutstanding > 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+                {feeSummary.summary?.outstandingAmount}
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate('/fees')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                feeSummary.summary?.rawOutstanding > 0
+                  ? 'bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
+            >
+              <LuCreditCard className="w-3.5 h-3.5" />
+              {feeSummary.summary?.rawOutstanding > 0 ? 'Pay Installment' : 'View Fee Ledger'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Grid: 1. Syllabus & 2. School Calendar */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">

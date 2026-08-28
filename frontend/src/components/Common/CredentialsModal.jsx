@@ -51,6 +51,20 @@ export default function CredentialsModal({ isOpen, onClose, credentials, title =
                 <span className="text-slate-800 font-semibold">{credentials.name}</span>
               </div>
             )}
+            {credentials.role && (
+              <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">Portal Access:</span>
+                <span className="text-indigo-700 font-bold uppercase tracking-wider text-[10px] bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
+                  {credentials.role === 'admin'
+                    ? 'School Admin Portal'
+                    : credentials.role === 'accountant'
+                    ? 'Accounts & Finance Portal'
+                    : credentials.role === 'hr'
+                    ? 'HR Portal'
+                    : 'Teacher Portal'}
+                </span>
+              </div>
+            )}
             {credentials.teacher_id && (
               <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-200">
                 <span className="text-slate-500 font-medium">Employee ID:</span>

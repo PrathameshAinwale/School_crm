@@ -9,8 +9,11 @@ use App\Models\FacultyTraining;
 use App\Models\LeaveApplication;
 use App\Models\Notification;
 use App\Models\PtmAppointment;
+use App\Models\SalaryDisbursementRequest;
+use App\Models\School;
 use App\Models\SchoolCalendarEvent;
 use App\Models\SchoolClass;
+use App\Models\SchoolExpense;
 use App\Models\SchoolNotice;
 use App\Models\Section;
 use App\Models\StaffAttendance;
@@ -28,20 +31,124 @@ use App\Models\Timetable;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the application's database with complete, interconnected data.
+     * Seed the application's database with complete, interconnected multi-tenant data.
      */
     public function run(): void
     {
         // -------------------------------------------------------------
-        // 1. CORE USERS
+        // 0. SAAS TENANT SCHOOLS & PLATFORM SUPER ADMIN
+        // -------------------------------------------------------------
+        $school1 = School::create([
+            'name' => 'Delhi Public Academy',
+            'code' => 'DPS-101',
+            'slug' => 'delhi-public-academy',
+            'affiliation' => 'CBSE',
+            'address' => 'Plot 42, Institutional Area, Sector 14',
+            'city' => 'New Delhi',
+            'state' => 'Delhi',
+            'pincode' => '110001',
+            'phone' => '+91 11 2890 1200',
+            'email' => 'contact@delhipublic.edu',
+            'website' => 'https://delhipublic.edu',
+            'principal_name' => 'Dr. Rajeshwari Sharma',
+            'subscription_plan' => 'Enterprise',
+            'subscription_status' => 'active',
+            'subscription_expires_at' => Carbon::now()->addYears(2),
+            'max_students' => 3000,
+            'max_staff' => 100,
+            'status' => 'active',
+        ]);
+
+        $school2 = School::create([
+            'name' => 'St. Xavier International School',
+            'code' => 'STX-102',
+            'slug' => 'st-xavier-international',
+            'affiliation' => 'ICSE',
+            'address' => '12, Church Road, Camp',
+            'city' => 'Mumbai',
+            'state' => 'Maharashtra',
+            'pincode' => '400001',
+            'phone' => '+91 22 2450 8900',
+            'email' => 'admissions@stxavier.edu',
+            'website' => 'https://stxavier.edu',
+            'principal_name' => 'Fr. Anthony D’Souza',
+            'subscription_plan' => 'Pro',
+            'subscription_status' => 'active',
+            'subscription_expires_at' => Carbon::now()->addYear(),
+            'max_students' => 1500,
+            'max_staff' => 60,
+            'status' => 'active',
+        ]);
+
+        $school3 = School::create([
+            'name' => 'Greenwood High Global School',
+            'code' => 'GWH-103',
+            'slug' => 'greenwood-high-global',
+            'affiliation' => 'IB',
+            'address' => '88, Sarjapur Main Road',
+            'city' => 'Bengaluru',
+            'state' => 'Karnataka',
+            'pincode' => '560035',
+            'phone' => '+91 80 4120 7700',
+            'email' => 'info@greenwoodhigh.edu',
+            'website' => 'https://greenwoodhigh.edu',
+            'principal_name' => 'Ms. Preeti Mukherjee',
+            'subscription_plan' => 'Standard',
+            'subscription_status' => 'active',
+            'subscription_expires_at' => Carbon::now()->addMonths(8),
+            'max_students' => 1000,
+            'max_staff' => 45,
+            'status' => 'active',
+        ]);
+
+        // Platform Super Administrator (Company Level)
+        $superAdmin = User::create([
+            'school_id' => null,
+            'name' => 'Platform Super Administrator',
+            'email' => 'archdevops360@gmail.com',
+            'phone' => '9999900000',
+            'password' => Hash::make('ArchIT@2013'),
+            'role' => 'super_admin',
+            'must_change_password' => false,
+            'status' => 'active',
+        ]);
+
+        // School 2 (St. Xavier) Admin
+        $stXavierAdmin = User::create([
+            'school_id' => $school2->id,
+            'name' => 'St. Xavier Administrator',
+            'email' => 'admin@stxavier.com',
+            'phone' => '9820011223',
+            'password' => Hash::make('111111'),
+            'role' => 'admin',
+            'must_change_password' => false,
+            'status' => 'active',
+        ]);
+
+        // School 3 (Greenwood) Admin
+        $greenwoodAdmin = User::create([
+            'school_id' => $school3->id,
+            'name' => 'Greenwood Administrator',
+            'email' => 'admin@greenwood.com',
+            'phone' => '9880011224',
+            'password' => Hash::make('111111'),
+            'role' => 'admin',
+            'must_change_password' => false,
+            'status' => 'active',
+        ]);
+
+        // -------------------------------------------------------------
+        // 1. CORE USERS FOR SCHOOL 1 (Delhi Public Academy)
         // -------------------------------------------------------------
         $admin = User::create([
-            'name' => 'System Administrator',
+            'school_id' => $school1->id,
+            'name' => 'System Administrator (DPS)',
             'email' => 'admin@school.com',
             'phone' => '9876543210',
             'password' => Hash::make('111111'),
@@ -76,6 +183,16 @@ class DatabaseSeeder extends Seeder
             'phone' => '9876543213',
             'password' => Hash::make('111111'),
             'role' => 'hr',
+            'must_change_password' => false,
+            'status' => 'active',
+        ]);
+
+        $accountantUser = User::create([
+            'name' => 'Vikram Malhotra (Accounts Lead)',
+            'email' => 'accounts@school.com',
+            'phone' => '9876543214',
+            'password' => Hash::make('111111'),
+            'role' => 'accountant',
             'must_change_password' => false,
             'status' => 'active',
         ]);
@@ -795,5 +912,224 @@ class DatabaseSeeder extends Seeder
             'remarks' => 'Approved as official duty leave. Reliever teacher assigned.',
             'approved_by' => $hrUser->id,
         ]);
+
+        // -------------------------------------------------------------
+        // 14. SCHOOL EXPENSES & RESOURCE EXPENDITURE
+        // -------------------------------------------------------------
+        $expensesData = [
+            [
+                'expense_code' => 'EXP-2026-0001',
+                'title' => 'Smart Interactive Panels & Projector Upgrades (Smart Lab 2 & Class 10A)',
+                'category' => 'Resources & Equipment',
+                'amount' => 145000.00,
+                'expense_date' => '2026-08-04',
+                'payment_mode' => 'Bank Transfer / NEFT',
+                'vendor_name' => 'NextGen EdTech Solutions Pvt Ltd',
+                'invoice_number' => 'INV-NG-8891',
+                'status' => 'Paid',
+                'notes' => 'Installed 2 units 75-inch 4K Interactive Panels with 3-year onsite OEM warranty.',
+            ],
+            [
+                'expense_code' => 'EXP-2026-0002',
+                'title' => 'Senior Chemistry & Physics Laboratory Chemical Reagents & Glassware',
+                'category' => 'Academic & Lab Supplies',
+                'amount' => 48500.00,
+                'expense_date' => '2026-08-08',
+                'payment_mode' => 'UPI',
+                'vendor_name' => 'National Scientific Supplies Corp',
+                'invoice_number' => 'NSS-AUG-1029',
+                'status' => 'Paid',
+                'notes' => 'Replenished titration glassware, analytical balances, and analytical grade reagents for Class 11-12 CBSE boards.',
+            ],
+            [
+                'expense_code' => 'EXP-2026-0003',
+                'title' => 'Main Campus High-Tension Electricity & DG Generator Fuel',
+                'category' => 'Utilities & Bills',
+                'amount' => 62000.00,
+                'expense_date' => '2026-08-11',
+                'payment_mode' => 'Bank Transfer / NEFT',
+                'vendor_name' => 'State Electricity Board & Reliance Petroleum',
+                'invoice_number' => 'EB-AUG26-9018',
+                'status' => 'Paid',
+                'notes' => 'Monthly utility settlement + 400 Litres diesel backup fuel for generator.',
+            ],
+            [
+                'expense_code' => 'EXP-2026-0004',
+                'title' => 'School Bus Fleet (Fleet #01 to #05) Quarterly RTO Fitness & Mechanical Servicing',
+                'category' => 'Transport & Fuel',
+                'amount' => 38900.00,
+                'expense_date' => '2026-08-15',
+                'payment_mode' => 'Cheque',
+                'vendor_name' => 'Tata Motors Authorized Commercial Service',
+                'invoice_number' => 'TM-SRV-4412',
+                'status' => 'Paid',
+                'notes' => 'Brake lining overhaul, speed governor recalibration, and CCTV system check for student safety.',
+            ],
+            [
+                'expense_code' => 'EXP-2026-0005',
+                'title' => 'Annual Inter-School Athletics Championship Medals, Trophies & Refreshments',
+                'category' => 'Events & Functions',
+                'amount' => 27500.00,
+                'expense_date' => '2026-08-18',
+                'payment_mode' => 'Debit Card',
+                'vendor_name' => 'Apex Sports & Trophies Emporium',
+                'invoice_number' => 'AST-89210',
+                'status' => 'Paid',
+                'notes' => 'Custom engraved medals, championship shields, energy drinks, and student refreshment kits.',
+            ],
+            [
+                'expense_code' => 'EXP-2026-0006',
+                'title' => 'Campus High-Speed Dedicated Leased Line Internet (1 Gbps)',
+                'category' => 'Utilities & Bills',
+                'amount' => 18000.00,
+                'expense_date' => '2026-08-20',
+                'payment_mode' => 'Bank Transfer / NEFT',
+                'vendor_name' => 'Airtel Enterprise Business Solutions',
+                'invoice_number' => 'AIR-ILL-7729',
+                'status' => 'Paid',
+                'notes' => 'Monthly dedicated optical fibre leased line bandwidth with 99.9% uptime SLA.',
+            ],
+        ];
+
+        foreach ($expensesData as $exp) {
+            $exp['recorded_by_user_id'] = $accountantUser->id;
+            SchoolExpense::create($exp);
+        }
+
+        // -------------------------------------------------------------
+        // 15. DIVERSE STUDENT FEES (Across Terms & Statuses)
+        // -------------------------------------------------------------
+        $allStudents = Student::take(10)->get();
+        $terms = [
+            ['name' => 'Quarter 1 Tuition Fee (Apr - Jun 2026)', 'amount' => 30000.00, 'due' => '2026-04-15'],
+            ['name' => 'Quarter 2 Tuition Fee (Jul - Sep 2026)', 'amount' => 30000.00, 'due' => '2026-07-15'],
+            ['name' => 'School Transport & Bus Transit (Annual)', 'amount' => 18000.00, 'due' => '2026-06-10'],
+            ['name' => 'Digital Lab & STEM Robotics Fee (Term 1)', 'amount' => 6500.00, 'due' => '2026-08-10'],
+        ];
+
+        foreach ($allStudents as $index => $stu) {
+            foreach ($terms as $tIdx => $t) {
+                // Ensure existing aren't duplicated
+                $existing = StudentFee::where('student_id', $stu->id)->where('term_name', $t['name'])->first();
+                if ($existing) continue;
+
+                $status = 'Paid';
+                $paidDate = null;
+                $txnId = null;
+                $mode = null;
+                $recNo = null;
+
+                if ($tIdx === 0) {
+                    $status = 'Paid';
+                    $paidDate = '2026-04-12';
+                    $txnId = 'TXN-UPI-' . rand(100000, 999999);
+                    $mode = 'UPI (GPay)';
+                    $recNo = 'REC-2026-' . rand(1000, 9999);
+                } elseif ($tIdx === 1) {
+                    // Alternate paid, pending, overdue
+                    if ($index % 3 === 0) {
+                        $status = 'Overdue';
+                    } elseif ($index % 3 === 1) {
+                        $status = 'Pending';
+                    } else {
+                        $status = 'Paid';
+                        $paidDate = '2026-07-10';
+                        $txnId = 'TXN-NB-' . rand(100000, 999999);
+                        $mode = 'Net Banking (HDFC)';
+                        $recNo = 'REC-2026-' . rand(1000, 9999);
+                    }
+                } elseif ($tIdx === 2) {
+                    $status = ($index % 2 === 0) ? 'Paid' : 'Pending';
+                    if ($status === 'Paid') {
+                        $paidDate = '2026-06-05';
+                        $txnId = 'TXN-CARD-' . rand(100000, 999999);
+                        $mode = 'Debit Card';
+                        $recNo = 'REC-2026-' . rand(1000, 9999);
+                    }
+                } else {
+                    $status = ($index % 2 === 0) ? 'Overdue' : 'Pending';
+                }
+
+                StudentFee::create([
+                    'student_id' => $stu->id,
+                    'term_name' => $t['name'],
+                    'amount' => $t['amount'],
+                    'due_date' => $t['due'],
+                    'status' => $status,
+                    'paid_date' => $paidDate,
+                    'transaction_id' => $txnId,
+                    'payment_mode' => $mode,
+                    'receipt_number' => $recNo,
+                    'tax_deductible' => true,
+                ]);
+            }
+        }
+
+        // -------------------------------------------------------------
+        // 16. SALARY DISBURSEMENT REQUEST (HR to Accounts)
+        // -------------------------------------------------------------
+        $salaries = StaffSalary::where('month', 'August 2026')->get();
+        if ($salaries->isNotEmpty()) {
+            $disbReq = SalaryDisbursementRequest::create([
+                'batch_code' => 'DISB-2026-AUG-01',
+                'month' => 'August 2026',
+                'total_staff_count' => $salaries->count(),
+                'total_gross_amount' => $salaries->sum('gross_salary'),
+                'total_deductions' => $salaries->sum('deduction'),
+                'total_net_amount' => $salaries->sum('net_salary'),
+                'status' => 'Pending Review',
+                'requested_by_user_id' => $hrUser->id,
+                'accounts_notes' => 'August 2026 teaching and non-teaching faculty payroll verified against biometric attendance and approved leave deductions.',
+            ]);
+
+            StaffSalary::where('month', 'August 2026')->update([
+                'disbursement_request_id' => $disbReq->id,
+            ]);
+        }
+
+        // -------------------------------------------------------------
+        // 17. BACKFILL TENANT DATA TO SCHOOL 1
+        // -------------------------------------------------------------
+        $tenantTables = [
+            'users',
+            'teachers',
+            'students',
+            'school_classes',
+            'sections',
+            'subjects',
+            'attendances',
+            'student_attendances',
+            'staff_attendances',
+            'admissions',
+            'vehicles',
+            'resources',
+            'resource_requests',
+            'assignments',
+            'assignment_submissions',
+            'notifications',
+            'leave_applications',
+            'student_fees',
+            'feedbacks',
+            'ptm_appointments',
+            'study_materials',
+            'timetables',
+            'syllabuses',
+            'school_calendar_events',
+            'school_notices',
+            'staff_salaries',
+            'faculty_trainings',
+            'school_expenses',
+            'salary_disbursement_requests',
+        ];
+
+        foreach ($tenantTables as $table) {
+            if (\Illuminate\Support\Facades\Schema::hasTable($table) && \Illuminate\Support\Facades\Schema::hasColumn($table, 'school_id')) {
+                DB::table($table)->whereNull('school_id')->update(['school_id' => $school1->id]);
+            }
+        }
+
+        // Ensure platform super administrator has school_id = null
+        User::where('role', 'super_admin')->update(['school_id' => null]);
     }
 }
+

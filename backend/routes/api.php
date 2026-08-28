@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Admin\ResourceController;
 use App\Http\Controllers\Api\Admin\StudentController;
 use App\Http\Controllers\Api\Admin\TeacherController;
 use App\Http\Controllers\Api\Admin\VehicleController;
+use App\Http\Controllers\Api\Admin\FeeStructureController;
 use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\NotificationController;
@@ -22,6 +23,8 @@ use App\Http\Controllers\Api\StudentParent\StudyMaterialController;
 use App\Http\Controllers\Api\StudentParent\SyllabusController;
 use App\Http\Controllers\Api\StudentParent\TimetableController;
 use App\Http\Controllers\Api\HR\HRController;
+use App\Http\Controllers\Api\Accounts\AccountsController;
+use App\Http\Controllers\Api\SuperAdmin\SuperAdminController;
 use App\Http\Controllers\Api\TeacherSelfController;
 use Illuminate\Support\Facades\Route;
 
@@ -105,6 +108,13 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('events', [SchoolCalendarController::class, 'store']);
         Route::put('events/{id}', [SchoolCalendarController::class, 'update']);
         Route::delete('events/{id}', [SchoolCalendarController::class, 'destroy']);
+
+        // Standard-wise Fee Structure & Installment Schedule Management
+        Route::get('fee-structures', [FeeStructureController::class, 'index']);
+        Route::get('fee-structures/{classId}', [FeeStructureController::class, 'show']);
+        Route::post('fee-structures', [FeeStructureController::class, 'storeOrUpdate']);
+        Route::post('fee-structures/{id}/sync-students', [FeeStructureController::class, 'syncStudents']);
+        Route::delete('fee-structures/{id}', [FeeStructureController::class, 'destroy']);
     });
 
     // Teacher & Staff Self Operations (Accessible to Teacher, HR, Admin)
@@ -213,6 +223,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::put('/salaries/{id}', [HRController::class, 'updateStaffSalary']);
         Route::post('/salaries/{id}', [HRController::class, 'updateStaffSalary']);
         Route::post('/salaries/disburse', [HRController::class, 'disburseSalary']);
+        Route::post('/salaries/request-disbursement', [HRController::class, 'requestSalaryDisbursement']);
         Route::get('/staff-attendance', [HRController::class, 'staffAttendance']);
         Route::post('/staff-attendance/mark', [HRController::class, 'markStaffAttendance']);
         Route::get('/leaves', [HRController::class, 'leaves']);
@@ -223,4 +234,50 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/events', [HRController::class, 'storeEvent']);
         Route::delete('/events/{id}', [HRController::class, 'destroyEvent']);
     });
+
+    // -------------------------------------------------------------
+    // ACCOUNTS & FINANCE OPERATIONS MODULE ROUTES
+    // -------------------------------------------------------------
+    Route::prefix('accounts')->middleware('role:accountant,admin')->group(function () {
+        // Realtime Dashboard Metrics
+        Route::get('/dashboard', [AccountsController::class, 'dashboard']);
+
+        // Profile View & Update
+        Route::get('/profile', [AccountsController::class, 'profile']);
+        Route::put('/profile', [AccountsController::class, 'updateProfile']);
+
+        // Student Fees Management & Reminders
+        Route::get('/fees', [AccountsController::class, 'feesList']);
+        Route::post('/fees/{id}/pay', [AccountsController::class, 'recordFeePayment']);
+        Route::post('/fees/{id}/remind', [AccountsController::class, 'sendFeeReminder']);
+        Route::post('/fees/bulk-remind', [AccountsController::class, 'sendBulkFeeReminders']);
+
+        // School Expenses & Resource Expenditure
+        Route::get('/expenses', [AccountsController::class, 'expensesList']);
+        Route::post('/expenses', [AccountsController::class, 'storeExpense']);
+        Route::delete('/expenses/{id}', [AccountsController::class, 'destroyExpense']);
+
+        // Staff Salary Disbursement Requests (HR to Accounts Workflow & Direct Staff Recording)
+        Route::get('/salary-disbursements', [AccountsController::class, 'disbursementRequests']);
+        Route::post('/salary-disbursements/record-staff', [AccountsController::class, 'recordStaffSalaryDisbursement']);
+        Route::post('/salary-disbursements/{id}/action', [AccountsController::class, 'actionDisbursementRequest']);
+    });
+
+    // -------------------------------------------------------------
+    // SUPER ADMIN (SAAS PLATFORM / COMPANY CONTROL) MODULE ROUTES
+    // -------------------------------------------------------------
+    Route::prefix('super-admin')->middleware('role:super_admin')->group(function () {
+        // Platform Overview Dashboard
+        Route::get('/dashboard', [SuperAdminController::class, 'dashboard']);
+
+        // Multi-Tenant School Management
+        Route::get('/schools', [SuperAdminController::class, 'schoolsList']);
+        Route::post('/schools', [SuperAdminController::class, 'storeSchool']);
+        Route::get('/schools/{id}', [SuperAdminController::class, 'showSchool']);
+        Route::put('/schools/{id}', [SuperAdminController::class, 'updateSchool']);
+        Route::patch('/schools/{id}/toggle-status', [SuperAdminController::class, 'toggleSchoolStatus']);
+        Route::post('/schools/{id}/reset-admin-password', [SuperAdminController::class, 'resetSchoolAdminPassword']);
+        Route::delete('/schools/{id}', [SuperAdminController::class, 'destroySchool']);
+    });
 });
+

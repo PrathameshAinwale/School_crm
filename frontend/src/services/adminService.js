@@ -14,6 +14,30 @@ export const adminService = {
     return apiRequest('/admin/academic/subjects');
   },
 
+  // Standard-wise Fee Structure Management
+  getFeeStructures() {
+    return apiRequest('/admin/fee-structures');
+  },
+  getFeeStructure(classId) {
+    return apiRequest(`/admin/fee-structures/${classId}`);
+  },
+  saveFeeStructure(data) {
+    return apiRequest('/admin/fee-structures', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  syncFeeStructureToStudents(id) {
+    return apiRequest(`/admin/fee-structures/${id}/sync-students`, {
+      method: 'POST',
+    });
+  },
+  deleteFeeStructure(id) {
+    return apiRequest(`/admin/fee-structures/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   // Teachers (Staff)
   async getTeachers(params = {}) {
     const qs = new URLSearchParams(params).toString();

@@ -1,6 +1,3 @@
-import React, { useState, useEffect } from 'react';
-import { adminService } from '../../services/adminService';
-import CredentialsModal from '../../components/Common/CredentialsModal';
 import {
   LuUserPlus,
   LuSearch,
@@ -13,6 +10,8 @@ import {
   LuLoader,
   LuPlus,
   LuGraduationCap,
+  LuBus,
+  LuReceipt,
 } from 'react-icons/lu';
 
 export default function AdminAdmissionPage() {
@@ -26,6 +25,14 @@ export default function AdminAdmissionPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [credentialsModalData, setCredentialsModalData] = useState(null);
+  const [enrollModalApplicant, setEnrollModalApplicant] = useState(null);
+  const [enrollData, setEnrollData] = useState({
+    section_id: '',
+    roll_number: '',
+    blood_group: 'O+',
+    with_transport: true,
+  });
+
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -33,7 +40,8 @@ export default function AdminAdmissionPage() {
     first_name: '',
     last_name: '',
     school_class_id: '',
-    academic_year: '2024-2025',
+    with_transport: false,
+    academic_year: '2026-2027',
     guardian_name: '',
     guardian_phone: '',
     guardian_email: '',
@@ -121,18 +129,34 @@ export default function AdminAdmissionPage() {
     }
   };
 
-  const handleEnroll = async (applicant) => {
+  const openEnrollModal = (applicant) => {
+    setEnrollModalApplicant(applicant);
+    setEnrollData({
+      section_id: '',
+      roll_number: '',
+      blood_group: 'O+',
+      with_transport: applicant.with_transport !== undefined ? Boolean(applicant.with_transport) : true,
+    });
+  };
+
+  const submitEnroll = async (e) => {
+    e.preventDefault();
+    if (!enrollModalApplicant) return;
+    setSubmitting(true);
     try {
-      const res = await adminService.enrollAdmission(applicant.id);
+      const res = await adminService.enrollAdmission(enrollModalApplicant.id, enrollData);
       if (res.success) {
+        setEnrollModalApplicant(null);
         loadData();
-        showToast('Applicant successfully enrolled as active student!');
+        showToast('Applicant enrolled! Class fees and transport schedule initialized.');
         if (res.credentials) {
           setCredentialsModalData(res.credentials);
         }
       }
     } catch (err) {
-      showToast(err.data?.message || 'Failed to enroll applicant.');
+      showToast(err.data?.message || err.message || 'Failed to enroll applicant.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -354,8 +378,8 @@ export default function AdminAdmissionPage() {
                       <td className="px-5 py-4 text-right">
                         {item.status === 'Approved' && (
                           <button
-                            onClick={() => handleEnroll(item)}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-xs transition-colors inline-flex items-center gap-1"
+                            onClick={() => openEnrollModal(item)}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-xs transition-colors inline-flex items-center gap-1 cursor-pointer"
                           >
                             <LuGraduationCap className="w-3.5 h-3.5" /> Enroll Student
                           </button>
@@ -496,21 +520,130 @@ export default function AdminAdmissionPage() {
                 </div>
               </div>
 
+              {/* School Transport / Bus Option */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.with_transport}
+                    onChange={(e) => setFormData({ ...formData, with_transport: e.target.checked })}
+                    className="w-4 h-4 rounded text-purple-600 focus:ring-0 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <LuBus className="w-3.5 h-3.5 text-amber-600" />
+                      Opt for School Vehicle / Bus Transport
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      If selected, annual vehicle transport fee will be added to the student's fee ledger.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-500/20 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
                   {submitting ? 'Submitting...' : 'Submit Application'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Enroll Applicant Confirmation Modal with Fee & Transport Setup */}
+      {enrollModalApplicant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full my-4 overflow-hidden animate-scale-up">
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
+                  <LuGraduationCap className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base">Enroll Active Student</h3>
+                  <p className="text-emerald-100 text-xs">
+                    {enrollModalApplicant.first_name} {enrollModalApplicant.last_name} ({enrollModalApplicant.schoolClass?.name || 'Class'})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEnrollModalApplicant(null)}
+                className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+              >
+                <LuX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={submitEnroll} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Assign Roll Number
+                </label>
+                <input
+                  type="text"
+                  value={enrollData.roll_number}
+                  onChange={(e) => setEnrollData({ ...enrollData, roll_number: e.target.value })}
+                  placeholder="e.g. 101"
+                  className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+
+              {/* Transport Toggle Option */}
+              <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enrollData.with_transport}
+                    onChange={(e) => setEnrollData({ ...enrollData, with_transport: e.target.checked })}
+                    className="w-4 h-4 mt-0.5 rounded text-emerald-600 focus:ring-0 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <LuBus className="w-3.5 h-3.5 text-amber-600" />
+                      Include School Bus / Vehicle Transport Fee
+                    </span>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {enrollData.with_transport
+                        ? 'Vehicle fee will be picked from the class fee structure and added to installments.'
+                        : 'Transport fee excluded from the student fee ledger.'}
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <div className="p-3 rounded-xl bg-emerald-50 text-emerald-800 text-[11px] flex items-center gap-2">
+                <LuReceipt className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Standard fee schedule and quarterly installments will be auto-generated.</span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEnrollModalApplicant(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
+                  {submitting ? 'Enrolling...' : 'Confirm Enrollment & Initialize Fees'}
                 </button>
               </div>
             </form>

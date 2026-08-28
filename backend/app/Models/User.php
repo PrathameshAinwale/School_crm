@@ -18,6 +18,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'school_id',
         'name',
         'email',
         'phone',
@@ -53,6 +54,11 @@ class User extends Authenticatable
         ];
     }
 
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
@@ -63,6 +69,11 @@ class User extends Authenticatable
         return $this->role === 'hr';
     }
 
+    public function isAccountant(): bool
+    {
+        return $this->role === 'accountant';
+    }
+
     public function isTeacher(): bool
     {
         return $this->role === 'teacher';
@@ -71,6 +82,11 @@ class User extends Authenticatable
     public function isStudentParent(): bool
     {
         return $this->role === 'student_parent';
+    }
+
+    public function school()
+    {
+        return $this->belongsTo(School::class);
     }
 
     public function teacher()

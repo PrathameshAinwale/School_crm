@@ -151,11 +151,21 @@ class StudentController extends Controller
         }
 
         return DB::transaction(function () use ($request, $classId, $sectionId) {
+            $currentSchoolId = auth()->user()?->school_id;
+            $school = auth()->user()?->school;
+
             // 1. Generate unique admission number if not passed
             $admissionNumber = $request->admission_number;
             if (!$admissionNumber) {
-                $count = Student::count() + 1;
-                $admissionNumber = 'STU-' . date('Y') . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+                $schoolPrefix = $school ? ($school->code . '-') : '';
+                $prefix = $schoolPrefix . 'STU-' . date('Y') . '-';
+                $nextCount = Student::withoutGlobalScopes()->where('school_id', $currentSchoolId)->count() + 1;
+                $admissionNumber = $prefix . str_pad($nextCount, 3, '0', STR_PAD_LEFT);
+
+                while (Student::withoutGlobalScopes()->where('admission_number', $admissionNumber)->exists()) {
+                    $nextCount++;
+                    $admissionNumber = $prefix . str_pad($nextCount, 3, '0', STR_PAD_LEFT);
+                }
             }
 
             // 2. Auto-generate secure random password for Parent login (e.g. Prnt#9821!)
@@ -180,6 +190,7 @@ class StudentController extends Controller
                 if ($user->trashed()) {
                     $user->restore();
                 }
+                $user->school_id = $currentSchoolId;
                 $user->name = $guardianName . ' (' . $request->first_name . ')';
                 if ($request->guardian_email) {
                     $user->email = $request->guardian_email;
@@ -191,6 +202,7 @@ class StudentController extends Controller
                 $user->save();
             } else {
                 $user = User::create([
+                    'school_id' => $currentSchoolId,
                     'name' => $guardianName . ' (' . $request->first_name . ')',
                     'email' => $request->guardian_email,
                     'phone' => $cleanPhone ?: $request->guardian_phone,
@@ -214,6 +226,7 @@ class StudentController extends Controller
                 'blood_group' => $request->blood_group,
                 'school_class_id' => $classId,
                 'section_id' => $sectionId,
+                'with_transport' => $request->boolean('with_transport', false),
                 'admission_date' => $request->admission_date ?? now()->toDateString(),
                 'guardian_name' => $guardianName,
                 'father_name' => $request->father_name,
@@ -227,6 +240,30 @@ class StudentController extends Controller
                 'emergency_contact' => $request->emergency_contact,
                 'status' => $request->status ?? 'Active',
             ]);
+
+            // Automatically pick & generate fee ledger installments based on Class Fee Structure
+            $withTransport = $request->boolean('with_transport', false);
+            $feeStruct = \App\Models\FeeStructure::with('installments')->where('school_class_id', $classId)->first();
+            if ($feeStruct && $feeStruct->installments->count() > 0) {
+                $instCount = $feeStruct->installments->count();
+                $quarterTransport = $instCount > 0 ? round(((float)$feeStruct->transport_fee) / $instCount, 2) : 0;
+
+                foreach ($feeStruct->installments as $inst) {
+                    $installmentAmount = (float) $inst->amount;
+                    if (!$withTransport && $quarterTransport > 0) {
+                        $installmentAmount = max(0, $installmentAmount - $quarterTransport);
+                    }
+
+                    \App\Models\StudentFee::create([
+                        'student_id' => $student->id,
+                        'term_name' => $inst->term_name,
+                        'amount' => $installmentAmount,
+                        'due_date' => $inst->due_date,
+                        'status' => 'Pending',
+                        'tax_deductible' => true,
+                    ]);
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -409,12 +446,12 @@ class StudentController extends Controller
         $student = null;
 
         if ($user) {
-            $student = Student::with(['schoolClass', 'section', 'attendances'])->where('user_id', $user->id)->first();
+            $student = Student::with(['schoolClass', 'section'])->where('user_id', $user->id)->first();
         }
 
         if (!$student) {
             // Fallback: get first enrolled student
-            $student = Student::with(['schoolClass', 'section', 'attendances'])->first();
+            $student = Student::with(['schoolClass', 'section'])->first();
         }
 
         if (!$student) {
@@ -424,73 +461,56 @@ class StudentController extends Controller
             ], 404);
         }
 
-        // Calculate student attendance rate
-        $totalDays = $student->attendances()->count();
-        $presentDays = $student->attendances()->where('status', 'Present')->count();
-        $attendanceRate = $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 1) . '%' : '96.2%';
+        $className = $student->schoolClass ? $student->schoolClass->name : ($student->school_class_id ? "Class {$student->school_class_id}" : 'Class 10');
+        $sectionName = $student->section ? $student->section->name : ($student->section_id ? (string) $student->section_id : 'Saffron (A)');
 
-        $className = $student->schoolClass ? $student->schoolClass->name : 'Class 10';
-        $sectionName = $student->section ? $student->section->name : 'Saffron';
+        $fatherName = $student->father_name ?: ($student->guardian_relation === 'Father' || !$student->guardian_relation ? $student->guardian_name : ($user ? $user->name : null));
+        $motherName = $student->mother_name ?: ($student->guardian_relation === 'Mother' ? $student->guardian_name : null);
+        $guardianName = $student->guardian_name ?: ($fatherName ?: ($motherName ?: ($user ? $user->name : null)));
 
         return response()->json([
             'success' => true,
             'data' => [
                 'student' => [
                     'id' => $student->id,
+                    'first_name' => $student->first_name,
+                    'last_name' => $student->last_name,
                     'fullName' => $student->full_name,
                     'admissionNo' => $student->admission_number,
-                    'rollNo' => $student->roll_number ?: '101',
+                    'rollNo' => $student->roll_number,
                     'classSection' => "{$className} - {$sectionName}",
                     'className' => $className,
                     'sectionName' => $sectionName,
-                    'academicYear' => '2026-27',
-                    'dateOfBirth' => $student->date_of_birth ? \Carbon\Carbon::parse($student->date_of_birth)->format('F d, Y') : 'October 14, 2010',
-                    'gender' => $student->gender ?: 'Male',
-                    'bloodGroup' => $student->blood_group ?: 'O+ Positive',
-                    'house' => 'Tagore House (Red)',
-                    'admissionDate' => $student->admission_date ? \Carbon\Carbon::parse($student->admission_date)->format('F d, Y') : 'April 04, 2020',
-                    'attendanceRate' => $attendanceRate,
-                    'overallGrade' => 'A+ (92.4%)',
+                    'dateOfBirth' => $student->date_of_birth ? \Carbon\Carbon::parse($student->date_of_birth)->format('F d, Y') : null,
+                    'gender' => $student->gender,
+                    'bloodGroup' => $student->blood_group,
                     'status' => $student->status ?: 'Active',
+                    'admissionDate' => $student->admission_date ? \Carbon\Carbon::parse($student->admission_date)->format('F d, Y') : ($student->created_at ? $student->created_at->format('F d, Y') : null),
                 ],
                 'parents' => [
                     'father' => [
-                        'name' => $student->guardian_name ?: ($user ? $user->name : 'Parent'),
-                        'relation' => $student->guardian_relation ?: 'Father',
-                        'phone' => $student->guardian_phone ?: ($user ? $user->phone : '+91 98765 43210'),
-                        'email' => $student->guardian_email ?: ($user ? $user->email : 'parent@school.com'),
-                        'occupation' => 'Professional / Business',
-                        'organization' => 'Corporate Enterprise',
+                        'name' => $fatherName,
+                        'occupation' => $student->father_occupation,
                     ],
                     'mother' => [
-                        'name' => 'Meena Patel',
-                        'relation' => 'Mother',
-                        'phone' => '+91 98201 11022',
-                        'email' => 'meena.patel@email.com',
-                        'occupation' => 'Financial Consultant',
+                        'name' => $motherName,
+                        'occupation' => $student->mother_occupation,
                     ],
-                    'emergencyContact' => [
-                        'primaryPerson' => $student->guardian_name . ' (' . ($student->guardian_relation ?: 'Guardian') . ')',
-                        'primaryPhone' => $student->emergency_contact ?: $student->guardian_phone,
-                    ],
+                    'guardianName' => $guardianName,
+                    'guardianRelation' => $student->guardian_relation ?: 'Father',
+                    'guardianPhone' => $student->guardian_phone ?: ($user ? $user->phone : null),
+                    'guardianEmail' => $student->guardian_email ?: ($user ? $user->email : null),
+                    'emergencyContact' => $student->emergency_contact,
                 ],
                 'address' => [
-                    'residential' => $student->address ?: 'Flat 402, Royal Palms Residency, MG Road, Sector 14, Pune, Maharashtra - 411038',
-                    'permanent' => $student->address ?: 'Flat 402, Royal Palms Residency, MG Road, Sector 14, Pune, Maharashtra - 411038',
-                    'busRouteNo' => 'Route #4 (Kothrud -> Campus)',
-                    'busStop' => 'Main Gate Stop (7:30 AM Pickup • 2:00 PM Drop)',
-                ],
-                'health' => [
-                    'allergies' => $student->medical_notes ?: 'No severe allergies reported',
-                    'medicalConditions' => 'Fit for sports and physical training',
-                    'emergencyInfirmaryNotes' => 'Medical verification completed by school infirmary on file.',
+                    'residential' => $student->address,
                 ],
             ],
         ]);
     }
 
     /**
-     * Update logged in student's contact details.
+     * Update logged in student's contact & parent details.
      */
     public function updateProfile(Request $request)
     {
@@ -511,6 +531,10 @@ class StudentController extends Controller
         }
 
         $request->validate([
+            'father_name' => 'nullable|string|max:255',
+            'father_occupation' => 'nullable|string|max:255',
+            'mother_name' => 'nullable|string|max:255',
+            'mother_occupation' => 'nullable|string|max:255',
             'guardian_phone' => 'nullable|string|max:20',
             'guardian_email' => 'nullable|email|max:255',
             'address' => 'nullable|string|max:500',
@@ -518,13 +542,23 @@ class StudentController extends Controller
             'medical_notes' => 'nullable|string|max:500',
         ]);
 
-        $student->update($request->only([
+        $data = $request->only([
+            'father_name',
+            'father_occupation',
+            'mother_name',
+            'mother_occupation',
             'guardian_phone',
             'guardian_email',
             'address',
             'emergency_contact',
             'medical_notes',
-        ]));
+        ]);
+
+        if (!empty($data['father_name']) && empty($student->guardian_name)) {
+            $data['guardian_name'] = $data['father_name'];
+        }
+
+        $student->update($data);
 
         return response()->json([
             'success' => true,

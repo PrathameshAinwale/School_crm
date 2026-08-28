@@ -142,6 +142,7 @@ export default function AdminStudentsPage() {
     guardian_relation: 'Father',
     address: '',
     emergency_contact: '',
+    with_transport: false,
   });
 
   // Load all students and classes from API
@@ -809,6 +810,21 @@ export default function AdminStudentsPage() {
                       className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono font-bold"
                     />
                   </div>
+                </div>
+
+                {/* Transport Transit Toggle */}
+                <div className="pt-2 border-t border-emerald-200">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.with_transport}
+                      onChange={(e) => setFormData({ ...formData, with_transport: e.target.checked })}
+                      className="w-4 h-4 rounded text-emerald-600 focus:ring-0 cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-emerald-950">
+                      Opt for School Vehicle / Bus Transport (+ Vehicle Transit Fee)
+                    </span>
+                  </label>
                 </div>
               </div>
 

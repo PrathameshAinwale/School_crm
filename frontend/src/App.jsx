@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import DashboardLayout from './components/Layout/DashboardLayout';
 import Login from './modules/auth/Login';
+import SuperAdminLogin from './modules/auth/SuperAdminLogin';
 import AdminDashboard from './modules/admin/AdminDashboard';
 import TeacherDashboard from './modules/teacher/TeacherDashboard';
 import StudentParentDashboard from './modules/students_parents/StudentParentDashboard';
@@ -42,6 +43,18 @@ import SchoolEventsPage from './modules/hr/SchoolEventsPage';
 import HRTrainingsPage from './modules/hr/HRTrainingsPage';
 import HRProfilePage from './modules/hr/HRProfilePage';
 
+// Super Admin Platform Pages
+import SuperAdminDashboard from './modules/super_admin/SuperAdminDashboard';
+import ManageSchoolsPage from './modules/super_admin/ManageSchoolsPage';
+import PlatformSubscriptionsPage from './modules/super_admin/PlatformSubscriptionsPage';
+
+// Accounts & Finance Pages
+import AccountsDashboard from './modules/accounts/AccountsDashboard';
+import StudentFeesManagementPage from './modules/accounts/StudentFeesManagementPage';
+import SchoolExpensesPage from './modules/accounts/SchoolExpensesPage';
+import SalaryDisbursementPage from './modules/accounts/SalaryDisbursementPage';
+import AccountsProfilePage from './modules/accounts/AccountsProfilePage';
+
 // Administrator Detailed Pages
 import ManageTeachersPage from './modules/admin/ManageTeachersPage';
 import AdminStudentsPage from './modules/admin/AdminStudentsPage';
@@ -50,6 +63,7 @@ import AdminAdmissionPage from './modules/admin/AdminAdmissionPage';
 import AdminVehiclesPage from './modules/admin/AdminVehiclesPage';
 import AdminResourcesPage from './modules/admin/AdminResourcesPage';
 import AdminEventsCalendarPage from './modules/admin/AdminEventsCalendarPage';
+import AdminFeeStructurePage from './modules/admin/AdminFeeStructurePage';
 
 // Protected route wrapper
 function ProtectedRoute({ children }) {
@@ -71,10 +85,12 @@ function DashboardRouter() {
   const { currentRole } = useAuth();
 
   const dashboardMap = {
+    super_admin: <SuperAdminDashboard />,
     admin: <AdminDashboard />,
     teacher: <TeacherDashboard />,
     student_parent: <StudentParentDashboard />,
     hr: <HRDashboard />,
+    accountant: <AccountsDashboard />,
   };
 
   return dashboardMap[currentRole] || <AdminDashboard />;
@@ -112,13 +128,16 @@ function ProfileRouter() {
   const { currentRole, user } = useAuth();
   const role = (user?.role || currentRole || '').toLowerCase();
   if (role === 'admin') {
-    return <Navigate to="/dashboard" replace />;
+    return <HRProfilePage />;
   }
   if (role === 'teacher') {
     return <TeacherProfilePage />;
   }
   if (role === 'hr') {
     return <HRProfilePage />;
+  }
+  if (role === 'accountant') {
+    return <AccountsProfilePage />;
   }
   if (role === 'student_parent') {
     return <ProfilePage />;
@@ -138,8 +157,13 @@ function TrainingsRouter() {
 function AppRoutes() {
   return (
     <Routes>
-      {/* Public */}
+      {/* Public School Login */}
       <Route path="/login" element={<Login />} />
+
+      {/* Dedicated Super Admin Company Platform Login (Direct URL Access Only) */}
+      <Route path="/superadmin" element={<SuperAdminLogin />} />
+      <Route path="/superadmin/login" element={<SuperAdminLogin />} />
+      <Route path="/super-admin" element={<SuperAdminLogin />} />
 
       {/* Protected Dashboard Layout */}
       <Route
@@ -168,6 +192,7 @@ function AppRoutes() {
         <Route path="profile" element={<ProfileRouter />} />
         <Route path="teacher/profile" element={<RoleRoute allowedRoles={['teacher']} moduleName="Teacher Profile"><TeacherProfilePage /></RoleRoute>} />
         <Route path="hr/profile" element={<RoleRoute allowedRoles={['hr']} moduleName="HR Profile"><HRProfilePage /></RoleRoute>} />
+        <Route path="accounts/profile" element={<RoleRoute allowedRoles={['accountant', 'admin']} moduleName="Accounts Profile"><AccountsProfilePage /></RoleRoute>} />
         <Route path="student/profile" element={<RoleRoute allowedRoles={['student_parent']} moduleName="Student Profile"><ProfilePage /></RoleRoute>} />
 
         {/* Student & Parent Dedicated Pages */}
@@ -182,13 +207,23 @@ function AppRoutes() {
         <Route path="feedback" element={<FeedbackPage />} />
         <Route path="ptm" element={<PTMPage />} />
 
+        {/* Super Admin Company Platform Routes */}
+        <Route path="super-admin/schools" element={<RoleRoute allowedRoles={['super_admin']} moduleName="Manage Schools"><ManageSchoolsPage /></RoleRoute>} />
+        <Route path="super-admin/subscriptions" element={<RoleRoute allowedRoles={['super_admin']} moduleName="Subscriptions & MRR"><PlatformSubscriptionsPage /></RoleRoute>} />
+
+        {/* Accounts & Finance Module Routes */}
+        <Route path="accounts/fees" element={<RoleRoute allowedRoles={['accountant', 'admin']} moduleName="Student Fees"><StudentFeesManagementPage /></RoleRoute>} />
+        <Route path="accounts/expenses" element={<RoleRoute allowedRoles={['accountant', 'admin']} moduleName="School Expenses"><SchoolExpensesPage /></RoleRoute>} />
+        <Route path="accounts/salary-disbursements" element={<RoleRoute allowedRoles={['accountant', 'admin']} moduleName="Salary Disbursements"><SalaryDisbursementPage /></RoleRoute>} />
+        <Route path="accounts/dashboard" element={<RoleRoute allowedRoles={['accountant', 'admin']} moduleName="Accounts Dashboard"><AccountsDashboard /></RoleRoute>} />
+
         {/* HR Module Routes */}
         <Route path="salary" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Salaries"><StaffSalaryPage /></RoleRoute>} />
         <Route path="salaries" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Salaries"><StaffSalaryPage /></RoleRoute>} />
         <Route path="payroll" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Payroll"><StaffSalaryPage /></RoleRoute>} />
-        <Route path="hr/attendance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Staff Attendance"><TeacherAttendancePage /></RoleRoute>} />
-        <Route path="hr/leave-balance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Leave Balance"><TeacherLeaveBalancePage /></RoleRoute>} />
-        <Route path="hr/apply-leave" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Apply for Leave"><TeacherApplyLeavePage /></RoleRoute>} />
+        <Route path="hr/attendance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'admin']} moduleName="Staff Attendance"><TeacherAttendancePage /></RoleRoute>} />
+        <Route path="hr/leave-balance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'admin']} moduleName="Leave Balance"><TeacherLeaveBalancePage /></RoleRoute>} />
+        <Route path="hr/apply-leave" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'admin']} moduleName="Apply for Leave"><TeacherApplyLeavePage /></RoleRoute>} />
         <Route path="hr/staff-attendance" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Attendance"><StaffAttendancePage /></RoleRoute>} />
         <Route path="hr/staff-leaves" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Leaves"><StaffLeavesPage /></RoleRoute>} />
         <Route path="hr/leaves" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Leaves"><StaffLeavesPage /></RoleRoute>} />
@@ -200,6 +235,8 @@ function AppRoutes() {
         {/* Admin Module Dedicated Routes */}
         <Route path="manage-teachers" element={<RoleRoute allowedRoles={['admin']} moduleName="Manage Teachers"><ManageTeachersPage /></RoleRoute>} />
         <Route path="teachers" element={<RoleRoute allowedRoles={['admin']} moduleName="Teachers Directory"><ManageTeachersPage /></RoleRoute>} />
+        <Route path="admin/fee-structure" element={<RoleRoute allowedRoles={['admin']} moduleName="Fee Structure"><AdminFeeStructurePage /></RoleRoute>} />
+        <Route path="fee-structure" element={<RoleRoute allowedRoles={['admin']} moduleName="Fee Structure"><AdminFeeStructurePage /></RoleRoute>} />
         <Route path="admission" element={<RoleRoute allowedRoles={['admin']} moduleName="Admissions"><AdminAdmissionPage /></RoleRoute>} />
         <Route path="admissions" element={<RoleRoute allowedRoles={['admin']} moduleName="Admissions"><AdminAdmissionPage /></RoleRoute>} />
         <Route path="school-vehicles" element={<RoleRoute allowedRoles={['admin']} moduleName="School Vehicles"><AdminVehiclesPage /></RoleRoute>} />

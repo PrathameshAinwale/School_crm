@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FacultyTraining;
 use App\Models\LeaveApplication;
 use App\Models\Notification;
+use App\Models\SalaryDisbursementRequest;
 use App\Models\SchoolCalendarEvent;
 use App\Models\StaffAttendance;
 use App\Models\StaffSalary;
@@ -119,18 +120,13 @@ class HRController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'phone' => $user->phone ?: '+91 98765 43210',
-                'role' => 'HR Director & Human Resources Lead',
+                'phone' => $user->phone,
+                'role' => 'Human Resources Lead',
                 'department' => 'Human Resources & Talent Management',
-                'employee_id' => 'EMP-HR-001',
-                'joining_date' => $user->created_at ? $user->created_at->format('M d, Y') : 'Jul 15, 2021',
-                'office_location' => 'Admin Block, Room 204 (1st Floor)',
-                'qualification' => 'MBA in Human Resource Management (XLRI Jamshedpur)',
-                'experience' => '11+ Years in Educational Administration & Faculty Operations',
-                'address' => 'Green Glen Layout, Bellandur, Bengaluru, Karnataka - 560103',
-                'emergency_contact' => '+91 98450 11223 (Spouse - Rajesh Iyer)',
+                'employee_id' => 'EMP-HR-' . str_pad($user->id, 3, '0', STR_PAD_LEFT),
+                'joining_date' => $user->created_at ? $user->created_at->format('F d, Y') : null,
+                'status' => ucfirst($user->status ?: 'active'),
                 'managed_staff_count' => Teacher::count(),
-                'active_policies_count' => 14,
             ],
         ]);
     }
@@ -142,18 +138,21 @@ class HRController extends Controller
     {
         $user = $request->user();
         $request->validate([
-            'phone' => 'nullable|string',
-            'office_location' => 'nullable|string',
-            'qualification' => 'nullable|string',
-            'experience' => 'nullable|string',
-            'address' => 'nullable|string',
-            'emergency_contact' => 'nullable|string',
+            'name' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255|unique:users,email,' . $user->id,
         ]);
 
-        if ($request->has('phone')) {
-            $user->phone = $request->input('phone');
-            $user->save();
+        if ($request->filled('name')) {
+            $user->name = $request->input('name');
         }
+        if ($request->filled('phone')) {
+            $user->phone = $request->input('phone');
+        }
+        if ($request->filled('email')) {
+            $user->email = $request->input('email');
+        }
+        $user->save();
 
         return response()->json([
             'success' => true,
@@ -633,6 +632,68 @@ class HRController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Successfully disbursed {$updatedCount} salary payouts for {$month}.",
+        ]);
+    }
+
+    /**
+     * Submit a formal Salary Disbursement Request to Accounts Team.
+     */
+    public function requestSalaryDisbursement(Request $request)
+    {
+        $month = $request->input('month', Carbon::now()->format('F Y'));
+        $notes = $request->input('notes', "Payroll for {$month} calculated by HR team based on attendance and approved leave records.");
+
+        $salaries = StaffSalary::where('month', $month)->get();
+
+        if ($salaries->isEmpty()) {
+            // Trigger auto-population
+            $this->salaries($request);
+            $salaries = StaffSalary::where('month', $month)->get();
+        }
+
+        $totalStaff = $salaries->count();
+        $totalGross = $salaries->sum('gross_salary');
+        $totalDeductions = $salaries->sum('deduction');
+        $totalNet = $salaries->sum('net_salary');
+
+        $count = SalaryDisbursementRequest::count() + 1;
+        $batchCode = 'DISB-' . strtoupper(date('Y-M')) . '-' . str_pad($count, 2, '0', STR_PAD_LEFT);
+
+        $disbReq = SalaryDisbursementRequest::create([
+            'batch_code' => $batchCode,
+            'month' => $month,
+            'total_staff_count' => $totalStaff,
+            'total_gross_amount' => $totalGross,
+            'total_deductions' => $totalDeductions,
+            'total_net_amount' => $totalNet,
+            'status' => 'Pending Review',
+            'requested_by_user_id' => $request->user() ? $request->user()->id : null,
+            'accounts_notes' => $notes,
+        ]);
+
+        // Link all staff salary records to this disbursement request
+        StaffSalary::where('month', $month)->update([
+            'disbursement_request_id' => $disbReq->id,
+        ]);
+
+        // Send high priority push notification to Accounts team & Admins
+        $accountants = User::whereIn('role', ['accountant', 'admin'])->get();
+        foreach ($accountants as $accUser) {
+            Notification::create([
+                'user_id' => $accUser->id,
+                'role' => $accUser->role,
+                'title' => "New Salary Disbursement Request: {$month}",
+                'message' => "HR has submitted salary disbursement batch {$batchCode} for {$month} ({$totalStaff} staff, ₹" . number_format($totalNet) . "). Please review bank details and execute payout.",
+                'type' => 'salary',
+                'link' => '/accounts/salary-disbursements',
+                'is_read' => false,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Salary disbursement request {$batchCode} for {$month} submitted to the Accounts team successfully.",
+            'data' => $disbReq->load('salaries'),
         ]);
     }
 

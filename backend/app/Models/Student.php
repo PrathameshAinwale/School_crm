@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToSchool;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Student extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, BelongsToSchool;
 
     protected $fillable = [
+        'school_id',
         'user_id',
         'admission_number',
         'roll_number',
@@ -21,6 +23,7 @@ class Student extends Model
         'blood_group',
         'school_class_id',
         'section_id',
+        'with_transport',
         'admission_date',
         'guardian_name',
         'father_name',
@@ -37,6 +40,7 @@ class Student extends Model
     ];
 
     protected $casts = [
+        'with_transport' => 'boolean',
         'date_of_birth' => 'date',
         'admission_date' => 'date',
     ];
@@ -59,6 +63,11 @@ class Student extends Model
     public function attendances()
     {
         return $this->hasMany(StudentAttendance::class, 'student_id');
+    }
+
+    public function fees()
+    {
+        return $this->hasMany(StudentFee::class, 'student_id');
     }
 
     protected $appends = [

@@ -4,17 +4,21 @@ import { authService } from '../services/authService';
 const AuthContext = createContext(null);
 
 const ROLES = {
+  SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
   TEACHER: 'teacher',
   STUDENT_PARENT: 'student_parent',
   HR: 'hr',
+  ACCOUNTANT: 'accountant',
 };
 
 const ROLE_LABELS = {
-  [ROLES.ADMIN]: 'Administrator',
+  [ROLES.SUPER_ADMIN]: 'Super Admin (Company Platform Owner)',
+  [ROLES.ADMIN]: 'School Administrator',
   [ROLES.TEACHER]: 'Teacher',
   [ROLES.STUDENT_PARENT]: 'Student / Parent',
   [ROLES.HR]: 'HR Manager',
+  [ROLES.ACCOUNTANT]: 'Accounts & Finance Lead',
 };
 
 export function AuthProvider({ children }) {
@@ -32,6 +36,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(false);
 
   const currentRole = user?.role || ROLES.ADMIN;
+  const currentSchool = user?.school || null;
 
   // Verify token on mount if available
   useEffect(() => {
@@ -102,6 +107,7 @@ export function AuthProvider({ children }) {
         user,
         token,
         currentRole,
+        currentSchool,
         isAuthenticated,
         loading,
         login,

@@ -1,4 +1,4 @@
-const API_BASE_URL = ' http://localhost:8000/api/v1';
+const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 /**
  * Universal API Request Helper
@@ -22,7 +22,19 @@ export async function apiRequest(endpoint, options = {}) {
     config.body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+  // Handle params if passed in options
+  let finalUrl = `${API_BASE_URL}${endpoint}`;
+  if (options.params && typeof options.params === 'object') {
+    const cleanParams = Object.fromEntries(
+      Object.entries(options.params).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    );
+    const qs = new URLSearchParams(cleanParams).toString();
+    if (qs) {
+      finalUrl += (finalUrl.includes('?') ? '&' : '?') + qs;
+    }
+  }
+
+  const response = await fetch(finalUrl, config);
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -35,4 +47,12 @@ export async function apiRequest(endpoint, options = {}) {
   return data;
 }
 
+// Convenience helpers
+apiRequest.get = (endpoint, options = {}) => apiRequest(endpoint, { ...options, method: 'GET' });
+apiRequest.post = (endpoint, body, options = {}) => apiRequest(endpoint, { ...options, method: 'POST', body });
+apiRequest.put = (endpoint, body, options = {}) => apiRequest(endpoint, { ...options, method: 'PUT', body });
+apiRequest.patch = (endpoint, body, options = {}) => apiRequest(endpoint, { ...options, method: 'PATCH', body });
+apiRequest.delete = (endpoint, options = {}) => apiRequest(endpoint, { ...options, method: 'DELETE' });
+
+export const api = apiRequest;
 export default apiRequest;

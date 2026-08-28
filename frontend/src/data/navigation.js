@@ -40,10 +40,23 @@ import {
 } from 'react-icons/lu';
 
 const navigation = {
+  super_admin: [
+    {
+      label: 'SaaS Platform Control',
+      type: 'group',
+      icon: LuBuilding2,
+      children: [
+        { label: 'Platform Overview', path: '/dashboard', icon: LuLayoutDashboard },
+        { label: 'Manage Client Schools', path: '/super-admin/schools', icon: LuBuilding2 },
+        { label: 'Subscriptions & MRR', path: '/super-admin/subscriptions', icon: LuWallet },
+      ],
+    },
+  ],
   admin: [
     { label: 'Dashboard', path: '/dashboard', icon: LuLayoutDashboard },
     { label: 'Manage teachers', path: '/manage-teachers', icon: LuUsers },
     { label: 'Students', path: '/students', icon: LuGraduationCap },
+    { label: 'Fee Structure', path: '/admin/fee-structure', icon: LuReceipt },
     { label: 'Attendance', path: '/attendance', icon: LuClipboardList },
     { label: 'Admission', path: '/admission', icon: LuUserPlus },
     { label: 'School vehicles', path: '/school-vehicles', icon: LuBus },
@@ -72,17 +85,16 @@ const navigation = {
       icon: LuUserCog,
       children: [
         { label: "Today's Schedule", path: '/teacher/schedule', icon: LuCalendarClock },
-        { label: 'My Profile', path: '/profile', icon: LuUser },
         { label: 'Attendance', path: '/teacher/attendance', icon: LuTimer },
         { label: 'Leave Balance', path: '/teacher/leave-balance', icon: LuFileText },
         { label: 'Apply for Leave', path: '/teacher/apply-leave', icon: LuClipboardList },
         { label: 'Trainings', path: '/teacher/trainings', icon: LuPresentation },
+        { label: 'My Profile', path: '/profile', icon: LuUser },
       ],
     },
   ],
   student_parent: [
     { label: 'Dashboard', path: '/dashboard', icon: LuLayoutDashboard },
-    { label: 'My Profile', path: '/profile', icon: LuUser },
     { label: 'Attendance', path: '/attendance', icon: LuClipboardList },
     { label: 'Syllabus', path: '/syllabus', icon: LuBookOpen },
     { label: 'School Calendar', path: '/calendar', icon: LuCalendarDays },
@@ -90,9 +102,8 @@ const navigation = {
     { label: 'Assignment', path: '/assignment', icon: LuClipboardList },
     { label: 'Study Material', path: '/study-material', icon: LuFolderDown },
     { label: 'Notices', path: '/notices', icon: LuBell },
-    // { label: 'Fees', path: '/fees', icon: LuWallet },
-    // { label: 'Feedback', path: '/feedback', icon: LuMessageSquareQuote },
-    // { label: 'PTM', path: '/ptm', icon: LuCalendarCheck },
+    { label: 'School Fees', path: '/fees', icon: LuReceipt },
+    { label: 'My Profile', path: '/profile', icon: LuUser },
   ],
   hr: [
     {
@@ -113,10 +124,33 @@ const navigation = {
       type: 'group',
       icon: LuUserCog,
       children: [
-        { label: 'My Profile', path: '/hr/profile', icon: LuUser },
         { label: 'My Attendance', path: '/hr/attendance', icon: LuTimer },
         { label: 'Leave Balance', path: '/hr/leave-balance', icon: LuFileText },
         { label: 'Apply for Leave', path: '/hr/apply-leave', icon: LuClipboardList },
+        { label: 'My Profile', path: '/hr/profile', icon: LuUser },
+      ],
+    },
+  ],
+  accountant: [
+    {
+      label: 'Accounts & Finance',
+      type: 'group',
+      icon: LuWallet,
+      children: [
+        { label: 'Dashboard', path: '/dashboard', icon: LuLayoutDashboard },
+        { label: 'Student Fees', path: '/accounts/fees', icon: LuReceipt },
+        { label: 'Salary Disbursements', path: '/accounts/salary-disbursements', icon: LuBanknote },
+      ],
+    },
+    {
+      label: 'Employee (Self)',
+      type: 'group',
+      icon: LuUserCog,
+      children: [
+        { label: 'My Attendance', path: '/hr/attendance', icon: LuTimer },
+        { label: 'Leave Balance', path: '/hr/leave-balance', icon: LuFileText },
+        { label: 'Apply for Leave', path: '/hr/apply-leave', icon: LuClipboardList },
+        { label: 'My Profile', path: '/profile', icon: LuUser },
       ],
     },
   ],

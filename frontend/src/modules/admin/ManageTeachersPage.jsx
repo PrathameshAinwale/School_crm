@@ -29,6 +29,9 @@ import {
   LuLoader,
   LuPlus,
   LuAward,
+  LuShield,
+  LuWallet,
+  LuReceipt,
 } from 'react-icons/lu';
 
 const ALL_DEFAULT_CLASSES = [
@@ -60,6 +63,48 @@ export const calculateAge = (dobString) => {
     age--;
   }
   return age >= 0 ? `${age} Years` : '';
+};
+
+export const getStaffRoleMeta = (teacher) => {
+  const role = teacher.user?.role ||
+    (teacher.department === 'Administration' || (teacher.teacher_id && teacher.teacher_id.includes('ADM-')) ? 'admin' :
+    (teacher.department === 'Accounts & Finance' || (teacher.teacher_id && teacher.teacher_id.includes('ACC-')) ? 'accountant' :
+    (teacher.department === 'Human Resources' || (teacher.teacher_id && teacher.teacher_id.includes('HR-')) ? 'hr' : 'teacher')));
+
+  switch (role) {
+    case 'admin':
+      return {
+        role: 'admin',
+        label: 'Admin',
+        longLabel: 'School Administrator',
+        badge: 'bg-sky-50 text-sky-700 border border-sky-200',
+        icon: LuShield,
+      };
+    case 'accountant':
+      return {
+        role: 'accountant',
+        label: 'Accountant',
+        longLabel: 'Accounts & Finance Lead',
+        badge: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+        icon: LuReceipt,
+      };
+    case 'hr':
+      return {
+        role: 'hr',
+        label: 'HR Staff',
+        longLabel: 'HR Operations Manager',
+        badge: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+        icon: LuBriefcase,
+      };
+    default:
+      return {
+        role: 'teacher',
+        label: 'Teacher',
+        longLabel: 'Teaching Faculty',
+        badge: 'bg-blue-50 text-blue-700 border border-blue-200',
+        icon: LuGraduationCap,
+      };
+  }
 };
 
 export default function ManageTeachersPage() {
@@ -199,10 +244,10 @@ export default function ManageTeachersPage() {
     }
   };
 
-  const findExistingClassTeacher = (className, division, excludeTeacherId = null) => {
+  const findExistingClassTeacher = (className, division, excludeId = null) => {
     if (!className) return null;
     return teachers.find((t) => {
-      if (excludeTeacherId && t.id === excludeTeacherId) return false;
+      if (excludeId && t.id === excludeId) return false;
       if (t.class_teacher_class !== className) return false;
       if (division && t.class_teacher_division && t.class_teacher_division !== division) return false;
       return true;
@@ -212,8 +257,10 @@ export default function ManageTeachersPage() {
   const handleAddSubmit = async (e, force = false) => {
     if (e) e.preventDefault();
 
+    const isNonTeaching = ['hr', 'admin', 'accountant'].includes(formData.role);
+
     // Check if another teacher is already class teacher for this class & division
-    if (!force && formData.class_teacher_class && formData.role !== 'hr') {
+    if (!force && formData.class_teacher_class && !isNonTeaching) {
       const existing = findExistingClassTeacher(formData.class_teacher_class, formData.class_teacher_division);
       if (existing) {
         setOverwriteModalData({
@@ -229,26 +276,33 @@ export default function ManageTeachersPage() {
 
     setSubmitting(true);
     try {
-      const isHR = formData.role === 'hr';
-      const finalDept = isHR ? 'Human Resources' : ((isCustomDept ? customDept : formData.department)?.trim());
-      if (!finalDept) {
-        showToast('Please specify or enter a valid department name.');
-        setSubmitting(false);
-        return;
-      }
+      const defaultDeptMap = {
+        admin: 'Administration',
+        accountant: 'Accounts & Finance',
+        hr: 'Human Resources',
+        teacher: (isCustomDept ? customDept : formData.department)?.trim() || 'Mathematics',
+      };
+      const finalDept = defaultDeptMap[formData.role] || formData.department;
+
+      const defaultSalaryMap = {
+        admin: 75000,
+        accountant: 60000,
+        hr: 55000,
+        teacher: 50000,
+      };
 
       const payload = {
         ...formData,
         role: formData.role || 'teacher',
         department: finalDept,
-        salary: formData.salary ? Number(formData.salary) : (isHR ? 55000 : 50000),
+        salary: formData.salary ? Number(formData.salary) : (defaultSalaryMap[formData.role] || 50000),
         allowance: formData.allowance ? Number(formData.allowance) : 0,
-        class_teacher_class: isHR ? null : (formData.class_teacher_class || null),
-        class_teacher_division: isHR ? null : (formData.class_teacher_class ? (formData.class_teacher_division || 'Div A') : null),
-        assigned_subjects: isHR ? [] : (formData.assigned_subjects
+        class_teacher_class: isNonTeaching ? null : (formData.class_teacher_class || null),
+        class_teacher_division: isNonTeaching ? null : (formData.class_teacher_class ? (formData.class_teacher_division || 'Div A') : null),
+        assigned_subjects: isNonTeaching ? [] : (formData.assigned_subjects
           ? formData.assigned_subjects.split(',').map((s) => s.trim()).filter(Boolean)
           : []),
-        assigned_classes: isHR ? [] : (formData.class_teacher_class
+        assigned_classes: isNonTeaching ? [] : (formData.class_teacher_class
           ? [formData.class_teacher_class]
           : (formData.assigned_classes ? formData.assigned_classes.split(',').map((c) => c.trim()).filter(Boolean) : [])),
       };
@@ -282,7 +336,7 @@ export default function ManageTeachersPage() {
           status: 'Active',
         });
         loadTeachers();
-        showToast(`${isHR ? 'HR Staff member' : 'Teacher'} onboarded successfully!`);
+        showToast(`Staff member (${formData.role.toUpperCase()}) onboarded successfully!`);
 
         // Display generated credentials modal
         if (res.credentials) {
@@ -297,7 +351,8 @@ export default function ManageTeachersPage() {
   };
 
   const openEditModal = (teacher) => {
-    const resolvedRole = teacher.user?.role || ((teacher.teacher_id && teacher.teacher_id.startsWith('HR-')) || teacher.department === 'Human Resources' ? 'hr' : 'teacher');
+    const meta = getStaffRoleMeta(teacher);
+    const resolvedRole = meta.role;
     setEditingTeacher(teacher);
     setEditFormData({
       role: resolvedRole,
@@ -308,7 +363,7 @@ export default function ManageTeachersPage() {
       gender: teacher.gender || 'Male',
       blood_group: teacher.blood_group || 'O+',
       date_of_birth: teacher.date_of_birth ? teacher.date_of_birth.split('T')[0] : '',
-      department: teacher.department || (resolvedRole === 'hr' ? 'Human Resources' : 'Mathematics'),
+      department: teacher.department || (resolvedRole === 'admin' ? 'Administration' : (resolvedRole === 'accountant' ? 'Accounts & Finance' : (resolvedRole === 'hr' ? 'Human Resources' : 'Mathematics'))),
       qualification: teacher.qualification || '',
       experience: teacher.experience || '',
       salary: teacher.salary !== undefined && teacher.salary !== null ? teacher.salary : '',
@@ -327,8 +382,10 @@ export default function ManageTeachersPage() {
     if (e) e.preventDefault();
     if (!editingTeacher) return;
 
+    const isNonTeaching = ['hr', 'admin', 'accountant'].includes(editFormData.role);
+
     // Check if another teacher is already class teacher for this class & division
-    if (!force && editFormData.class_teacher_class && editFormData.role !== 'hr') {
+    if (!force && editFormData.class_teacher_class && !isNonTeaching) {
       const existing = findExistingClassTeacher(editFormData.class_teacher_class, editFormData.class_teacher_division, editingTeacher.id);
       if (existing) {
         setOverwriteModalData({
@@ -344,19 +401,25 @@ export default function ManageTeachersPage() {
 
     setSubmitting(true);
     try {
-      const isHR = editFormData.role === 'hr';
+      const defaultDeptMap = {
+        admin: 'Administration',
+        accountant: 'Accounts & Finance',
+        hr: 'Human Resources',
+      };
+      const finalDept = defaultDeptMap[editFormData.role] || editFormData.department;
+
       const payload = {
         ...editFormData,
         role: editFormData.role || 'teacher',
-        department: isHR ? 'Human Resources' : editFormData.department,
-        salary: editFormData.salary ? Number(editFormData.salary) : (isHR ? 55000 : 50000),
+        department: finalDept,
+        salary: editFormData.salary ? Number(editFormData.salary) : 50000,
         allowance: editFormData.allowance ? Number(editFormData.allowance) : 0,
-        class_teacher_class: isHR ? null : (editFormData.class_teacher_class || null),
-        class_teacher_division: isHR ? null : (editFormData.class_teacher_class ? (editFormData.class_teacher_division || 'Div A') : null),
-        assigned_subjects: isHR ? [] : (editFormData.assigned_subjects
+        class_teacher_class: isNonTeaching ? null : (editFormData.class_teacher_class || null),
+        class_teacher_division: isNonTeaching ? null : (editFormData.class_teacher_class ? (editFormData.class_teacher_division || 'Div A') : null),
+        assigned_subjects: isNonTeaching ? [] : (editFormData.assigned_subjects
           ? editFormData.assigned_subjects.split(',').map((s) => s.trim()).filter(Boolean)
           : []),
-        assigned_classes: isHR ? [] : (editFormData.class_teacher_class
+        assigned_classes: isNonTeaching ? [] : (editFormData.class_teacher_class
           ? [editFormData.class_teacher_class]
           : (editFormData.assigned_classes ? editFormData.assigned_classes.split(',').map((c) => c.trim()).filter(Boolean) : [])),
       };
@@ -442,13 +505,15 @@ export default function ManageTeachersPage() {
             className="w-full sm:w-auto px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-primary-500 font-medium cursor-pointer"
           >
             <option value="ALL">All Departments</option>
+            <option value="Administration">Administration (Admins)</option>
+            <option value="Accounts & Finance">Accounts & Finance</option>
+            <option value="Human Resources">Human Resources (HR)</option>
             <option value="Mathematics">Mathematics</option>
             <option value="Science">Science</option>
             <option value="English">English</option>
             <option value="Social Studies">Social Studies</option>
             <option value="Computer Science">Computer Science</option>
             <option value="Languages">Languages</option>
-            <option value="Human Resources">Human Resources</option>
           </select>
 
           {/* Status Filter */}
@@ -486,7 +551,7 @@ export default function ManageTeachersPage() {
               const gross = base + allow;
               const deduction = Math.round(gross * 0.12);
               const net = gross - deduction;
-              const isHR = teacher.user?.role === 'hr' || (teacher.teacher_id && teacher.teacher_id.startsWith('HR-')) || teacher.department === 'Human Resources';
+              const roleMeta = getStaffRoleMeta(teacher);
 
               return (
                 <div
@@ -497,7 +562,13 @@ export default function ManageTeachersPage() {
                   <div className="flex items-start justify-between gap-2.5">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                        isHR ? 'bg-indigo-100 text-indigo-800' : 'bg-primary-100 text-primary-800'
+                        roleMeta.role === 'admin'
+                          ? 'bg-sky-100 text-sky-800'
+                          : roleMeta.role === 'accountant'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : roleMeta.role === 'hr'
+                          ? 'bg-indigo-100 text-indigo-800'
+                          : 'bg-primary-100 text-primary-800'
                       }`}>
                         {teacher.first_name?.[0] || 'S'}{teacher.last_name?.[0] || ''}
                       </div>
@@ -506,10 +577,8 @@ export default function ManageTeachersPage() {
                           <p className="font-bold text-slate-900 text-sm truncate">
                             {teacher.first_name} {teacher.last_name || ''}
                           </p>
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                            isHR ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
-                          }`}>
-                            {isHR ? 'HR Staff' : 'Teacher'}
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${roleMeta.badge}`}>
+                            {roleMeta.label}
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">
@@ -537,9 +606,9 @@ export default function ManageTeachersPage() {
                     <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-semibold text-[11px]">
                       {teacher.department || 'General'}
                     </span>
-                    {isHR ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-800 border border-indigo-200 text-[11px] font-bold">
-                        HR Operations
+                    {roleMeta.role !== 'teacher' ? (
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold ${roleMeta.badge}`}>
+                        {roleMeta.longLabel}
                       </span>
                     ) : teacher.class_teacher_class ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 text-[11px] font-bold">
@@ -602,7 +671,7 @@ export default function ManageTeachersPage() {
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <th className="px-5 py-3.5">Staff Member</th>
-                    <th className="px-5 py-3.5">Class In-Charge</th>
+                    <th className="px-5 py-3.5">Role / Portal</th>
                     <th className="px-5 py-3.5">Department</th>
                     <th className="px-5 py-3.5">Monthly Pay (Base + Allow)</th>
                     <th className="px-5 py-3.5">Status</th>
@@ -616,13 +685,18 @@ export default function ManageTeachersPage() {
                     const gross = base + allow;
                     const deduction = Math.round(gross * 0.12);
                     const net = gross - deduction;
+                    const roleMeta = getStaffRoleMeta(teacher);
 
                     return (
                       <tr key={teacher.id} className="hover:bg-slate-50/80 transition-colors">
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                              teacher.user?.role === 'hr' || (teacher.teacher_id && teacher.teacher_id.startsWith('HR-'))
+                              roleMeta.role === 'admin'
+                                ? 'bg-sky-100 text-sky-800'
+                                : roleMeta.role === 'accountant'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : roleMeta.role === 'hr'
                                 ? 'bg-indigo-100 text-indigo-800'
                                 : 'bg-primary-100 text-primary-800'
                             }`}>
@@ -633,14 +707,8 @@ export default function ManageTeachersPage() {
                                 <p className="font-bold text-slate-900">
                                   {teacher.first_name} {teacher.last_name || ''}
                                 </p>
-                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                                  teacher.user?.role === 'hr' || (teacher.teacher_id && teacher.teacher_id.startsWith('HR-')) || teacher.department === 'Human Resources'
-                                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                                    : 'bg-blue-50 text-blue-700 border border-blue-200'
-                                }`}>
-                                  {teacher.user?.role === 'hr' || (teacher.teacher_id && teacher.teacher_id.startsWith('HR-')) || teacher.department === 'Human Resources'
-                                    ? 'HR Staff'
-                                    : 'Teacher'}
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${roleMeta.badge}`}>
+                                  {roleMeta.label}
                                 </span>
                               </div>
                               <p className="text-[11px] text-slate-400 font-mono">
@@ -650,9 +718,9 @@ export default function ManageTeachersPage() {
                           </div>
                         </td>
                         <td className="px-5 py-4">
-                          {teacher.user?.role === 'hr' || (teacher.teacher_id && teacher.teacher_id.startsWith('HR-')) || teacher.department === 'Human Resources' ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-800 border border-indigo-200 text-xs font-bold">
-                              HR Operations
+                          {roleMeta.role !== 'teacher' ? (
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${roleMeta.badge}`}>
+                              {roleMeta.longLabel}
                             </span>
                           ) : teacher.class_teacher_class ? (
                             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 text-xs font-bold">
@@ -755,56 +823,54 @@ export default function ManageTeachersPage() {
 
             {/* Form */}
             <form onSubmit={handleAddSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-              {/* Staff Role Selector (Teacher vs HR) */}
+              {/* Staff Role & Portal Access Dropdown */}
               <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-2">
-                <label className="block text-xs font-bold text-indigo-950">
-                  Staff Role & Portal Access <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, role: 'teacher', department: formData.department === 'Human Resources' ? 'Mathematics' : formData.department })}
-                    className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
-                      formData.role === 'teacher'
-                        ? 'bg-white border-primary-600 ring-2 ring-primary-500/20 shadow-xs'
-                        : 'bg-white/60 border-slate-200 hover:bg-white text-slate-600'
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0 ${
-                      formData.role === 'teacher' ? 'border-primary-600 bg-primary-600' : 'border-slate-300'
-                    }`}>
-                      {formData.role === 'teacher' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-900">Teaching Faculty (Teacher)</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">
-                        Access to Classroom, Student Attendance, Timetable & Syllabus
-                      </p>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, role: 'hr', department: 'Human Resources', class_teacher_class: '', assigned_subjects: '' })}
-                    className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
-                      formData.role === 'hr'
-                        ? 'bg-white border-indigo-600 ring-2 ring-indigo-500/20 shadow-xs'
-                        : 'bg-white/60 border-slate-200 hover:bg-white text-slate-600'
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0 ${
-                      formData.role === 'hr' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
-                    }`}>
-                      {formData.role === 'hr' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-900">Human Resources (HR)</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">
-                        Access to HR Module: Staff Salaries, Attendance & Leaves
-                      </p>
-                    </div>
-                  </button>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-indigo-950">
+                    Staff Role & Portal Access <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-white px-2 py-0.5 rounded-md border border-indigo-200">
+                    {formData.role === 'admin'
+                      ? 'Admin Portal'
+                      : formData.role === 'accountant'
+                      ? 'Accounts Portal'
+                      : formData.role === 'hr'
+                      ? 'HR Portal'
+                      : 'Teacher Portal'}
+                  </span>
                 </div>
+                <select
+                  value={formData.role}
+                  onChange={(e) => {
+                    const newRole = e.target.value;
+                    let newDept = formData.department;
+                    if (newRole === 'admin') newDept = 'Administration';
+                    else if (newRole === 'accountant') newDept = 'Accounts & Finance';
+                    else if (newRole === 'hr') newDept = 'Human Resources';
+                    else if (['Administration', 'Accounts & Finance', 'Human Resources'].includes(newDept)) newDept = 'Mathematics';
+
+                    setFormData({
+                      ...formData,
+                      role: newRole,
+                      department: newDept,
+                      class_teacher_class: newRole === 'teacher' ? formData.class_teacher_class : '',
+                      assigned_subjects: newRole === 'teacher' ? formData.assigned_subjects : '',
+                      assigned_classes: newRole === 'teacher' ? formData.assigned_classes : '',
+                    });
+                  }}
+                  className="w-full px-3.5 py-2.5 bg-white border border-indigo-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-xs"
+                >
+                  <option value="teacher">Teaching Faculty (Teacher Portal)</option>
+                  <option value="hr">Human Resources (HR Portal)</option>
+                  <option value="admin">School Administrator (Admin Portal)</option>
+                  <option value="accountant">Accounts & Finance (Accounts Portal)</option>
+                </select>
+                <p className="text-[11px] text-slate-500">
+                  {formData.role === 'teacher' && ' Access to Classroom, Student Attendance, Timetable & Syllabus.'}
+                  {formData.role === 'hr' && ' Access to HR Module: Staff Salaries, Attendance & Leaves.'}
+                  {formData.role === 'admin' && 'Full Access to Admin Module: Students, Admissions & Class Fee Structures.'}
+                  {formData.role === 'accountant' && ' Access to Accounts Module: Class/Division Fee Collections, Expenses & Salaries.'}
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1013,99 +1079,130 @@ export default function ManageTeachersPage() {
                 })()}
               </div>
 
-              {/* Class Teacher Assignment */}
-              <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 space-y-3">
-                <div className="flex items-center gap-2">
-                  <LuAward className="w-4 h-4 text-purple-600" />
-                  <label className="text-xs font-bold text-purple-900">Assign as Class Teacher (Homeroom In-Charge)</label>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-purple-800 mb-1">Class / Grade</label>
-                    <select
-                      value={formData.class_teacher_class}
-                      onChange={(e) => setFormData({ ...formData, class_teacher_class: e.target.value })}
-                      className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 cursor-pointer"
-                    >
-                      <option value="">None (Subject Teacher Only)</option>
-                      {classList.map((cls) => (
-                        <option key={cls.name} value={cls.name}>
-                          {cls.label || cls.name}
-                        </option>
-                      ))}
-                    </select>
+              {/* Academic & Department Details (Conditional based on role) */}
+              {formData.role === 'teacher' ? (
+                <>
+                  {/* Class Teacher Assignment */}
+                  <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <LuAward className="w-4 h-4 text-purple-600" />
+                      <label className="text-xs font-bold text-purple-900">Assign as Class Teacher (Homeroom In-Charge)</label>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-purple-800 mb-1">Class / Grade</label>
+                        <select
+                          value={formData.class_teacher_class}
+                          onChange={(e) => setFormData({ ...formData, class_teacher_class: e.target.value })}
+                          className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 cursor-pointer"
+                        >
+                          <option value="">None (Subject Teacher Only)</option>
+                          {classList.map((cls) => (
+                            <option key={cls.name} value={cls.name}>
+                              {cls.label || cls.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-purple-800 mb-1">Division / Section</label>
+                        <select
+                          value={formData.class_teacher_division}
+                          onChange={(e) => setFormData({ ...formData, class_teacher_division: e.target.value })}
+                          disabled={!formData.class_teacher_class}
+                          className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
+                        >
+                          <option value="Div A">Div A (Division A)</option>
+                          <option value="Div B">Div B (Division B)</option>
+                          <option value="Div C">Div C (Division C)</option>
+                          <option value="Div D">Div D (Division D)</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-purple-800 mb-1">Division / Section</label>
-                    <select
-                      value={formData.class_teacher_division}
-                      onChange={(e) => setFormData({ ...formData, class_teacher_division: e.target.value })}
-                      disabled={!formData.class_teacher_class}
-                      className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
-                    >
-                      <option value="Div A">Div A (Division A)</option>
-                      <option value="Div B">Div B (Division B)</option>
-                      <option value="Div C">Div C (Division C)</option>
-                      <option value="Div D">Div D (Division D)</option>
-                    </select>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Department</label>
+                      <select
+                        value={isCustomDept ? 'Other' : formData.department}
+                        onChange={handleDeptSelectChange}
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
+                      >
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Science">Science</option>
+                        <option value="English">English</option>
+                        <option value="Social Studies">Social Studies</option>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Languages">Languages</option>
+                        <option value="Other">Other / Custom Department</option>
+                      </select>
+                    </div>
+
+                    {isCustomDept ? (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Custom Department Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={customDept}
+                          onChange={(e) => setCustomDept(e.target.value)}
+                          placeholder="e.g. Performing Arts"
+                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Highest Qualification</label>
+                        <input
+                          type="text"
+                          value={formData.qualification}
+                          onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
+                          placeholder="e.g. M.Sc. Mathematics, B.Ed"
+                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
+                        />
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Department</label>
-                  <select
-                    value={isCustomDept ? 'Other' : formData.department}
-                    onChange={handleDeptSelectChange}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
-                  >
-                    <option value="Mathematics">Mathematics</option>
-                    <option value="Science">Science</option>
-                    <option value="English">English</option>
-                    <option value="Social Studies">Social Studies</option>
-                    <option value="Computer Science">Computer Science</option>
-                    <option value="Languages">Languages</option>
-                    <option value="Other">Other / Custom Department</option>
-                  </select>
-                </div>
-
-                {isCustomDept ? (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Custom Department Name</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Assigned Subjects (comma-separated)</label>
                     <input
                       type="text"
-                      required
-                      value={customDept}
-                      onChange={(e) => setCustomDept(e.target.value)}
-                      placeholder="e.g. Performing Arts"
+                      value={formData.assigned_subjects}
+                      onChange={(e) => setFormData({ ...formData, assigned_subjects: e.target.value })}
+                      placeholder="e.g. Mathematics, Advanced Geometry"
                       className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
                     />
                   </div>
-                ) : (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Highest Qualification</label>
-                    <input
-                      type="text"
-                      value={formData.qualification}
-                      onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
-                      placeholder="e.g. M.Sc. Mathematics, B.Ed"
-                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
-                    />
+                </>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-semibold">Assigned Department:</span>
+                    <span className="font-bold text-slate-800">
+                      {formData.role === 'admin'
+                        ? 'Administration'
+                        : formData.role === 'accountant'
+                        ? 'Accounts & Finance'
+                        : 'Human Resources'}
+                    </span>
                   </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Assigned Subjects (comma-separated)</label>
-                <input
-                  type="text"
-                  value={formData.assigned_subjects}
-                  onChange={(e) => setFormData({ ...formData, assigned_subjects: e.target.value })}
-                  placeholder="e.g. Mathematics, Advanced Geometry"
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
-                />
-              </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-semibold">Module Access Granted:</span>
+                    <span className="font-bold text-indigo-700 uppercase tracking-wide text-[10px] bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                      {formData.role === 'admin'
+                        ? 'School Admin Module'
+                        : formData.role === 'accountant'
+                        ? 'Accounts & Finance Module'
+                        : 'Human Resources Module'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 italic pt-1 border-t border-slate-200/80">
+                    Academic classroom assignments and subject allotments are disabled for administrative & financial roles.
+                  </p>
+                </div>
+              )}
 
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
                 <strong>Notice:</strong> An auto-generated random temporary password will be created for this staff email and displayed to you upon submission.
@@ -1158,52 +1255,54 @@ export default function ManageTeachersPage() {
 
             {/* Form */}
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-              {/* Staff Role Selector (Teacher vs HR) */}
+              {/* Staff Role & System Access Dropdown */}
               <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-2">
-                <label className="block text-xs font-bold text-amber-950">
-                  Staff Role & System Access <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setEditFormData({ ...editFormData, role: 'teacher' })}
-                    className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
-                      editFormData.role === 'teacher'
-                        ? 'bg-white border-primary-600 ring-2 ring-primary-500/20 shadow-xs'
-                        : 'bg-white/60 border-slate-200 hover:bg-white text-slate-600'
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0 ${
-                      editFormData.role === 'teacher' ? 'border-primary-600 bg-primary-600' : 'border-slate-300'
-                    }`}>
-                      {editFormData.role === 'teacher' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-900">Teaching Faculty (Teacher)</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Teacher Portal & Classrooms</p>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setEditFormData({ ...editFormData, role: 'hr', department: 'Human Resources', class_teacher_class: '', assigned_subjects: '' })}
-                    className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
-                      editFormData.role === 'hr'
-                        ? 'bg-white border-indigo-600 ring-2 ring-indigo-500/20 shadow-xs'
-                        : 'bg-white/60 border-slate-200 hover:bg-white text-slate-600'
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0 ${
-                      editFormData.role === 'hr' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
-                    }`}>
-                      {editFormData.role === 'hr' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-900">Human Resources (HR)</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">HR Module & Staff Operations</p>
-                    </div>
-                  </button>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-amber-950">
+                    Staff Role & System Access <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-white px-2 py-0.5 rounded-md border border-amber-200">
+                    {editFormData.role === 'admin'
+                      ? 'Admin Portal'
+                      : editFormData.role === 'accountant'
+                      ? 'Accounts Portal'
+                      : editFormData.role === 'hr'
+                      ? 'HR Portal'
+                      : 'Teacher Portal'}
+                  </span>
                 </div>
+                <select
+                  value={editFormData.role}
+                  onChange={(e) => {
+                    const newRole = e.target.value;
+                    let newDept = editFormData.department;
+                    if (newRole === 'admin') newDept = 'Administration';
+                    else if (newRole === 'accountant') newDept = 'Accounts & Finance';
+                    else if (newRole === 'hr') newDept = 'Human Resources';
+                    else if (['Administration', 'Accounts & Finance', 'Human Resources'].includes(newDept)) newDept = 'Mathematics';
+
+                    setEditFormData({
+                      ...editFormData,
+                      role: newRole,
+                      department: newDept,
+                      class_teacher_class: newRole === 'teacher' ? editFormData.class_teacher_class : '',
+                      assigned_subjects: newRole === 'teacher' ? editFormData.assigned_subjects : '',
+                      assigned_classes: newRole === 'teacher' ? editFormData.assigned_classes : '',
+                    });
+                  }}
+                  className="w-full px-3.5 py-2.5 bg-white border border-amber-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer shadow-xs"
+                >
+                  <option value="teacher">👨‍🏫 Teaching Faculty (Teacher Portal)</option>
+                  <option value="hr">💼 Human Resources (HR Portal)</option>
+                  <option value="admin">🛡️ School Administrator (Admin Portal)</option>
+                  <option value="accountant">💳 Accounts & Finance (Accounts Portal)</option>
+                </select>
+                <p className="text-[11px] text-amber-800/80">
+                  {editFormData.role === 'teacher' && '✨ Teacher Portal & Classroom Operations'}
+                  {editFormData.role === 'hr' && '💼 HR Module & Staff Operations'}
+                  {editFormData.role === 'admin' && '🛡️ Full School Admin Module Control'}
+                  {editFormData.role === 'accountant' && '💳 Accounts Module & Fees Management'}
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1407,85 +1506,125 @@ export default function ManageTeachersPage() {
                 })()}
               </div>
 
-              {/* Class Teacher Assignment */}
-              <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 space-y-3">
-                <div className="flex items-center gap-2">
-                  <LuAward className="w-4 h-4 text-purple-600" />
-                  <label className="text-xs font-bold text-purple-900">Assign as Class Teacher (Homeroom In-Charge)</label>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Academic & Department Details (Conditional based on role) */}
+              {editFormData.role === 'teacher' ? (
+                <>
+                  {/* Class Teacher Assignment */}
+                  <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <LuAward className="w-4 h-4 text-purple-600" />
+                      <label className="text-xs font-bold text-purple-900">Assign as Class Teacher (Homeroom In-Charge)</label>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-purple-800 mb-1">Class / Grade</label>
+                        <select
+                          value={editFormData.class_teacher_class}
+                          onChange={(e) => setEditFormData({ ...editFormData, class_teacher_class: e.target.value })}
+                          className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 cursor-pointer"
+                        >
+                          <option value="">None (Subject Teacher Only)</option>
+                          {classList.map((cls) => (
+                            <option key={cls.name} value={cls.name}>
+                              {cls.label || cls.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-purple-800 mb-1">Division / Section</label>
+                        <select
+                          value={editFormData.class_teacher_division}
+                          onChange={(e) => setEditFormData({ ...editFormData, class_teacher_division: e.target.value })}
+                          disabled={!editFormData.class_teacher_class}
+                          className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
+                        >
+                          <option value="Div A">Div A (Division A)</option>
+                          <option value="Div B">Div B (Division B)</option>
+                          <option value="Div C">Div C (Division C)</option>
+                          <option value="Div D">Div D (Division D)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Department</label>
+                      <select
+                        value={editFormData.department}
+                        onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
+                      >
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Science">Science</option>
+                        <option value="English">English</option>
+                        <option value="Social Studies">Social Studies</option>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Languages">Languages</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Status</label>
+                      <select
+                        value={editFormData.status}
+                        onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
+                      >
+                        <option value="Active">Active</option>
+                        <option value="On Leave">On Leave</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div>
-                    <label className="block text-[11px] font-semibold text-purple-800 mb-1">Class / Grade</label>
-                    <select
-                      value={editFormData.class_teacher_class}
-                      onChange={(e) => setEditFormData({ ...editFormData, class_teacher_class: e.target.value })}
-                      className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 cursor-pointer"
-                    >
-                      <option value="">None (Subject Teacher Only)</option>
-                      {classList.map((cls) => (
-                        <option key={cls.name} value={cls.name}>
-                          {cls.label || cls.name}
-                        </option>
-                      ))}
-                    </select>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Assigned Subjects (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={editFormData.assigned_subjects}
+                      onChange={(e) => setEditFormData({ ...editFormData, assigned_subjects: e.target.value })}
+                      placeholder="e.g. Mathematics, Advanced Geometry"
+                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-semibold">Assigned Department:</span>
+                    <span className="font-bold text-slate-800">
+                      {editFormData.role === 'admin'
+                        ? 'Administration'
+                        : editFormData.role === 'accountant'
+                        ? 'Accounts & Finance'
+                        : 'Human Resources'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-semibold">Module Access Granted:</span>
+                    <span className="font-bold text-indigo-700 uppercase tracking-wide text-[10px] bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                      {editFormData.role === 'admin'
+                        ? 'School Admin Module'
+                        : editFormData.role === 'accountant'
+                        ? 'Accounts & Finance Module'
+                        : 'Human Resources Module'}
+                    </span>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-purple-800 mb-1">Division / Section</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Status</label>
                     <select
-                      value={editFormData.class_teacher_division}
-                      onChange={(e) => setEditFormData({ ...editFormData, class_teacher_division: e.target.value })}
-                      disabled={!editFormData.class_teacher_class}
-                      className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
+                      value={editFormData.status}
+                      onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
                     >
-                      <option value="Div A">Div A (Division A)</option>
-                      <option value="Div B">Div B (Division B)</option>
-                      <option value="Div C">Div C (Division C)</option>
-                      <option value="Div D">Div D (Division D)</option>
+                      <option value="Active">Active</option>
+                      <option value="On Leave">On Leave</option>
+                      <option value="Inactive">Inactive</option>
                     </select>
                   </div>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Department</label>
-                  <select
-                    value={editFormData.department}
-                    onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
-                  >
-                    <option value="Mathematics">Mathematics</option>
-                    <option value="Science">Science</option>
-                    <option value="English">English</option>
-                    <option value="Social Studies">Social Studies</option>
-                    <option value="Computer Science">Computer Science</option>
-                    <option value="Languages">Languages</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Status</label>
-                  <select
-                    value={editFormData.status}
-                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="On Leave">On Leave</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Assigned Subjects (comma-separated)</label>
-                <input
-                  type="text"
-                  value={editFormData.assigned_subjects}
-                  onChange={(e) => setEditFormData({ ...editFormData, assigned_subjects: e.target.value })}
-                  placeholder="e.g. Mathematics, Advanced Geometry"
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
-                />
-              </div>
+              )}
 
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
                 <button

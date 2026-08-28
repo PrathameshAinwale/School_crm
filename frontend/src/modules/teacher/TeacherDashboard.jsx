@@ -106,14 +106,6 @@ export default function TeacherDashboard() {
       {/* Welcome Banner with Refresh Action */}
       <div className="relative">
         <WelcomeCard />
-        <button
-          onClick={handleRefresh}
-          className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-20 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md text-white border border-white/20 text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-          title="Refresh realtime data"
-        >
-          <LuRefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-          <span>{refreshing ? 'Syncing...' : 'Sync Realtime'}</span>
-        </button>
       </div>
 
       {/* Primary 3 Daily Information Cards */}

@@ -156,9 +156,12 @@ class AdmissionController extends Controller
             'section_id' => 'nullable|exists:sections,id',
             'roll_number' => 'nullable|string|max:50',
             'blood_group' => 'nullable|string|max:10',
+            'with_transport' => 'nullable|boolean',
         ]);
 
-        return DB::transaction(function () use ($request, $admission) {
+        $withTransport = $request->boolean('with_transport', (bool)$admission->with_transport);
+
+        return DB::transaction(function () use ($request, $admission, $withTransport) {
             // 1. Generate unique student admission number
             $count = Student::count() + 1;
             $admissionNumber = 'STU-' . date('Y') . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
@@ -194,6 +197,7 @@ class AdmissionController extends Controller
                 'blood_group' => $request->blood_group,
                 'school_class_id' => $admission->school_class_id,
                 'section_id' => $request->section_id,
+                'with_transport' => $withTransport,
                 'admission_date' => now()->toDateString(),
                 'guardian_name' => $admission->guardian_name,
                 'guardian_phone' => $admission->guardian_phone,
@@ -203,8 +207,33 @@ class AdmissionController extends Controller
                 'status' => 'Active',
             ]);
 
-            // 5. Update admission record to Enrolled
+            // 5. Automatically generate fee ledger installments based on Class Fee Structure
+            $feeStruct = \App\Models\FeeStructure::with('installments')->where('school_class_id', $admission->school_class_id)->first();
+            if ($feeStruct && $feeStruct->installments->count() > 0) {
+                $instCount = $feeStruct->installments->count();
+                $quarterTransport = $instCount > 0 ? round(((float)$feeStruct->transport_fee) / $instCount, 2) : 0;
+
+                foreach ($feeStruct->installments as $inst) {
+                    $installmentAmount = (float) $inst->amount;
+                    if (!$withTransport && $quarterTransport > 0) {
+                        // Deduct transport component if transport is not opted
+                        $installmentAmount = max(0, $installmentAmount - $quarterTransport);
+                    }
+
+                    \App\Models\StudentFee::create([
+                        'student_id' => $student->id,
+                        'term_name' => $inst->term_name,
+                        'amount' => $installmentAmount,
+                        'due_date' => $inst->due_date,
+                        'status' => 'Pending',
+                        'tax_deductible' => true,
+                    ]);
+                }
+            }
+
+            // 6. Update admission record to Enrolled
             $admission->status = 'Enrolled';
+            $admission->with_transport = $withTransport;
             $admission->enrolled_student_id = $student->id;
             $admission->save();
 

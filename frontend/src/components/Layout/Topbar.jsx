@@ -18,6 +18,7 @@ import {
   LuCircleCheck,
   LuCircleAlert,
   LuFileText,
+  LuReceipt,
 } from 'react-icons/lu';
 
 export default function Topbar({ onToggleMobileMenu }) {
@@ -110,12 +111,20 @@ export default function Topbar({ onToggleMobileMenu }) {
         label: lowerTitle.includes('holiday') ? 'Holiday' : 'Academic Calendar',
       };
     }
+    if (type === 'fee' || lowerTitle.includes('fee') || lowerTitle.includes('receipt') || lowerTitle.includes('due')) {
+      return {
+        icon: LuReceipt,
+        bg: 'bg-emerald-100 text-emerald-700',
+        badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        label: 'Accounts / Fee',
+      };
+    }
     if (type === 'alert') {
       return {
         icon: LuCircleAlert,
         bg: 'bg-rose-100 text-rose-700',
         badge: 'bg-rose-50 text-rose-700 border-rose-200',
-        label: 'Announcement',
+        label: 'Alert',
       };
     }
     return {
@@ -149,7 +158,9 @@ export default function Topbar({ onToggleMobileMenu }) {
           {currentDate}
         </p>
 
-        <div className="relative max-w-[200px] sm:max-w-xs md:max-w-sm w-full">
+        {/* Tenant School Badge or Super Admin Badge */}
+
+        <div className="relative max-w-[180px] sm:max-w-xs md:max-w-sm w-full">
           <LuSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
           <input
             type="text"
@@ -163,12 +174,6 @@ export default function Topbar({ onToggleMobileMenu }) {
 
       {/* Right Actions */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        {/* Role Badge (Static display only) */}
-        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold">
-          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>{ROLE_LABELS[currentRole] || currentRole}</span>
-        </div>
-
         {/* Notifications */}
         <div ref={notifRef} className="relative">
           <button
