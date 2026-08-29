@@ -57,8 +57,8 @@ class NotificationController extends Controller
                 'type' => $notif->type,
                 'link' => $notif->link ?: '/notifications',
                 'is_read' => (bool) $notif->is_read,
-                'created_at' => $notif->created_at->format('M d, Y h:i A'),
-                'time_ago' => $notif->created_at->diffForHumans(),
+                'created_at' => $notif->created_at ? $notif->created_at->format('M d, Y h:i A') : now()->format('M d, Y h:i A'),
+                'time_ago' => $notif->created_at ? $notif->created_at->diffForHumans() : 'Just now',
             ];
         });
 

@@ -1,3 +1,6 @@
+import React, { useState, useEffect } from 'react';
+import { adminService } from '../../services/adminService';
+import CredentialsModal from '../../components/Common/CredentialsModal';
 import {
   LuUserPlus,
   LuSearch,
@@ -300,8 +303,8 @@ export default function AdminAdmissionPage() {
                   )}
                   {item.status === 'Approved' && (
                     <button
-                      onClick={() => handleEnroll(item)}
-                      className="ml-auto px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-xs transition-colors inline-flex items-center gap-1"
+                      onClick={() => openEnrollModal(item)}
+                      className="ml-auto px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-xs transition-colors inline-flex items-center gap-1 cursor-pointer"
                     >
                       <LuGraduationCap className="w-3.5 h-3.5" /> Enroll
                     </button>

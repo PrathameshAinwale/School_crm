@@ -58,7 +58,7 @@ const navigation = {
     { label: 'Students', path: '/students', icon: LuGraduationCap },
     { label: 'Fee Structure', path: '/admin/fee-structure', icon: LuReceipt },
     { label: 'Attendance', path: '/attendance', icon: LuClipboardList },
-    { label: 'Admission', path: '/admission', icon: LuUserPlus },
+    // { label: 'Admission', path: '/admission', icon: LuUserPlus },
     { label: 'School vehicles', path: '/school-vehicles', icon: LuBus },
     { label: 'School resources', path: '/school-resources', icon: LuBoxes },
     { label: 'Calendar & Events', path: '/admin/calendar', icon: LuCalendarDays },

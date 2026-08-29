@@ -19,6 +19,7 @@ import {
   LuCalendar,
   LuArrowUpRight,
   LuClock,
+  LuUsers,
 } from 'react-icons/lu';
 
 export default function AccountsDashboard() {
