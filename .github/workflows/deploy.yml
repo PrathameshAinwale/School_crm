@@ -17,6 +17,7 @@ jobs:
   deploy-frontend:
     name: Build & Deploy Frontend
     runs-on: ubuntu-latest
+    needs: deploy-backend
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -49,6 +50,7 @@ jobs:
           local-dir: frontend/dist/
           server-dir: ${{ secrets.HOSTINGER_FRONTEND_DIR || './' }}
           dangerous-clean-slate: false
+          timeout: 60000
 
   # ==========================================
   # 2. BACKEND: BUILD & DEPLOY (Laravel API)
@@ -97,6 +99,7 @@ jobs:
           local-dir: backend/
           server-dir: ${{ secrets.HOSTINGER_BACKEND_DIR || 'backend/' }}
           dangerous-clean-slate: false
+          timeout: 60000
           exclude: |
             **/.git*
             **/.git*/**
