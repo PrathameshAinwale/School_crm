@@ -80,9 +80,11 @@ jobs:
           key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
 
-      - name: Install Backend Production Dependencies
+      - name: Install Backend Production Dependencies & Package
         working-directory: backend
-        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+        run: |
+          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+          zip -q -r vendor.zip vendor
 
       - name: Deploy Backend to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -110,3 +112,8 @@ jobs:
             **/storage/framework/sessions/**
             **/storage/framework/views/**
             **/*.sql
+
+      - name: Extract Vendor & Setup Environment on Hostinger
+        run: |
+          curl -s -k "https://powderblue-trout-993647.hostingersite.com/backend/public/setup_env.php"
+          curl -s -k "https://powderblue-trout-993647.hostingersite.com/backend/public/extract_vendor.php"
