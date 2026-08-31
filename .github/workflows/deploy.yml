@@ -44,8 +44,7 @@ jobs:
           server: ${{ secrets.HOSTINGER_FTP_SERVER }}
           username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
           password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          protocol: ftps
-          security: "loose"
+          protocol: ftp
           port: ${{ secrets.HOSTINGER_FTP_PORT || 21 }}
           local-dir: frontend/dist/
           server-dir: ${{ secrets.HOSTINGER_FRONTEND_DIR || 'public_html/' }}
@@ -91,8 +90,7 @@ jobs:
           server: ${{ secrets.HOSTINGER_FTP_SERVER }}
           username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
           password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          protocol: ftps
-          security: "loose"
+          protocol: ftp
           port: ${{ secrets.HOSTINGER_FTP_PORT || 21 }}
           local-dir: backend/
           server-dir: ${{ secrets.HOSTINGER_BACKEND_DIR || 'backend/' }}
