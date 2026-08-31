@@ -34,18 +34,29 @@ export default function HRTrainingsPage() {
   const [targetType, setTargetType] = useState('group'); // 'group' | 'specific'
   const [selectedGroup, setSelectedGroup] = useState('ALL');
   const [selectedSpecificTeachers, setSelectedSpecificTeachers] = useState([]);
+  const [teacherSearchQuery, setTeacherSearchQuery] = useState('');
 
   const fetchTrainings = async () => {
     setLoading(true);
     try {
       const [trainingsRes, teachersRes] = await Promise.all([
         hrService.getTrainings(),
-        adminService.getTeachers(),
+        hrService.getTeachers({ all: true, per_page: 100 }).catch(() =>
+          adminService.getTeachers({ all: true, per_page: 100 })
+        ),
       ]);
 
-      const tList = teachersRes?.data?.teachers || teachersRes?.teachers || teachersRes?.data || [];
-      if (Array.isArray(tList) && tList.length > 0) {
-        setTeachersList(tList);
+      const rawTeachers =
+        teachersRes?.data?.data ||
+        teachersRes?.data?.teachers ||
+        (Array.isArray(teachersRes?.data) ? teachersRes.data : []) ||
+        (Array.isArray(teachersRes?.teachers) ? teachersRes.teachers : []) ||
+        (Array.isArray(teachersRes) ? teachersRes : []);
+
+      let tList = [];
+      if (Array.isArray(rawTeachers) && rawTeachers.length > 0) {
+        tList = rawTeachers;
+        setTeachersList(rawTeachers);
       }
 
       const trainingsList = trainingsRes?.data?.trainings || trainingsRes?.trainings;
@@ -209,12 +220,16 @@ export default function HRTrainingsPage() {
         title,
         category,
         trainer_name: trainer,
-        date: date.includes('-') ? date : '2026-08-25',
+        date: date.includes('-') ? date : new Date().toISOString().split('T')[0],
         time_slot: time,
         venue,
+        target_type: targetType,
+        selected_group: selectedGroup,
+        teacher_ids: targetType === 'specific' ? selectedSpecificTeachers : [],
         target_audience: targetGroupName,
         description,
       });
+      await fetchTrainings();
     } catch (err) {
       console.log('Saved training locally:', err);
     }
@@ -713,59 +728,124 @@ export default function HRTrainingsPage() {
                 </div>
 
                 {targetType === 'group' ? (
-                  <div>
-                    <label className="block font-semibold text-gray-700 mb-1">Select Department / Faculty Group</label>
-                    <select
-                      value={selectedGroup}
-                      onChange={(e) => setSelectedGroup(e.target.value)}
-                      className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none font-semibold text-gray-800"
-                    >
-                      <option value="ALL">All Faculty ({teachersList.length} Teachers)</option>
-                      {[...new Set(teachersList.map((t) => t.department || t.dept).filter(Boolean))].map((dept) => (
-                        <option key={dept} value={dept}>
-                          {dept} Department ({teachersList.filter((t) => (t.department || t.dept) === dept).length} Teachers)
-                        </option>
-                      ))}
-                    </select>
+                  <div className="space-y-2">
+                    <div className="bg-purple-50/70 border border-purple-200 rounded-lg p-2.5 flex items-start gap-2 text-xs">
+                      <LuBell className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
+                      <p className="text-purple-800 text-[11px] leading-relaxed">
+                        <span className="font-bold">Broadcast Notification:</span> Selecting a teacher group will automatically dispatch push notifications to <strong>all teachers and staff</strong> upon creating this plan.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-gray-700 mb-1">Select Department / Faculty Group</label>
+                      <select
+                        value={selectedGroup}
+                        onChange={(e) => setSelectedGroup(e.target.value)}
+                        className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none font-semibold text-gray-800"
+                      >
+                        <option value="ALL">All Faculty & Staff ({teachersList.length} Teachers)</option>
+                        {[...new Set(teachersList.map((t) => t.department || t.dept).filter(Boolean))].map((dept) => (
+                          <option key={dept} value={dept}>
+                            {dept} Department ({teachersList.filter((t) => (t.department || t.dept) === dept).length} Teachers)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 ) : (
-                  <div>
-                    <label className="block font-semibold text-gray-700 mb-1">
-                      Check Individual Teachers ({selectedSpecificTeachers.length} Selected)
-                    </label>
-                    <div className="bg-white border border-gray-200 rounded-lg p-2 max-h-36 overflow-y-auto divide-y divide-gray-100">
-                      {teachersList.map((t) => {
-                        const tId = t.teacher_id || t.id;
-                        const isChecked = selectedSpecificTeachers.includes(tId);
-                        return (
-                          <label
-                            key={tId}
-                            className="flex items-center justify-between p-1.5 hover:bg-gray-50 rounded cursor-pointer"
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block font-semibold text-gray-700 text-xs">
+                        Check Individual Teachers ({selectedSpecificTeachers.length} Selected)
+                      </label>
+                      {teachersList.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedSpecificTeachers(teachersList.map((t) => t.teacher_id || t.id))}
+                            className="text-[10px] font-bold text-primary-600 hover:text-primary-800 cursor-pointer"
                           >
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setSelectedSpecificTeachers([...selectedSpecificTeachers, tId]);
-                                  } else {
-                                    setSelectedSpecificTeachers(
-                                      selectedSpecificTeachers.filter((id) => id !== tId)
-                                    );
-                                  }
-                                }}
-                                className="text-primary-600 rounded"
-                              />
-                              <div>
-                                <span className="font-semibold text-gray-800">{t.full_name || t.name}</span>
-                                <span className="text-[10px] text-gray-400 block">{t.designation || t.role || 'Faculty'}</span>
-                              </div>
-                            </div>
-                            <span className="text-[10px] font-mono text-gray-500">{t.department || t.dept || 'Academic'}</span>
-                          </label>
-                        );
-                      })}
+                            Select All
+                          </button>
+                          <span className="text-gray-300">|</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedSpecificTeachers([])}
+                            className="text-[10px] font-bold text-gray-500 hover:text-gray-700 cursor-pointer"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Quick filter input */}
+                    {teachersList.length > 3 && (
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search teacher by name or department..."
+                          value={teacherSearchQuery}
+                          onChange={(e) => setTeacherSearchQuery(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs placeholder-gray-400 focus:outline-none"
+                        />
+                      </div>
+                    )}
+
+                    <div className="bg-white border border-gray-200 rounded-lg p-1.5 max-h-44 overflow-y-auto divide-y divide-gray-100">
+                      {teachersList.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-amber-600 bg-amber-50 rounded-lg">
+                          No registered teachers found in database.
+                        </div>
+                      ) : (
+                        teachersList
+                          .filter((t) => {
+                            if (!teacherSearchQuery.trim()) return true;
+                            const q = teacherSearchQuery.toLowerCase();
+                            const name = (t.full_name || `${t.first_name || ''} ${t.last_name || ''}` || t.name || '').toLowerCase();
+                            const dept = (t.department || t.dept || '').toLowerCase();
+                            return name.includes(q) || dept.includes(q);
+                          })
+                          .map((t) => {
+                            const tId = t.teacher_id || t.id;
+                            const isChecked = selectedSpecificTeachers.includes(tId);
+                            const displayName = t.full_name || [t.first_name, t.last_name].filter(Boolean).join(' ') || t.name || 'Faculty Member';
+                            const displayRole = t.designation || t.role || 'Teacher';
+                            const displayDept = t.department || t.dept || 'Academic';
+
+                            return (
+                              <label
+                                key={tId}
+                                className={`flex items-center justify-between p-2 hover:bg-purple-50/50 rounded-lg cursor-pointer transition-colors ${
+                                  isChecked ? 'bg-purple-50/70 border border-purple-200' : ''
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedSpecificTeachers([...selectedSpecificTeachers, tId]);
+                                      } else {
+                                        setSelectedSpecificTeachers(
+                                          selectedSpecificTeachers.filter((id) => id !== tId)
+                                        );
+                                      }
+                                    }}
+                                    className="text-primary-600 rounded w-4 h-4 cursor-pointer"
+                                  />
+                                  <div>
+                                    <span className="font-semibold text-gray-800 text-xs block">{displayName}</span>
+                                    <span className="text-[10px] text-gray-400 block">{displayRole}</span>
+                                  </div>
+                                </div>
+                                <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                  {displayDept}
+                                </span>
+                              </label>
+                            );
+                          })
+                      )}
                     </div>
                   </div>
                 )}

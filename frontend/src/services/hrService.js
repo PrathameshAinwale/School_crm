@@ -90,6 +90,12 @@ export const hrService = {
       method: 'DELETE',
     });
   },
+
+  // 7. Teachers / Faculty Directory
+  getTeachers: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/hr/teachers${qs ? `?${qs}` : ''}`);
+  },
 };
 
 export default hrService;

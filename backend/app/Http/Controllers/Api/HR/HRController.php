@@ -763,6 +763,28 @@ class HRController extends Controller
             'description' => 'nullable|string',
         ]);
 
+        $targetType = $request->input('target_type', 'group');
+        $teacherIds = $request->input('teacher_ids', []);
+        $selectedGroup = $request->input('selected_group', 'ALL');
+        $targetAudience = $request->input('target_audience', 'All Faculty');
+
+        $enrolledCount = Teacher::count();
+        $assignedTeachers = collect();
+
+        if ($targetType === 'specific' && !empty($teacherIds)) {
+            $assignedTeachers = Teacher::whereIn('id', $teacherIds)
+                ->orWhereIn('teacher_id', $teacherIds)
+                ->get();
+            $enrolledCount = $assignedTeachers->count();
+        } elseif ($targetType === 'group') {
+            $query = Teacher::query();
+            if ($selectedGroup && $selectedGroup !== 'ALL') {
+                $query->where('department', $selectedGroup);
+            }
+            $assignedTeachers = $query->get();
+            $enrolledCount = $assignedTeachers->count();
+        }
+
         $training = FacultyTraining::create([
             'training_id' => 'TRN-' . date('Y') . '-' . str_pad(FacultyTraining::count() + 1, 2, '0', STR_PAD_LEFT),
             'title' => $request->input('title'),
@@ -771,26 +793,83 @@ class HRController extends Controller
             'date' => Carbon::parse($request->input('date'))->toDateString(),
             'time_slot' => $request->input('time_slot', '09:00 AM - 01:00 PM'),
             'venue' => $request->input('venue', 'Main Auditorium'),
-            'target_audience' => $request->input('target_audience', 'All Faculty'),
-            'enrolled_count' => Teacher::count(),
+            'target_audience' => $targetAudience,
+            'enrolled_count' => $enrolledCount > 0 ? $enrolledCount : Teacher::count(),
             'attendance_rate' => 100,
             'status' => 'Upcoming',
             'description' => $request->input('description'),
         ]);
 
-        // Dispatch notification to all Teachers
-        Notification::create([
-            'role' => 'teacher',
-            'title' => 'New Faculty Training: ' . $training->title,
-            'message' => "Upcoming {$training->category} training workshop on " . Carbon::parse($training->date)->format('d M Y') . " at {$training->venue} ({$training->time_slot}). Trainer: {$training->trainer_name}.",
-            'type' => 'training',
-            'link' => '/trainings',
-            'is_read' => false,
-        ]);
+        $dateFormatted = Carbon::parse($training->date)->format('d M Y');
+        $notifTitle = 'New Faculty Training: ' . $training->title;
+        $notifMessage = "Upcoming {$training->category} training workshop on {$dateFormatted} at {$training->venue} ({$training->time_slot}). Trainer: {$training->trainer_name}.";
+
+        if ($targetType === 'specific' && $assignedTeachers->isNotEmpty()) {
+            // Send direct push notification to each selected teacher
+            foreach ($assignedTeachers as $tch) {
+                if ($tch->user_id) {
+                    Notification::create([
+                        'user_id' => $tch->user_id,
+                        'role' => 'teacher',
+                        'title' => $notifTitle,
+                        'message' => $notifMessage,
+                        'type' => 'training',
+                        'link' => '/trainings',
+                        'is_read' => false,
+                    ]);
+                }
+            }
+        } else {
+            // Group Assignment: Send notification to all teachers and staff
+            $allTeachers = Teacher::with('user')->get();
+            foreach ($allTeachers as $tch) {
+                if ($tch->user_id) {
+                    Notification::create([
+                        'user_id' => $tch->user_id,
+                        'role' => 'teacher',
+                        'title' => $notifTitle,
+                        'message' => $notifMessage,
+                        'type' => 'training',
+                        'link' => '/trainings',
+                        'is_read' => false,
+                    ]);
+                }
+            }
+
+            // Also notify staff (HR & teachers)
+            $staffUsers = User::whereIn('role', ['teacher', 'hr'])->get();
+            foreach ($staffUsers as $staff) {
+                $alreadyNotified = Notification::where('user_id', $staff->id)
+                    ->where('title', $notifTitle)
+                    ->exists();
+
+                if (!$alreadyNotified) {
+                    Notification::create([
+                        'user_id' => $staff->id,
+                        'role' => $staff->role,
+                        'title' => $notifTitle,
+                        'message' => $notifMessage,
+                        'type' => 'training',
+                        'link' => $staff->role === 'hr' ? '/hr/trainings' : '/trainings',
+                        'is_read' => false,
+                    ]);
+                }
+            }
+
+            // General broadcast for role teacher
+            Notification::create([
+                'role' => 'teacher',
+                'title' => $notifTitle,
+                'message' => $notifMessage,
+                'type' => 'training',
+                'link' => '/trainings',
+                'is_read' => false,
+            ]);
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Faculty training workshop created successfully and notified to teachers.',
+            'message' => "Faculty training workshop created successfully and notified to {$enrolledCount} educators.",
             'data' => $training,
         ]);
     }

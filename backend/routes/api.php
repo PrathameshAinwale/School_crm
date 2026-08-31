@@ -67,8 +67,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('admin/students', [StudentController::class, 'index'])->middleware('role:admin,teacher');
     Route::get('admin/students/{student}', [StudentController::class, 'show'])->middleware('role:admin,teacher');
 
-    // Teachers Directory (Accessible to Admin, Teacher)
-    Route::get('admin/teachers', [TeacherController::class, 'index'])->middleware('role:admin,teacher');
+    // Teachers Directory (Accessible to Admin, Teacher, HR)
+    Route::get('admin/teachers', [TeacherController::class, 'index'])->middleware('role:admin,teacher,hr');
 
     // Attendance (Accessible to Admin, Teacher)
     Route::get('/admin/attendance', [AttendanceController::class, 'index'])->middleware('role:admin,teacher');
@@ -230,6 +230,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/leaves/{id}/action', [HRController::class, 'actionLeave']);
         Route::get('/trainings', [HRController::class, 'trainings']);
         Route::post('/trainings', [HRController::class, 'storeTraining']);
+        Route::get('/teachers', [TeacherController::class, 'index']);
         Route::get('/events', [HRController::class, 'events']);
         Route::post('/events', [HRController::class, 'storeEvent']);
         Route::delete('/events/{id}', [HRController::class, 'destroyEvent']);
