@@ -9,6 +9,7 @@ import {
   LuCheck,
   LuCircleCheck,
   LuPlus,
+  LuMinus,
   LuMapPin,
   LuUser,
   LuWrench,
@@ -150,7 +151,8 @@ export default function TeacherResourcesPage() {
       fd.append('title', issueFormData.title);
       fd.append('issue_type', issueFormData.issue_type);
       fd.append('severity', issueFormData.severity);
-      fd.append('affected_quantity', issueFormData.affected_quantity || 1);
+      const qtyToSend = issueFormData.affected_quantity !== '' && issueFormData.affected_quantity !== undefined ? Number(issueFormData.affected_quantity) : 0;
+      fd.append('affected_quantity', qtyToSend);
       fd.append('description', issueFormData.description);
       if (issueFormData.photo) {
         fd.append('photo', issueFormData.photo);
@@ -553,7 +555,7 @@ export default function TeacherResourcesPage() {
 
               {/* Conditional Quantity Section: If 'Replace' is selected */}
               {issueFormData.issue_type === 'Replace' && (
-                <div className="p-3.5 bg-orange-50/70 border border-orange-200 rounded-2xl space-y-1.5 animate-scale-up">
+                <div className="p-3.5 bg-orange-50/70 border border-orange-200 rounded-2xl space-y-2 animate-scale-up">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-bold text-orange-950">
                       Add Quantity to Replace (Units) <span className="text-red-500">*</span>
@@ -562,16 +564,53 @@ export default function TeacherResourcesPage() {
                       Max: {currentSelectedResource?.total_quantity || 1} units
                     </span>
                   </div>
-                  <input
-                    type="number"
-                    min="1"
-                    max={currentSelectedResource?.total_quantity || 999}
-                    required
-                    value={issueFormData.affected_quantity}
-                    onChange={(e) => setIssueFormData({ ...issueFormData, affected_quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-                    placeholder="Enter quantity to replace..."
-                    className="w-full px-3.5 py-2 bg-white border border-orange-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono font-bold"
-                  />
+                  <div className="flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cur = parseInt(issueFormData.affected_quantity, 10);
+                        const next = isNaN(cur) ? 0 : Math.max(0, cur - 1);
+                        setIssueFormData({ ...issueFormData, affected_quantity: next });
+                      }}
+                      className="w-9 h-9 flex items-center justify-center bg-orange-100 hover:bg-orange-200 active:bg-orange-300 text-orange-800 font-bold rounded-l-xl border border-r-0 border-orange-300 transition-colors cursor-pointer text-sm select-none"
+                      title="Decrease quantity"
+                    >
+                      <LuMinus className="w-3.5 h-3.5" />
+                    </button>
+                    <input
+                      type="number"
+                      min="0"
+                      max={currentSelectedResource?.total_quantity || 999}
+                      required
+                      value={issueFormData.affected_quantity}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const maxVal = currentSelectedResource?.total_quantity || 999;
+                        const val = raw === '' ? '' : Math.min(maxVal, Math.max(0, parseInt(raw, 10) || 0));
+                        setIssueFormData({ ...issueFormData, affected_quantity: val });
+                      }}
+                      onBlur={() => {
+                        if (issueFormData.affected_quantity === '') {
+                          setIssueFormData({ ...issueFormData, affected_quantity: 0 });
+                        }
+                      }}
+                      placeholder="0"
+                      className="w-full text-center py-2 bg-white border border-orange-300 text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono font-bold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cur = parseInt(issueFormData.affected_quantity, 10);
+                        const maxVal = currentSelectedResource?.total_quantity || 999;
+                        const next = isNaN(cur) ? 1 : Math.min(maxVal, cur + 1);
+                        setIssueFormData({ ...issueFormData, affected_quantity: next });
+                      }}
+                      className="w-9 h-9 flex items-center justify-center bg-orange-100 hover:bg-orange-200 active:bg-orange-300 text-orange-800 font-bold rounded-r-xl border border-l-0 border-orange-300 transition-colors cursor-pointer text-sm select-none"
+                      title="Increase quantity"
+                    >
+                      <LuPlus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                   <p className="text-[10px] text-orange-700">
                     * Specify the exact number of equipment/items that need new replacement units from administration.
                   </p>
@@ -580,7 +619,7 @@ export default function TeacherResourcesPage() {
 
               {/* Conditional Quantity Section: If 'Other' is selected */}
               {issueFormData.issue_type === 'Other' && (
-                <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-1.5 animate-scale-up">
+                <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2 animate-scale-up">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-bold text-purple-950">
                       How Many Assets / Units Are Affected? <span className="text-red-500">*</span>
@@ -589,16 +628,53 @@ export default function TeacherResourcesPage() {
                       Max: {currentSelectedResource?.total_quantity || 1} units
                     </span>
                   </div>
-                  <input
-                    type="number"
-                    min="1"
-                    max={currentSelectedResource?.total_quantity || 999}
-                    required
-                    value={issueFormData.affected_quantity}
-                    onChange={(e) => setIssueFormData({ ...issueFormData, affected_quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-                    placeholder="Enter number of affected units..."
-                    className="w-full px-3.5 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 font-mono font-bold"
-                  />
+                  <div className="flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cur = parseInt(issueFormData.affected_quantity, 10);
+                        const next = isNaN(cur) ? 0 : Math.max(0, cur - 1);
+                        setIssueFormData({ ...issueFormData, affected_quantity: next });
+                      }}
+                      className="w-9 h-9 flex items-center justify-center bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-bold rounded-l-xl border border-r-0 border-purple-300 transition-colors cursor-pointer text-sm select-none"
+                      title="Decrease quantity"
+                    >
+                      <LuMinus className="w-3.5 h-3.5" />
+                    </button>
+                    <input
+                      type="number"
+                      min="0"
+                      max={currentSelectedResource?.total_quantity || 999}
+                      required
+                      value={issueFormData.affected_quantity}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const maxVal = currentSelectedResource?.total_quantity || 999;
+                        const val = raw === '' ? '' : Math.min(maxVal, Math.max(0, parseInt(raw, 10) || 0));
+                        setIssueFormData({ ...issueFormData, affected_quantity: val });
+                      }}
+                      onBlur={() => {
+                        if (issueFormData.affected_quantity === '') {
+                          setIssueFormData({ ...issueFormData, affected_quantity: 0 });
+                        }
+                      }}
+                      placeholder="0"
+                      className="w-full text-center py-2 bg-white border border-purple-300 text-xs text-slate-800 focus:outline-none focus:border-purple-500 font-mono font-bold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cur = parseInt(issueFormData.affected_quantity, 10);
+                        const maxVal = currentSelectedResource?.total_quantity || 999;
+                        const next = isNaN(cur) ? 1 : Math.min(maxVal, cur + 1);
+                        setIssueFormData({ ...issueFormData, affected_quantity: next });
+                      }}
+                      className="w-9 h-9 flex items-center justify-center bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-bold rounded-r-xl border border-l-0 border-purple-300 transition-colors cursor-pointer text-sm select-none"
+                      title="Increase quantity"
+                    >
+                      <LuPlus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                   <p className="text-[10px] text-purple-700">
                     * Enter the total number of items experiencing this issue.
                   </p>
