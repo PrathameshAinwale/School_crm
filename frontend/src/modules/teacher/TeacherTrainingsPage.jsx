@@ -18,8 +18,10 @@ import { hrService } from '../../services/hrService';
 import { adminService } from '../../services/adminService';
 import { TEACHERS_LIST } from '../../data/trainingsStore';
 import { formatDateDisplay } from '../hr/HRTrainingsPage';
+import { useAuth } from '../../context/AuthContext';
 
 export default function TeacherTrainingsPage() {
+  const { user } = useAuth();
   const [trainings, setTrainings] = useState([]);
   const [teachersList, setTeachersList] = useState(TEACHERS_LIST);
   const [activeTeacherId, setActiveTeacherId] = useState(TEACHERS_LIST[0]?.id || 'TCH-101');
@@ -32,45 +34,75 @@ export default function TeacherTrainingsPage() {
     try {
       const [trainingsRes, teachersRes] = await Promise.all([
         hrService.getTrainings(),
-        adminService.getTeachers(),
+        adminService.getTeachers({ all: true, per_page: 100 }).catch(() => null),
       ]);
 
-      const tList = teachersRes?.data?.teachers || teachersRes?.teachers || teachersRes?.data || [];
-      if (Array.isArray(tList) && tList.length > 0) {
-        setTeachersList(tList);
-        if (!activeTeacherId) {
-          setActiveTeacherId(tList[0].teacher_id || tList[0].id || 'TCH-101');
-        }
+      const rawTeachers =
+        teachersRes?.data?.data ||
+        teachersRes?.data?.teachers ||
+        (Array.isArray(teachersRes?.data) ? teachersRes.data : []) ||
+        (Array.isArray(teachersRes?.teachers) ? teachersRes.teachers : []) ||
+        (Array.isArray(teachersRes) ? teachersRes : []);
+
+      let tList = Array.isArray(rawTeachers) && rawTeachers.length > 0 ? rawTeachers : TEACHERS_LIST;
+      setTeachersList(tList);
+
+      // Auto-detect logged in teacher profile
+      const myProfile = tList.find((t) =>
+        (user?.id && t.user_id === user.id) ||
+        (user?.email && t.email === user.email) ||
+        (user?.name && t.full_name && t.full_name.toLowerCase() === user.name.toLowerCase())
+      );
+      if (myProfile) {
+        setActiveTeacherId(myProfile.teacher_id || myProfile.id);
+      } else if (!activeTeacherId && tList.length > 0) {
+        setActiveTeacherId(tList[0].teacher_id || tList[0].id || 'TCH-101');
       }
 
       const rawTrainings = trainingsRes?.data?.trainings || trainingsRes?.trainings || [];
       if (Array.isArray(rawTrainings)) {
-        const mapped = rawTrainings.map((t) => ({
-          id: t.training_id || t.id || `TRN-${t.id}`,
-          db_id: t.id,
-          title: t.title,
-          category: t.category,
-          trainer: t.trainer_name || t.trainer || 'Faculty Trainer',
-          trainerOrg: 'Institutional Training Wing',
-          date: formatDateDisplay(t.date),
-          time: t.time_slot || t.time || '10:00 AM - 01:00 PM',
-          venue: t.venue || 'Main Auditorium',
-          mode: 'In-Person',
-          targetGroupName: t.target_audience || 'All Faculty',
-          description: t.description || 'Pedagogical training session.',
-          status: t.status || 'Scheduled',
-          attendees: Array.isArray(t.enrolled_teachers) && t.enrolled_teachers.length > 0
+        const mapped = rawTrainings.map((t) => {
+          const isGroupOrAll =
+            !t.target_audience ||
+            t.target_audience.toLowerCase().includes('all') ||
+            t.target_audience.toLowerCase().includes('faculty') ||
+            t.target_audience.toLowerCase().includes('teaching') ||
+            t.target_audience.toLowerCase().includes('staff');
+
+          let attendeesList = Array.isArray(t.enrolled_teachers) && t.enrolled_teachers.length > 0
             ? t.enrolled_teachers
-            : (Array.isArray(tList) ? tList.map(tch => ({
-                teacherId: tch.teacher_id || tch.id,
-                teacherName: tch.full_name || tch.name,
-                role: tch.designation || tch.role || 'Faculty',
-                dept: tch.department || tch.dept || 'Academic',
-                status: 'Assigned & Notified',
-                markedAt: null,
-                feedback: '',
-              })) : []),
-        }));
+            : [];
+
+          // If attendeesList is empty and it's a group or all faculty training, populate with all current teachers
+          if (attendeesList.length === 0 && tList.length > 0 && isGroupOrAll) {
+            attendeesList = tList.map((tch) => ({
+              teacherId: tch.teacher_id || tch.id,
+              teacherName: tch.full_name || [tch.first_name, tch.last_name].filter(Boolean).join(' ') || tch.name,
+              role: tch.designation || tch.role || 'Faculty',
+              dept: tch.department || tch.dept || 'Academic',
+              status: 'Assigned & Notified',
+              markedAt: null,
+              feedback: '',
+            }));
+          }
+
+          return {
+            id: t.training_id || t.id || `TRN-${t.id}`,
+            db_id: t.id,
+            title: t.title,
+            category: t.category,
+            trainer: t.trainer_name || t.trainer || 'Faculty Trainer',
+            trainerOrg: 'Institutional Training Wing',
+            date: formatDateDisplay(t.date),
+            time: t.time_slot || t.time || '10:00 AM - 01:00 PM',
+            venue: t.venue || 'Main Auditorium',
+            mode: 'In-Person',
+            targetGroupName: t.target_audience || 'All Faculty',
+            description: t.description || 'Pedagogical training session.',
+            status: t.status || 'Scheduled',
+            attendees: attendeesList,
+          };
+        });
         setTrainings(mapped);
       }
     } catch (err) {
@@ -82,23 +114,66 @@ export default function TeacherTrainingsPage() {
 
   useEffect(() => {
     fetchLiveTrainings();
-  }, []);
+  }, [user]);
 
   const activeTeacher = (teachersList.length > 0 ? teachersList : TEACHERS_LIST).find((t) => (t.teacher_id || t.id) === activeTeacherId) || (teachersList.length > 0 ? teachersList[0] : TEACHERS_LIST[0]) || { name: 'Teacher', role: 'Faculty' };
-  const activeTeacherDisplayName = activeTeacher.full_name || activeTeacher.name || 'Teacher';
+  const activeTeacherDisplayName = activeTeacher.full_name || [activeTeacher.first_name, activeTeacher.last_name].filter(Boolean).join(' ') || activeTeacher.name || 'Teacher';
 
-  // Filter trainings where this teacher is assigned as an attendee
-  const myTrainings = trainings.filter((t) =>
-    Array.isArray(t.attendees) && (t.attendees.length === 0 || t.attendees.some((a) => a.teacherId === activeTeacherId))
-  );
+  // Filter trainings where this teacher is assigned as an attendee or it's assigned to all faculty / teacher group
+  const myTrainings = trainings.filter((t) => {
+    const target = (t.targetGroupName || t.target_audience || '').toLowerCase();
+
+    // 1. If assigned to All Faculty or general staff
+    if (
+      target.includes('all') ||
+      target.includes('faculty') ||
+      target.includes('teaching') ||
+      target.includes('staff') ||
+      !target
+    ) {
+      return true;
+    }
+
+    // 2. If assigned to this teacher's department
+    const activeDept = (activeTeacher.department || activeTeacher.dept || '').toLowerCase();
+    if (activeDept && target.includes(activeDept)) {
+      return true;
+    }
+
+    // 3. If individual attendees are listed, check if this teacher is present
+    if (Array.isArray(t.attendees) && t.attendees.length > 0) {
+      const teacherIds = [
+        String(activeTeacherId),
+        String(activeTeacher?.id),
+        String(activeTeacher?.teacher_id),
+        String(activeTeacher?.user_id),
+      ].filter(Boolean);
+
+      return t.attendees.some((a) => {
+        const aId = String(a.teacherId || a.id || a.user_id || '');
+        const aName = (a.teacherName || a.name || '').toLowerCase();
+        const curName = (activeTeacher.full_name || activeTeacher.name || '').toLowerCase();
+        return teacherIds.includes(aId) || (aName && curName && aName === curName);
+      });
+    }
+
+    // 4. Default to true so group trainings are never hidden from teachers
+    return true;
+  });
 
   const pendingAttendanceTrainings = myTrainings.filter((t) => {
-    const myRecord = t.attendees?.find((a) => a.teacherId === activeTeacherId);
+    const myRecord = t.attendees?.find((a) => {
+      const aId = String(a.teacherId || a.id || '');
+      return aId === String(activeTeacherId) || aId === String(activeTeacher?.id);
+    });
     return !myRecord || myRecord.status !== 'Attended';
   });
 
   const completedTrainings = myTrainings.filter((t) => {
-    const myRecord = t.attendees?.find((a) => a.teacherId === activeTeacherId);
+    const myRecord = t.attendees?.find((a) => {
+      const aId = String(a.teacherId || a.id || '');
+      return aId === String(activeTeacherId) || aId === String(activeTeacher?.id);
+    });
     return myRecord && myRecord.status === 'Attended';
   });
 

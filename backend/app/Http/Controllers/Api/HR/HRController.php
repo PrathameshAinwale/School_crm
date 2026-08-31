@@ -785,6 +785,18 @@ class HRController extends Controller
             $enrolledCount = $assignedTeachers->count();
         }
 
+        $enrolledTeachersList = $assignedTeachers->map(function ($t) {
+            return [
+                'teacherId' => $t->teacher_id ?: (string)$t->id,
+                'teacherName' => $t->full_name ?: trim("{$t->first_name} {$t->last_name}"),
+                'role' => $t->designation ?: 'Faculty',
+                'dept' => $t->department ?: 'Academic',
+                'status' => 'Assigned & Notified',
+                'markedAt' => null,
+                'feedback' => '',
+            ];
+        })->values()->toArray();
+
         $training = FacultyTraining::create([
             'training_id' => 'TRN-' . date('Y') . '-' . str_pad(FacultyTraining::count() + 1, 2, '0', STR_PAD_LEFT),
             'title' => $request->input('title'),
@@ -798,6 +810,7 @@ class HRController extends Controller
             'attendance_rate' => 100,
             'status' => 'Upcoming',
             'description' => $request->input('description'),
+            'enrolled_teachers' => $enrolledTeachersList,
         ]);
 
         $dateFormatted = Carbon::parse($training->date)->format('d M Y');

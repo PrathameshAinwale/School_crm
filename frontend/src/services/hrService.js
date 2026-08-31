@@ -62,7 +62,9 @@ export const hrService = {
   // 5. Faculty Trainings
   getTrainings: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return apiRequest(`/hr/trainings${qs ? `?${qs}` : ''}`);
+    return apiRequest(`/teacher/trainings${qs ? `?${qs}` : ''}`).catch(() =>
+      apiRequest(`/hr/trainings${qs ? `?${qs}` : ''}`)
+    );
   },
 
   createTraining: (data) => {
