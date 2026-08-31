@@ -110,31 +110,4 @@ jobs:
             **/storage/framework/cache/data/**
             **/storage/framework/sessions/**
             **/storage/framework/views/**
-            **/dist.zip
             **/*.sql
-
-  # ==========================================
-  # 3. OPTIONAL: EXECUTE ARTISAN VIA SSH
-  # (Runs automatically if SSH host secret is configured)
-  # ==========================================
-  artisan-post-deploy:
-    name: Run Migrations & Clear Cache (SSH)
-    needs: [deploy-backend]
-    runs-on: ubuntu-latest
-    if: ${{ secrets.HOSTINGER_SSH_HOST != '' }}
-    steps:
-      - name: Execute Remote Artisan Commands
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          password: ${{ secrets.HOSTINGER_SSH_PASSWORD }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT || 65002 }}
-          script: |
-            cd ${{ secrets.HOSTINGER_SSH_PATH || 'backend' }}
-            php artisan migrate --force
-            php artisan optimize:clear
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
