@@ -6,7 +6,7 @@ export default function WelcomeCard() {
   const { user, ROLE_LABELS, currentRole } = useAuth();
 
   const hour = new Date().getHours();
-  let greeting = 'Good morninggggggggggggg';
+  let greeting = 'Good morning';
   let Icon = LuSun;
   if (hour >= 12 && hour < 17) {
     greeting = 'Good afternoon';
