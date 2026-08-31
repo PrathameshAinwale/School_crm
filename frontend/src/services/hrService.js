@@ -72,6 +72,12 @@ export const hrService = {
     });
   },
 
+  deleteTraining: (id) => {
+    return apiRequest(`/hr/trainings/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   // 6. School Events
   getSchoolEvents: (params = {}) => {
     const qs = new URLSearchParams(params).toString();

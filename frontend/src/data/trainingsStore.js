@@ -134,6 +134,15 @@ export function addTrainingProgram(newProgram) {
   return updated;
 }
 
+export function deleteTrainingProgram(trainingId) {
+  const current = getStoredTrainings();
+  const updated = current.filter(
+    (t) => t.id !== trainingId && t.training_id !== trainingId && t.db_id !== trainingId
+  );
+  saveStoredTrainings(updated);
+  return updated;
+}
+
 export function markTeacherAttendance(trainingId, teacherId, feedback = '') {
   const current = getStoredTrainings();
   const updated = current.map((t) => {

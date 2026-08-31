@@ -230,6 +230,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/leaves/{id}/action', [HRController::class, 'actionLeave']);
         Route::get('/trainings', [HRController::class, 'trainings']);
         Route::post('/trainings', [HRController::class, 'storeTraining']);
+        Route::delete('/trainings/{id}', [HRController::class, 'destroyTraining']);
         Route::get('/teachers', [TeacherController::class, 'index']);
         Route::get('/events', [HRController::class, 'events']);
         Route::post('/events', [HRController::class, 'storeEvent']);

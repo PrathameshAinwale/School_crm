@@ -17,10 +17,11 @@ import {
   LuCheck,
   LuGraduationCap,
   LuCheckCheck,
+  LuTrash2,
 } from 'react-icons/lu';
 import { hrService } from '../../services/hrService';
 import { adminService } from '../../services/adminService';
-import { addTrainingProgram } from '../../data/trainingsStore';
+import { addTrainingProgram, deleteTrainingProgram } from '../../data/trainingsStore';
 
 export default function HRTrainingsPage() {
   const [trainings, setTrainings] = useState([]);
@@ -255,6 +256,35 @@ export default function HRTrainingsPage() {
     }
   };
 
+  const handleDeleteTraining = async (prog, e) => {
+    if (e) e.stopPropagation();
+    if (!prog) return;
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete the training program "${prog.title}"? This action cannot be undone.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const idToDelete = prog.db_id || prog.id;
+      await hrService.deleteTraining(idToDelete);
+    } catch (err) {
+      console.log('Error deleting training from backend:', err);
+    }
+
+    try {
+      if (typeof deleteTrainingProgram === 'function') {
+        deleteTrainingProgram(prog.id);
+      }
+    } catch (err) {}
+
+    setTrainings((prev) => prev.filter((t) => t.id !== prog.id && t.db_id !== prog.db_id));
+
+    if (selectedTraining && (selectedTraining.id === prog.id || selectedTraining.db_id === prog.db_id)) {
+      setSelectedTraining(null);
+    }
+  };
+
   const handleHRMarkAttendance = (trainingId, teacherId) => {
     const updated = trainings.map((t) => {
       if (t.id === trainingId) {
@@ -396,17 +426,27 @@ export default function HRTrainingsPage() {
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary-50 text-primary-700 border border-primary-100">
                     {prog.category}
                   </span>
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      prog.status === 'Completed'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : prog.status === 'In Progress'
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : 'bg-amber-50 text-amber-700 border border-amber-200'
-                    }`}
-                  >
-                    {prog.status}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        prog.status === 'Completed'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : prog.status === 'In Progress'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}
+                    >
+                      {prog.status}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteTraining(prog, e)}
+                      className="p-1 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
+                      title="Delete Training Program"
+                    >
+                      <LuTrash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <h3 className="font-bold text-gray-900 text-sm group-hover:text-primary-600 transition-colors mt-1 leading-snug">
@@ -480,12 +520,22 @@ export default function HRTrainingsPage() {
                   Trainer: {selectedTraining.trainer} ({selectedTraining.trainerOrg}) • {selectedTraining.date}
                 </p>
               </div>
-              <button
-                onClick={() => setSelectedTraining(null)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-              >
-                <LuX className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteTraining(selectedTraining)}
+                  className="px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-1 font-semibold cursor-pointer transition-colors"
+                  title="Delete Training Program"
+                >
+                  <LuTrash2 className="w-3.5 h-3.5" /> Delete Program
+                </button>
+                <button
+                  onClick={() => setSelectedTraining(null)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  <LuX className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             <div className="p-5 space-y-4 text-xs overflow-y-auto">

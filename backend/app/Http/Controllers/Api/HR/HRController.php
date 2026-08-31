@@ -1022,4 +1022,36 @@ class HRController extends Controller
             'message' => 'School event deleted successfully.',
         ]);
     }
+
+    /**
+     * Delete Faculty Training Program.
+     */
+    public function destroyTraining(Request $request, $id)
+    {
+        $training = FacultyTraining::where('id', $id)
+            ->orWhere('training_id', $id)
+            ->first();
+
+        if (!$training) {
+            $numericId = is_numeric($id) ? (int) $id : (int) preg_replace('/[^0-9]/', '', $id);
+            if ($numericId) {
+                $training = FacultyTraining::find($numericId);
+            }
+        }
+
+        if (!$training) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Training program not found.',
+            ], 404);
+        }
+
+        $title = $training->title;
+        $training->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Training program \"{$title}\" deleted successfully.",
+        ]);
+    }
 }
