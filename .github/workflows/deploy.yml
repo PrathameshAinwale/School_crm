@@ -8,7 +8,7 @@ on:
 
 concurrency:
   group: hostinger-deploy
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   # ==========================================
@@ -104,6 +104,7 @@ jobs:
             **/tests/**
             **/phpunit.xml
             **/node_modules/**
+            **/vendor/**
             **/storage/logs/*.log
             **/storage/framework/cache/data/**
             **/storage/framework/sessions/**
