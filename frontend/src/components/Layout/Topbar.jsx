@@ -19,6 +19,7 @@ import {
   LuCircleAlert,
   LuFileText,
   LuReceipt,
+  LuChevronRight,
 } from 'react-icons/lu';
 
 export default function Topbar({ onToggleMobileMenu }) {
@@ -61,6 +62,171 @@ export default function Topbar({ onToggleMobileMenu }) {
     return () => clearInterval(interval);
   }, []);
 
+  /**
+   * Resolves the target page URL for any notification based on type, keywords, and role
+   */
+  const resolveNotificationRoute = (notif, role) => {
+    if (!notif) return '/dashboard';
+    const r = (role || currentRole || '').toLowerCase();
+    const type = (notif.type || '').toLowerCase();
+    const title = (notif.title || '').toLowerCase();
+    const msg = (notif.message || '').toLowerCase();
+    const rawLink = (notif.link || '').trim();
+
+    // 1. Trainings & Faculty Workshops
+    if (
+      type === 'training' ||
+      title.includes('training') ||
+      title.includes('workshop') ||
+      msg.includes('training workshop') ||
+      msg.includes('faculty training')
+    ) {
+      if (r === 'teacher') return '/trainings';
+      if (r === 'hr' || r === 'admin') return '/hr/trainings';
+      return '/trainings';
+    }
+
+    // 2. Staff & Teacher Leaves
+    if (
+      type === 'leave' ||
+      title.includes('leave') ||
+      title.includes('vacation') ||
+      msg.includes('leave application') ||
+      msg.includes('leave request')
+    ) {
+      if (r === 'hr' || r === 'admin') return '/hr/staff-leaves';
+      if (r === 'teacher') return '/hr/apply-leave';
+      return '/hr/apply-leave';
+    }
+
+    // 3. Salary, Payroll & Salary Disbursements
+    if (
+      type === 'salary' ||
+      type === 'payroll' ||
+      title.includes('salary') ||
+      title.includes('payroll') ||
+      title.includes('disbursement') ||
+      msg.includes('salary') ||
+      msg.includes('disbursement')
+    ) {
+      if (r === 'accountant') return '/accounts/salary-disbursements';
+      if (r === 'hr' || r === 'admin') return '/salary';
+      return '/salary';
+    }
+
+    // 4. Student Fees & Fee Reminders
+    if (
+      type === 'fee' ||
+      title.includes('fee') ||
+      title.includes('receipt') ||
+      title.includes('installment') ||
+      title.includes('dues') ||
+      msg.includes('pending fee') ||
+      msg.includes('fee payment')
+    ) {
+      if (r === 'student_parent') return '/fees';
+      if (r === 'accountant' || r === 'admin') return '/accounts/fees';
+      return '/fees';
+    }
+
+    // 5. Attendance & Roll Call
+    if (
+      type === 'attendance' ||
+      title.includes('attendance') ||
+      msg.includes('attendance')
+    ) {
+      if (r === 'teacher') return '/class-attendance';
+      if (r === 'student_parent') return '/attendance';
+      if (r === 'hr') return '/hr/staff-attendance';
+      if (r === 'admin') return '/attendance';
+      return '/attendance';
+    }
+
+    // 6. Assignments & Homework
+    if (
+      type === 'assignment' ||
+      title.includes('assignment') ||
+      title.includes('homework') ||
+      msg.includes('assignment')
+    ) {
+      return '/assignment';
+    }
+
+    // 7. Syllabus & Completed Units
+    if (
+      type === 'syllabus' ||
+      type === 'academic' ||
+      title.includes('syllabus') ||
+      title.includes('chapter') ||
+      msg.includes('syllabus')
+    ) {
+      return '/syllabus';
+    }
+
+    // 8. Timetable, Schedules & Lectures
+    if (
+      type === 'timetable' ||
+      type === 'schedule' ||
+      title.includes('timetable') ||
+      title.includes('lecture') ||
+      title.includes('schedule')
+    ) {
+      if (r === 'teacher') return '/teacher/schedule';
+      return '/timetable';
+    }
+
+    // 9. PTM (Parent Teacher Meetings)
+    if (
+      type === 'ptm' ||
+      title.includes('ptm') ||
+      title.includes('parent-teacher') ||
+      title.includes('parent teacher')
+    ) {
+      return '/ptm';
+    }
+
+    // 10. School Events & Holidays
+    if (
+      type === 'event' ||
+      type === 'calendar' ||
+      title.includes('event') ||
+      title.includes('sports') ||
+      title.includes('holiday') ||
+      title.includes('calendar')
+    ) {
+      if (r === 'hr') return '/school-events';
+      if (r === 'admin') return '/admin/calendar';
+      return '/calendar';
+    }
+
+    // 11. School Resources & Assets
+    if (
+      type === 'resource' ||
+      title.includes('resource') ||
+      title.includes('study material')
+    ) {
+      if (r === 'teacher') return '/teacher/resources';
+      if (r === 'student_parent') return '/study-material';
+      if (r === 'admin') return '/school-resources';
+    }
+
+    // 12. Notice Board Circulars
+    if (
+      type === 'notice' ||
+      title.includes('notice') ||
+      title.includes('circular')
+    ) {
+      return '/notices';
+    }
+
+    // 13. Direct valid link if provided and not generic
+    if (rawLink && rawLink !== '/notifications' && rawLink !== '#' && rawLink !== '/') {
+      return rawLink;
+    }
+
+    return '/dashboard';
+  };
+
   const handleNotificationClick = async (notif) => {
     if (!notif.is_read) {
       try {
@@ -72,8 +238,11 @@ export default function Topbar({ onToggleMobileMenu }) {
       } catch (e) {}
     }
     setShowNotifications(false);
-    if (notif.link) {
-      navigate(notif.link);
+    
+    // Resolve smart route based on notification content and user role
+    const targetRoute = resolveNotificationRoute(notif, currentRole);
+    if (targetRoute) {
+      navigate(targetRoute);
     }
   };
 
@@ -93,6 +262,25 @@ export default function Topbar({ onToggleMobileMenu }) {
         bg: 'bg-purple-100 text-purple-700',
         badge: 'bg-purple-50 text-purple-700 border-purple-200',
         label: 'Training',
+        actionLabel: 'View Training',
+      };
+    }
+    if (type === 'leave' || lowerTitle.includes('leave')) {
+      return {
+        icon: LuFileText,
+        bg: 'bg-teal-100 text-teal-700',
+        badge: 'bg-teal-50 text-teal-700 border-teal-200',
+        label: 'Leave',
+        actionLabel: 'View Leaves',
+      };
+    }
+    if (type === 'salary' || type === 'payroll' || lowerTitle.includes('salary') || lowerTitle.includes('disbursement')) {
+      return {
+        icon: LuReceipt,
+        bg: 'bg-emerald-100 text-emerald-700',
+        badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        label: 'Payroll',
+        actionLabel: 'View Salary',
       };
     }
     if (type === 'event' || lowerTitle.includes('event') || lowerTitle.includes('sports') || lowerTitle.includes('championship')) {
@@ -101,6 +289,7 @@ export default function Topbar({ onToggleMobileMenu }) {
         bg: 'bg-amber-100 text-amber-700',
         badge: 'bg-amber-50 text-amber-700 border-amber-200',
         label: 'School Event',
+        actionLabel: 'View Event',
       };
     }
     if (type === 'calendar' || lowerTitle.includes('calendar') || lowerTitle.includes('holiday') || lowerTitle.includes('exam')) {
@@ -109,6 +298,7 @@ export default function Topbar({ onToggleMobileMenu }) {
         bg: 'bg-indigo-100 text-indigo-700',
         badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
         label: lowerTitle.includes('holiday') ? 'Holiday' : 'Academic Calendar',
+        actionLabel: 'View Calendar',
       };
     }
     if (type === 'fee' || lowerTitle.includes('fee') || lowerTitle.includes('receipt') || lowerTitle.includes('due')) {
@@ -117,6 +307,34 @@ export default function Topbar({ onToggleMobileMenu }) {
         bg: 'bg-emerald-100 text-emerald-700',
         badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         label: 'Accounts / Fee',
+        actionLabel: 'View Fees',
+      };
+    }
+    if (type === 'attendance' || lowerTitle.includes('attendance')) {
+      return {
+        icon: LuCircleCheck,
+        bg: 'bg-cyan-100 text-cyan-700',
+        badge: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+        label: 'Attendance',
+        actionLabel: 'View Attendance',
+      };
+    }
+    if (type === 'assignment' || lowerTitle.includes('assignment') || lowerTitle.includes('homework')) {
+      return {
+        icon: LuFileText,
+        bg: 'bg-blue-100 text-blue-700',
+        badge: 'bg-blue-50 text-blue-700 border-blue-200',
+        label: 'Assignment',
+        actionLabel: 'View Assignment',
+      };
+    }
+    if (type === 'syllabus' || lowerTitle.includes('syllabus')) {
+      return {
+        icon: LuGraduationCap,
+        bg: 'bg-violet-100 text-violet-700',
+        badge: 'bg-violet-50 text-violet-700 border-violet-200',
+        label: 'Syllabus',
+        actionLabel: 'View Syllabus',
       };
     }
     if (type === 'alert') {
@@ -125,6 +343,7 @@ export default function Topbar({ onToggleMobileMenu }) {
         bg: 'bg-rose-100 text-rose-700',
         badge: 'bg-rose-50 text-rose-700 border-rose-200',
         label: 'Alert',
+        actionLabel: 'View Details',
       };
     }
     return {
@@ -132,6 +351,7 @@ export default function Topbar({ onToggleMobileMenu }) {
       bg: 'bg-blue-100 text-blue-700',
       badge: 'bg-blue-50 text-blue-700 border-blue-200',
       label: 'Notice',
+      actionLabel: 'View Notice',
     };
   };
 
@@ -221,7 +441,7 @@ export default function Topbar({ onToggleMobileMenu }) {
                       <div
                         key={notif.id}
                         onClick={() => handleNotificationClick(notif)}
-                        className={`p-3.5 hover:bg-gray-50/80 cursor-pointer transition-colors flex items-start gap-3 ${
+                        className={`group p-3.5 hover:bg-gray-50/90 cursor-pointer transition-all flex items-start gap-3 ${
                           !notif.is_read ? 'bg-primary-50/30' : ''
                         }`}
                       >
@@ -231,7 +451,7 @@ export default function Topbar({ onToggleMobileMenu }) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-1.5">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${meta.badge}`}>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${meta.badge}`}>
                                 {meta.label}
                               </span>
                               <p className={`text-xs ${!notif.is_read ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'}`}>
@@ -247,9 +467,15 @@ export default function Topbar({ onToggleMobileMenu }) {
                               {notif.message}
                             </p>
                           )}
-                          <p className="text-[10px] text-gray-400 mt-1 font-medium">
-                            {notif.time_ago || notif.created_at}
-                          </p>
+                          <div className="flex items-center justify-between mt-1.5 pt-0.5">
+                            <p className="text-[10px] text-gray-400 font-medium">
+                              {notif.time_ago || notif.created_at}
+                            </p>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary-600 opacity-75 group-hover:opacity-100 transition-all">
+                              <span>{meta.actionLabel || 'Open'}</span>
+                              <LuChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );

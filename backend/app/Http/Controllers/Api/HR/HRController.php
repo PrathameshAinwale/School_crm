@@ -251,6 +251,7 @@ class HRController extends Controller
                 'title' => "Leave Request {$newStatus}",
                 'message' => "Your {$leave->type} application for {$leave->from_date->format('d M Y')} has been {$newStatus} by HR.",
                 'type' => $newStatus === 'Approved' ? 'success' : 'alert',
+                'link' => '/hr/apply-leave',
                 'is_read' => false,
             ]);
         }
@@ -783,7 +784,7 @@ class HRController extends Controller
             'title' => 'New Faculty Training: ' . $training->title,
             'message' => "Upcoming {$training->category} training workshop on " . Carbon::parse($training->date)->format('d M Y') . " at {$training->venue} ({$training->time_slot}). Trainer: {$training->trainer_name}.",
             'type' => 'training',
-            'link' => '/school-events',
+            'link' => '/trainings',
             'is_read' => false,
         ]);
 

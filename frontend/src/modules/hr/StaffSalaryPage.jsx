@@ -9,6 +9,7 @@ import {
   LuPrinter,
   LuCheck,
   LuX,
+  LuSend,
   LuCalculator,
   LuUsers,
   LuBuilding2,
@@ -246,7 +247,7 @@ export default function StaffSalaryPage() {
 
       {/* Header Card */}
       <div className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-xs">
               <LuBanknote className="w-6 h-6" />
@@ -262,13 +263,13 @@ export default function StaffSalaryPage() {
           </div>
 
           {/* Month Selector & Batch Actions */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-gray-500">Payroll Cycle:</span>
+          <div className="flex items-center gap-2 sm:gap-3 flex-nowrap shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-bold text-gray-500 whitespace-nowrap">Payroll Cycle:</span>
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="h-10 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all cursor-pointer font-medium"
+                className="h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all cursor-pointer shrink-0"
               >
                 {availableMonths.map((mLabel) => (
                   <option key={mLabel} value={mLabel}>
@@ -281,23 +282,25 @@ export default function StaffSalaryPage() {
             <button
               onClick={fetchSalaries}
               title="Refresh Salary Calculation"
-              className="p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-emerald-600 transition-colors cursor-pointer"
+              className="p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
             >
               <LuRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
 
             <button
               onClick={handleRequestDisbursementToAccounts}
-              className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+              className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer whitespace-nowrap shrink-0"
             >
-              <LuSend className="w-4 h-4" /> Request Disbursement to Accounts
+              <LuSend className="w-4 h-4 shrink-0" />
+              <span>Request Disbursement to Accounts</span>
             </button>
 
             <button
               onClick={handleDisburseBatch}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+              className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer whitespace-nowrap shrink-0"
             >
-              <LuCalculator className="w-4 h-4" /> Direct Disburse
+              <LuCalculator className="w-4 h-4 shrink-0" />
+              <span>Direct Disburse</span>
             </button>
           </div>
         </div>
