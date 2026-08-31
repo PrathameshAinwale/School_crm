@@ -17,6 +17,7 @@ import {
 import { hrService } from '../../services/hrService';
 import { adminService } from '../../services/adminService';
 import { TEACHERS_LIST } from '../../data/trainingsStore';
+import { formatDateDisplay } from '../hr/HRTrainingsPage';
 
 export default function TeacherTrainingsPage() {
   const [trainings, setTrainings] = useState([]);
@@ -51,7 +52,7 @@ export default function TeacherTrainingsPage() {
           category: t.category,
           trainer: t.trainer_name || t.trainer || 'Faculty Trainer',
           trainerOrg: 'Institutional Training Wing',
-          date: t.date ? new Date(t.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Scheduled',
+          date: formatDateDisplay(t.date),
           time: t.time_slot || t.time || '10:00 AM - 01:00 PM',
           venue: t.venue || 'Main Auditorium',
           mode: 'In-Person',

@@ -23,6 +23,22 @@ import { hrService } from '../../services/hrService';
 import { adminService } from '../../services/adminService';
 import { addTrainingProgram, deleteTrainingProgram } from '../../data/trainingsStore';
 
+export function formatDateDisplay(dateStr) {
+  if (!dateStr) return 'Scheduled';
+  const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [_, y, m, d] = match;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthName = months[parseInt(m, 10) - 1] || m;
+    return `${parseInt(d, 10)} ${monthName} ${y}`;
+  }
+  const parsed = new Date(dateStr);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  return dateStr;
+}
+
 export default function HRTrainingsPage() {
   const [trainings, setTrainings] = useState([]);
   const [teachersList, setTeachersList] = useState([]);
@@ -81,7 +97,8 @@ export default function HRTrainingsPage() {
           category: t.category,
           trainer: t.trainer_name || t.trainer || 'Faculty Trainer',
           trainerOrg: 'Institutional Training Wing',
-          date: t.date ? new Date(t.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Scheduled',
+          date: formatDateDisplay(t.date),
+          raw_date: t.date,
           time: t.time_slot || t.time || '10:00 AM - 01:00 PM',
           venue: t.venue || 'Main Auditorium',
           mode: 'In-Person',
@@ -196,7 +213,21 @@ export default function HRTrainingsPage() {
     const title = formData.get('title');
     const category = formData.get('category') || 'Pedagogy';
     const trainer = formData.get('trainer');
-    const date = formData.get('date') || new Date().toISOString().split('T')[0];
+    const rawDate = formData.get('date');
+    let backendDate = '';
+    if (rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+      backendDate = rawDate;
+    } else if (rawDate) {
+      const parsed = new Date(rawDate);
+      if (!isNaN(parsed.getTime())) {
+        backendDate = parsed.toISOString().split('T')[0];
+      }
+    }
+    if (!backendDate) {
+      backendDate = new Date().toISOString().split('T')[0];
+    }
+    const displayDate = formatDateDisplay(backendDate);
+
     const time = formData.get('time') || '10:00 AM - 01:00 PM';
     const venue = formData.get('venue') || 'Main Auditorium';
     const description = formData.get('description');
@@ -207,7 +238,8 @@ export default function HRTrainingsPage() {
       category,
       trainer,
       trainerOrg: formData.get('trainerOrg') || 'Institutional Training Wing',
-      date: date || '25 Aug 2026',
+      date: displayDate,
+      raw_date: backendDate,
       time,
       venue,
       mode: formData.get('mode') || 'In-Person',
@@ -224,7 +256,7 @@ export default function HRTrainingsPage() {
         title,
         category,
         trainer_name: trainer,
-        date: date.includes('-') ? date : new Date().toISOString().split('T')[0],
+        date: backendDate,
         time_slot: time,
         venue,
         target_type: targetType,
@@ -736,10 +768,11 @@ export default function HRTrainingsPage() {
                 <div>
                   <label className="block font-semibold text-gray-700 mb-1">Date *</label>
                   <input
+                    type="date"
                     name="date"
                     required
-                    defaultValue="28 Aug 2026"
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none"
+                    defaultValue={new Date().toISOString().split('T')[0]}
+                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:ring-1 focus:ring-primary-500 focus:outline-none font-medium text-gray-800"
                   />
                 </div>
                 <div>
