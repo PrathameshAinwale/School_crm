@@ -20,6 +20,7 @@ import {
 } from 'react-icons/lu';
 import { hrService } from '../../services/hrService';
 import { adminService } from '../../services/adminService';
+import { addTrainingProgram } from '../../data/trainingsStore';
 
 export default function HRTrainingsPage() {
   const [trainings, setTrainings] = useState([]);
@@ -35,6 +36,7 @@ export default function HRTrainingsPage() {
   const [selectedGroup, setSelectedGroup] = useState('ALL');
   const [selectedSpecificTeachers, setSelectedSpecificTeachers] = useState([]);
   const [teacherSearchQuery, setTeacherSearchQuery] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchTrainings = async () => {
     setLoading(true);
@@ -131,6 +133,7 @@ export default function HRTrainingsPage() {
 
   const handleCreateTraining = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
     const formData = new FormData(e.target);
 
     let assignedAttendees = [];
@@ -214,8 +217,8 @@ export default function HRTrainingsPage() {
       attendees: assignedAttendees,
     };
 
-    // Save to backend database and dispatch notifications
     try {
+      // Save to backend database and dispatch notifications
       await hrService.createTraining({
         title,
         category,
@@ -231,14 +234,25 @@ export default function HRTrainingsPage() {
       });
       await fetchTrainings();
     } catch (err) {
-      console.log('Saved training locally:', err);
+      console.log('Saved training error:', err);
     }
 
-    const updated = addTrainingProgram(newProg);
-    setTrainings(updated);
-    setShowPlanModal(false);
-    setSelectedSpecificTeachers([]);
-    alert(`Training program "${newProg.title}" planned successfully! Notifications dispatched to ${assignedAttendees.length} assigned educators.`);
+    try {
+      if (typeof addTrainingProgram === 'function') {
+        const updated = addTrainingProgram(newProg);
+        if (Array.isArray(updated) && updated.length > 0) {
+          setTrainings(updated);
+        }
+      }
+    } catch (err) {
+      console.log('Local store update error:', err);
+    } finally {
+      // Always close popup form and reset form state
+      setShowPlanModal(false);
+      setSelectedSpecificTeachers([]);
+      setTeacherSearchQuery('');
+      setSubmitting(false);
+    }
   };
 
   const handleHRMarkAttendance = (trainingId, teacherId) => {
@@ -865,16 +879,19 @@ export default function HRTrainingsPage() {
               <div className="p-4 bg-gray-50 -mx-5 -mb-5 border-t border-gray-200 flex items-center justify-end gap-2">
                 <button
                   type="button"
+                  disabled={submitting}
                   onClick={() => setShowPlanModal(false)}
-                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-semibold"
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-gray-700 rounded-lg text-xs font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-xs font-bold shadow-sm flex items-center gap-1.5"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white rounded-lg text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed transition-all"
                 >
-                  <LuBell className="w-3.5 h-3.5" /> Plan & Dispatch Notifications
+                  <LuBell className={`w-3.5 h-3.5 ${submitting ? 'animate-bounce' : ''}`} />
+                  {submitting ? 'Planning & Dispatching...' : 'Plan & Dispatch Notifications'}
                 </button>
               </div>
             </form>
