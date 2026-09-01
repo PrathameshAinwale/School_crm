@@ -27,14 +27,14 @@ export default function StatCard({ label, value, trend, trendUp, color = 'blue',
 
       {trend && (
         <span
-          className={`inline-flex items-center gap-0.5 text-[8px] sm:text-[11px] font-bold px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full whitespace-nowrap shrink-0 self-center ${
+          className={`inline-flex items-center gap-0.5 text-[8.5px] sm:text-[11px] font-bold px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full whitespace-nowrap shrink-0 self-center ${
             trendUp
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
               : 'bg-rose-50 text-rose-700 border border-rose-200'
           }`}
         >
           {trendUp ? <LuTrendingUp className="w-2 h-2 sm:w-3 sm:h-3 shrink-0" /> : <LuTrendingDown className="w-2 h-2 sm:w-3 sm:h-3 shrink-0" />}
-          <span className="truncate max-w-[55px] sm:max-w-[110px]">{trend}</span>
+          <span>{trend}</span>
         </span>
       )}
     </div>

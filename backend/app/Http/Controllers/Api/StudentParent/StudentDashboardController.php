@@ -12,6 +12,7 @@ use App\Models\Syllabus;
 use App\Models\Timetable;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class StudentDashboardController extends Controller
 {
@@ -41,7 +42,7 @@ class StudentDashboardController extends Controller
         $className = $student && $student->schoolClass ? $student->schoolClass->name : 'Class 10';
         $sectionName = $student && $student->section ? $student->section->name : 'Saffron A';
 
-        // 1. Overall Attendance Rate
+        // 1. Overall Attendance Rate directly from real database rows
         $totalDays = StudentAttendance::where('student_id', $studentId)->count();
         $presentDays = StudentAttendance::where('student_id', $studentId)->where('status', 'Present')->count();
         $lateDays = StudentAttendance::where('student_id', $studentId)->where('status', 'Late')->count();
@@ -49,24 +50,37 @@ class StudentDashboardController extends Controller
         if ($totalDays > 0) {
             $attendanceRate = round((($presentDays + $lateDays) / $totalDays) * 100, 1);
             $attendanceSubtext = "{$presentDays} of {$totalDays} days present";
+            $attendanceBadge = "{$presentDays}/{$totalDays} Days";
         } else {
-            $attendanceRate = 96.2;
-            $presentDays = 84;
-            $totalDays = 87;
-            $attendanceSubtext = "84 of 87 days present";
+            $attendanceRate = 0;
+            $presentDays = 0;
+            $totalDays = 0;
+            $attendanceSubtext = "0 days logged";
+            $attendanceBadge = "0 Recorded";
         }
 
-        // 2. Average Syllabus Completion
+        // 2. Average Syllabus Completion directly from real database rows
         $syllabuses = Syllabus::with('units')->where(function ($q) use ($classId, $className) {
             if ($classId) $q->where('school_class_id', $classId);
             $q->orWhere('class_name', $className)->orWhereNull('school_class_id');
         })->get();
 
+        $totalUnits = 0;
+        $completedUnits = 0;
+        foreach ($syllabuses as $s) {
+            $totalUnits += $s->units ? $s->units->count() : 0;
+            $completedUnits += $s->units ? $s->units->where('status', 'Completed')->count() : 0;
+        }
+
         $avgSyllabus = $syllabuses->count() > 0
             ? round($syllabuses->avg('completion_percentage'))
-            : 68;
+            : 0;
 
-        // 3. Pending Assignments
+        $syllabusBadge = $totalUnits > 0
+            ? "{$completedUnits}/{$totalUnits} Units"
+            : ($syllabuses->count() > 0 ? "{$syllabuses->count()} Subjects" : "0% Done");
+
+        // 3. Pending Assignments directly from real database rows
         $allAssignments = Assignment::where(function ($q) use ($classId) {
             if ($classId) {
                 $q->where('school_class_id', $classId);
@@ -79,37 +93,44 @@ class StudentDashboardController extends Controller
             return !in_array($a->id, $submittedIds);
         });
 
-        $pendingHomeworkCount = $pendingAssignments->count() > 0 ? $pendingAssignments->count() : 2;
+        $pendingHomeworkCount = $pendingAssignments->count();
+        $assignmentBadge = $pendingHomeworkCount === 0
+            ? 'All Submitted'
+            : "{$pendingHomeworkCount} Due Soon";
 
-        // 4. Upcoming Events count
-        $upcomingEventsCount = SchoolCalendarEvent::where('start_date', '>=', Carbon::now()->toDateString())->count();
-        if ($upcomingEventsCount === 0) {
-            $upcomingEventsCount = 3;
-        }
+        // 4. Upcoming Events count directly from real database rows
+        $now = Carbon::now()->toDateString();
+        $upcomingEventsQuery = SchoolCalendarEvent::where('start_date', '>=', $now)->orderBy('start_date', 'asc');
+        $upcomingEventsCount = $upcomingEventsQuery->count();
+        $nextEvent = $upcomingEventsQuery->first();
 
-        // 5. KPI Stats Cards
+        $calendarBadge = $nextEvent
+            ? 'Next: ' . Carbon::parse($nextEvent->start_date)->format('M d')
+            : ($upcomingEventsCount > 0 ? "{$upcomingEventsCount} Events" : 'None');
+
+        // 5. KPI Stats Cards - 100% dynamic
         $stats = [
             [
                 'title' => 'Syllabus Covered',
                 'value' => "{$avgSyllabus}%",
                 'trend' => 'up',
-                'change' => '+8% this month',
+                'change' => $syllabusBadge,
                 'link' => '/syllabus',
-                'subtext' => 'Academic Term Progress',
+                'subtext' => "{$completedUnits} of {$totalUnits} units completed",
             ],
             [
                 'title' => 'Overall Attendance',
                 'value' => "{$attendanceRate}%",
-                'trend' => 'up',
-                'change' => '96.2% rate',
+                'trend' => $attendanceRate >= 75 ? 'up' : 'down',
+                'change' => $attendanceBadge,
                 'link' => '/attendance',
                 'subtext' => $attendanceSubtext,
             ],
             [
                 'title' => 'Pending Homework',
                 'value' => (string) $pendingHomeworkCount,
-                'trend' => 'up',
-                'change' => '2 tasks due soon',
+                'trend' => $pendingHomeworkCount === 0 ? 'up' : 'down',
+                'change' => $assignmentBadge,
                 'link' => '/assignment',
                 'subtext' => "{$pendingHomeworkCount} pending task(s)",
             ],
@@ -117,9 +138,9 @@ class StudentDashboardController extends Controller
                 'title' => 'Upcoming Events',
                 'value' => (string) $upcomingEventsCount,
                 'trend' => 'up',
-                'change' => 'Next: Mid-Terms',
+                'change' => $calendarBadge,
                 'link' => '/calendar',
-                'subtext' => 'School Calendar Events',
+                'subtext' => $nextEvent ? Carbon::parse($nextEvent->start_date)->format('M d') . ' • ' . $nextEvent->title : 'School Calendar Events',
             ],
         ];
 

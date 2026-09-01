@@ -738,22 +738,6 @@ export default function AttendancePage() {
                   <LuChevronRight className="w-4 h-4" />
                 </button>
               </div>
-
-              {/* Month Quick Select */}
-              <select
-                value={`${selectedYear}-${selectedMonth}`}
-                onChange={handleSelectMonthChange}
-                className="bg-white border border-slate-200 text-xs font-semibold text-slate-700 px-3 py-1.5 rounded-xl shadow-2xs focus:outline-none cursor-pointer"
-              >
-                {ACADEMIC_MONTHS.map((m) => {
-                  const cnt = monthCountsMap[`${m.year}-${m.month}`];
-                  return (
-                    <option key={`heat-${m.year}-${m.month}`} value={`${m.year}-${m.month}`}>
-                      {m.label} {cnt ? `(${cnt} ${cnt === 1 ? 'entry' : 'entries'})` : '(Upcoming)'}
-                    </option>
-                  );
-                })}
-              </select>
             </div>
           </div>
 
