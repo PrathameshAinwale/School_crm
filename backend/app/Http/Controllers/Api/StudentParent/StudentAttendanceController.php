@@ -7,6 +7,7 @@ use App\Models\LeaveApplication;
 use App\Models\Notification;
 use App\Models\Student;
 use App\Models\StudentAttendance;
+use App\Models\Teacher;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
