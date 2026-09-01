@@ -16,7 +16,7 @@ import {
 export default function FeedbackPage() {
   const navigate = useNavigate();
   const [feedbacks, setFeedbacks] = useState([]);
-  const [avgRating, setAvgRating] = useState(0);
+  const [avgRating, setAvgRating] = useState(5.0);
   const [selectedSubject, setSelectedSubject] = useState('Mathematics (Dr. Ananya Sen)');
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
@@ -31,13 +31,18 @@ export default function FeedbackPage() {
         if (res?.data) {
           if (res.data.feedbacks && Array.isArray(res.data.feedbacks)) {
             setFeedbacks(res.data.feedbacks);
+          } else {
+            setFeedbacks([]);
           }
           if (res.data.avgRating !== undefined) {
             setAvgRating(res.data.avgRating);
           }
         }
       })
-      .catch((err) => console.log('Feedback fetch error:', err))
+      .catch((err) => {
+        console.error('Feedback fetch error from database:', err);
+        setFeedbacks([]);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -194,34 +199,34 @@ export default function FeedbackPage() {
             {feedbacks.map((fb) => (
               <div
                 key={fb.id}
-                className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3"
+                className="bg-white p-3 sm:p-5 rounded-xl border border-gray-200 shadow-2xs space-y-2.5"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-gray-800">{fb.subject}</span>
-                      <span className="text-xs text-gray-400">• {fb.teacher}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-bold text-gray-800 truncate">{fb.subject}</span>
+                      <span className="text-[11px] text-gray-400 truncate">• {fb.teacher}</span>
                     </div>
-                    <span className="text-[11px] text-gray-400">{fb.date}</span>
+                    <span className="text-[10px] sm:text-[11px] text-gray-400">{fb.date}</span>
                   </div>
 
-                  <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 text-amber-700 font-bold text-xs">
-                    <LuStar className="w-3.5 h-3.5 fill-current" />
+                  <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 text-amber-700 font-bold text-xs shrink-0">
+                    <LuStar className="w-3 h-3 fill-current" />
                     <span>{fb.rating}</span>
                   </div>
                 </div>
 
-                <p className="text-xs text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
+                <p className="text-[11px] sm:text-xs text-gray-700 leading-relaxed bg-gray-50 p-2.5 sm:p-3 rounded-lg border border-gray-100 line-clamp-3 sm:line-clamp-none">
                   "{fb.comment}"
                 </p>
 
                 {fb.adminResponse ? (
-                  <div className="p-3 rounded-lg bg-emerald-50/70 border border-emerald-100 text-xs text-emerald-900 space-y-0.5">
-                    <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Administration Action & Response</span>
-                    <p className="leading-snug">{fb.adminResponse}</p>
+                  <div className="p-2.5 sm:p-3 rounded-lg bg-emerald-50/70 border border-emerald-100 text-[11px] sm:text-xs text-emerald-900 space-y-0.5">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Admin Response</span>
+                    <p className="leading-snug line-clamp-2 sm:line-clamp-none">{fb.adminResponse}</p>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-gray-400 italic">Awaiting administrative review...</p>
+                  <p className="text-[10px] text-gray-400 italic">Awaiting review...</p>
                 )}
               </div>
             ))}

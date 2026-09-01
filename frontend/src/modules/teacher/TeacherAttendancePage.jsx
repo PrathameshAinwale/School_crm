@@ -218,50 +218,50 @@ export default function TeacherAttendancePage() {
         </div>
 
         {/* Clock In & Clock Out Details */}
-        <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 bg-gradient-to-b from-slate-50/50 to-white">
+        <div className="p-3 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-4 bg-gradient-to-b from-slate-50/50 to-white">
           {/* Clock In Card */}
-          <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-center justify-between">
-            <div className="flex items-center gap-2.5 sm:gap-3.5">
-              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+          <div className="p-2.5 sm:p-5 rounded-xl sm:rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-3.5">
+              <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
                 <LuLogIn className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <span className="text-[10px] sm:text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+                <span className="text-[9px] sm:text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
                   Clock In Time
                 </span>
-                <span className="text-base sm:text-xl font-bold font-mono text-gray-900 mt-0.5 block">
+                <span className="text-sm sm:text-xl font-bold font-mono text-gray-900 mt-0.5 block">
                   {punchInTime || '—'}
                 </span>
               </div>
             </div>
             {punchInTime && (
-              <span className="text-[10px] sm:text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">
+              <span className="text-[9px] sm:text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">
                 Marked
               </span>
             )}
           </div>
 
           {/* Clock Out Card */}
-          <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-rose-50/60 border border-rose-100 flex items-center justify-between">
-            <div className="flex items-center gap-2.5 sm:gap-3.5">
-              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+          <div className="p-2.5 sm:p-5 rounded-xl sm:rounded-2xl bg-rose-50/60 border border-rose-100 flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-3.5">
+              <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
                 <LuLogOut className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <span className="text-[10px] sm:text-[11px] font-bold text-rose-800 uppercase tracking-wider block">
+                <span className="text-[9px] sm:text-[11px] font-bold text-rose-800 uppercase tracking-wider block">
                   Clock Out Time
                 </span>
-                <span className="text-base sm:text-xl font-bold font-mono text-gray-900 mt-0.5 block">
+                <span className="text-sm sm:text-xl font-bold font-mono text-gray-900 mt-0.5 block">
                   {punchOutTime || (isPunchedIn ? 'In Progress...' : '—')}
                 </span>
               </div>
             </div>
             {punchOutTime ? (
-              <span className="text-[10px] sm:text-[11px] font-bold text-rose-700 bg-rose-100/80 px-2 py-0.5 rounded-md">
-                Completed
+              <span className="text-[9px] sm:text-[11px] font-bold text-rose-700 bg-rose-100/80 px-2 py-0.5 rounded-md">
+                Marked
               </span>
             ) : isPunchedIn ? (
-              <span className="text-[11px] font-bold text-amber-700 bg-amber-100/80 px-2.5 py-1 rounded-lg animate-pulse">
+              <span className="text-[9px] sm:text-[11px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md animate-pulse">
                 Active
               </span>
             ) : null}

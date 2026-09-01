@@ -35,7 +35,7 @@ export default function StudyMaterialPage() {
         }
       })
       .catch((err) => {
-        console.log('Error fetching study materials:', err);
+        console.error('Error fetching study materials from database:', err);
         setMaterials([]);
       })
       .finally(() => setLoading(false));
@@ -114,34 +114,34 @@ export default function StudyMaterialPage() {
         {filteredMaterials.map((mat) => (
           <div
             key={mat.id}
-            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:border-gray-300 transition-colors flex flex-col justify-between"
+            className="bg-white p-3 sm:p-5 rounded-xl border border-gray-200 shadow-2xs hover:border-gray-300 transition-colors flex flex-col justify-between"
           >
             <div>
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200">
+              <div className="flex items-start justify-between gap-2 mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200">
                     {mat.type}
                   </span>
-                  <span className="text-xs font-bold text-primary-600">{mat.subject}</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-primary-600 truncate max-w-[120px] sm:max-w-none">{mat.subject}</span>
                 </div>
-                <span className="text-xs text-gray-400 font-mono">{mat.size}</span>
+                <span className="text-[10px] sm:text-xs text-gray-400 font-mono shrink-0">{mat.size}</span>
               </div>
 
-              <h3 className="text-sm font-bold text-gray-800 leading-snug mb-1.5">{mat.title}</h3>
-              <p className="text-xs text-gray-600 leading-relaxed mb-3">{mat.desc}</p>
+              <h3 className="text-xs sm:text-sm font-bold text-gray-800 leading-snug mb-1">{mat.title}</h3>
+              <p className="text-[11px] sm:text-xs text-gray-500 leading-relaxed mb-2 line-clamp-1 sm:line-clamp-none">{mat.desc}</p>
             </div>
 
-            <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-              <div className="text-[11px] text-gray-400">
-                <p>Uploaded by <strong>{mat.uploader}</strong></p>
-                <p>{mat.date} • {mat.downloads} downloads</p>
+            <div className="pt-2 sm:pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+              <div className="text-[10px] sm:text-[11px] text-gray-400 truncate max-w-[140px] sm:max-w-none">
+                <p className="truncate">{mat.uploader}</p>
+                <p className="text-gray-400">{mat.date}</p>
               </div>
 
               <button
                 onClick={() => handleDownload(mat)}
-                className="px-3.5 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium inline-flex items-center gap-1.5 shadow-sm transition-colors"
+                className="px-3 sm:px-3.5 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[11px] sm:text-xs font-semibold inline-flex items-center gap-1 shadow-2xs transition-colors shrink-0 cursor-pointer"
               >
-                <LuDownload className="w-3.5 h-3.5" /> Download
+                <LuDownload className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Download
               </button>
             </div>
           </div>

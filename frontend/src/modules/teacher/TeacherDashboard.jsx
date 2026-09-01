@@ -129,16 +129,16 @@ export default function TeacherDashboard() {
               <div
                 key={card.id}
                 onClick={() => navigate(card.path)}
-                className="bg-white rounded-xl sm:rounded-2xl p-3.5 sm:p-5 border border-gray-200/80 shadow-xs hover:shadow-lg hover:border-primary-300 hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between group relative overflow-hidden"
+                className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-200/80 shadow-2xs hover:shadow-lg hover:border-primary-300 hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between group relative overflow-hidden"
               >
                 <div className="absolute top-0 left-0 right-0 h-1 bg-primary-600 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                 <div>
-                  <div className="flex items-center justify-between mb-2.5 sm:mb-3.5">
-                    <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl ${card.iconBg} flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform`}>
-                      <Icon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+                  <div className="flex items-center justify-between mb-2 sm:mb-3.5">
+                    <div className={`w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl ${card.iconBg} flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform`}>
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
-                    <span className={`text-[10px] sm:text-[11px] font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border ${card.badgeColor}`}>
+                    <span className={`text-[9px] sm:text-[11px] font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border ${card.badgeColor}`}>
                       {card.badge}
                     </span>
                   </div>
@@ -147,7 +147,7 @@ export default function TeacherDashboard() {
                     {card.title}
                   </h3>
 
-                  <div className="mt-2.5 p-2.5 sm:p-3 rounded-xl bg-gray-50/80 border border-gray-100/80 space-y-0.5">
+                  <div className="mt-2 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gray-50/80 border border-gray-100/80 space-y-0.5">
                     <p className="text-xs sm:text-sm font-bold text-gray-800">{card.highlight}</p>
                     <div className="flex items-center justify-between text-[10px] sm:text-xs text-gray-500 font-medium pt-0.5">
                       <span className="flex items-center gap-1">
@@ -157,12 +157,12 @@ export default function TeacherDashboard() {
                     </div>
                   </div>
 
-                  <p className="text-[11px] sm:text-xs text-gray-500 mt-2 font-medium line-clamp-2">
+                  <p className="text-[11px] sm:text-xs text-gray-500 mt-2 font-medium line-clamp-2 hidden sm:block">
                     {card.subtext}
                   </p>
                 </div>
 
-                <div className="mt-3.5 sm:mt-4 pt-2.5 sm:pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] sm:text-xs font-bold text-primary-600 group-hover:text-primary-700">
+                <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] sm:text-xs font-bold text-primary-600 group-hover:text-primary-700">
                   <span>{card.actionText}</span>
                   <LuArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </div>

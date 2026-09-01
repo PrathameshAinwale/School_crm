@@ -41,7 +41,7 @@ export default function DashboardLayout() {
         <Topbar
           onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
         />
-        <main className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto max-w-full">
+        <main className="flex-1 p-2.5 sm:p-4 lg:p-6 overflow-y-auto overflow-x-hidden max-w-full">
           <Outlet />
         </main>
       </div>

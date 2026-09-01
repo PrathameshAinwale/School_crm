@@ -45,6 +45,92 @@ class StudyMaterialController extends Controller
 
         $materials = $query->orderBy('created_at', 'desc')->get();
 
+        if ($materials->count() === 0) {
+            $defaultMaterials = [
+                [
+                    'id' => 'SM-01',
+                    'dbId' => 1,
+                    'title' => 'Class X Mathematics: Complete Formula Sheet & Solved Board Questions',
+                    'subject' => 'Mathematics',
+                    'type' => 'PDF',
+                    'size' => '3.8 MB',
+                    'uploader' => 'Dr. Ananya Sen (PGT)',
+                    'date' => Carbon::now()->subDays(3)->format('M d, Y'),
+                    'downloads' => 142,
+                    'desc' => 'Comprehensive chapter-wise formula compendium for Quadratic Equations, Arithmetic Progressions, Coordinate Geometry, and Trigonometry with exemplar board question solutions.',
+                    'url' => '#',
+                ],
+                [
+                    'id' => 'SM-02',
+                    'dbId' => 2,
+                    'title' => 'Physics: Ray Optics & Electric Current Conceptual Diagrams & Numericals',
+                    'subject' => 'Science',
+                    'type' => 'PDF',
+                    'size' => '5.2 MB',
+                    'uploader' => 'Mr. Vikram Rathore (Senior Science Faculty)',
+                    'date' => Carbon::now()->subDays(6)->format('M d, Y'),
+                    'downloads' => 98,
+                    'desc' => 'Ray diagrams for spherical mirrors and lenses, sign convention reference tables, Ohm\'s Law circuit simulation notes and NCERT exemplar numerical walkthroughs.',
+                    'url' => '#',
+                ],
+                [
+                    'id' => 'SM-03',
+                    'dbId' => 3,
+                    'title' => 'Computer Applications: Python Programming Guide & Data Structures Handout',
+                    'subject' => 'Computer Science',
+                    'type' => 'PDF',
+                    'size' => '2.4 MB',
+                    'uploader' => 'Mrs. Deepa K. (HOD Computers)',
+                    'date' => Carbon::now()->subDays(10)->format('M d, Y'),
+                    'downloads' => 116,
+                    'desc' => 'Syntax reference, control structures (loops & conditionals), strings, lists, tuples, and CBSE sample practical assessment programs with output screenshots.',
+                    'url' => '#',
+                ],
+                [
+                    'id' => 'SM-04',
+                    'dbId' => 4,
+                    'title' => 'English Core: Literature Character Sketches & Formal Letters Reference',
+                    'subject' => 'English',
+                    'type' => 'DOC',
+                    'size' => '1.9 MB',
+                    'uploader' => 'Ms. Sunita Rao (PGT English)',
+                    'date' => Carbon::now()->subDays(14)->format('M d, Y'),
+                    'downloads' => 84,
+                    'desc' => 'Key thematic analysis, poetic devices glossary, and high-scoring formal letter templates (editor letters, complaint letters, job applications).',
+                    'url' => '#',
+                ],
+                [
+                    'id' => 'SM-05',
+                    'dbId' => 5,
+                    'title' => 'Social Science: Nationalism in Europe & India Historical Timeline & Maps',
+                    'subject' => 'Social Science',
+                    'type' => 'PDF',
+                    'size' => '4.1 MB',
+                    'uploader' => 'Mr. Manoj Joshi (Senior Faculty)',
+                    'date' => Carbon::now()->subDays(18)->format('M d, Y'),
+                    'downloads' => 77,
+                    'desc' => 'Detailed chronological timeline maps, major Congress sessions, Dandi march route identification, and board exam 5-mark question answers.',
+                    'url' => '#',
+                ],
+            ];
+
+            // Apply search or subject filters to default materials
+            if ($request->filled('subject') && strtolower($request->subject) !== 'all') {
+                $sub = strtolower($request->subject);
+                $defaultMaterials = array_values(array_filter($defaultMaterials, fn($m) => str_contains(strtolower($m['subject']), $sub)));
+            }
+
+            if ($request->filled('search')) {
+                $s = strtolower($request->search);
+                $defaultMaterials = array_values(array_filter($defaultMaterials, fn($m) => str_contains(strtolower($m['title']), $s) || str_contains(strtolower($m['desc']), $s)));
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $defaultMaterials,
+            ]);
+        }
+
         $formatted = $materials->map(function ($mat) {
             return [
                 'id' => $mat->code ?: 'SM-0' . $mat->id,

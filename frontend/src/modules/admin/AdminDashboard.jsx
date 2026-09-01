@@ -161,10 +161,10 @@ export default function AdminDashboard() {
               <Link
                 key={mod.path}
                 to={mod.path}
-                className="group bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-primary-200 transition-all flex flex-col justify-between"
+                className="group bg-white p-3 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs hover:shadow-md hover:border-primary-200 transition-all flex flex-col justify-between"
               >
                 <div>
-                  <div className="flex items-center justify-between mb-2.5 sm:mb-3">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors">
                       <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
@@ -172,10 +172,10 @@ export default function AdminDashboard() {
                       {mod.count}
                     </span>
                   </div>
-                  <h3 className="font-bold text-gray-800 text-xs sm:text-sm mb-1 group-hover:text-primary-700 transition-colors">
+                  <h3 className="font-bold text-gray-800 text-xs sm:text-sm mb-0.5 sm:mb-1 group-hover:text-primary-700 transition-colors">
                     {mod.title}
                   </h3>
-                  <p className="text-[11px] sm:text-xs text-gray-400 leading-relaxed line-clamp-2">
+                  <p className="text-[11px] sm:text-xs text-gray-400 leading-relaxed line-clamp-2 hidden sm:block">
                     {mod.subtitle}
                   </p>
                 </div>

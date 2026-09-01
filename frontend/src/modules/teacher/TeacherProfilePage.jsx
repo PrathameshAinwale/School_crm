@@ -29,7 +29,11 @@ export default function TeacherProfilePage() {
 
   // Edit form state
   const [editForm, setEditForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
     phone: '',
+    date_of_birth: '',
     gender: 'Male',
     blood_group: 'O+',
     qualification: '',
@@ -45,7 +49,11 @@ export default function TeacherProfilePage() {
       if (res.success && res.data) {
         setProfile(res.data);
         setEditForm({
+          first_name: res.data.first_name || '',
+          last_name: res.data.last_name || '',
+          email: res.data.email || '',
           phone: res.data.phone || '',
+          date_of_birth: res.data.raw_date_of_birth || '',
           gender: res.data.gender || 'Male',
           blood_group: res.data.blood_group || 'O+',
           qualification: res.data.qualification || '',
@@ -363,15 +371,20 @@ export default function TeacherProfilePage() {
       {/* Edit Profile Modal */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-xl w-full my-4 sm:my-8 overflow-hidden animate-scale-up">
-            <div className="bg-gradient-to-r from-primary-600 to-indigo-600 p-5 text-white flex items-center justify-between">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full my-4 sm:my-8 overflow-hidden animate-scale-up max-h-[92vh] flex flex-col">
+            <div className="bg-gradient-to-r from-primary-600 to-indigo-600 p-5 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
                   <LuPencil className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">Update Profile & Contact Details</h3>
-                  <p className="text-primary-100 text-xs">Synchronize personal details directly with school database</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base">Edit Faculty Profile</h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-400 text-emerald-950">
+                      Direct Self-Edit Enabled
+                    </span>
+                  </div>
+                  <p className="text-primary-100 text-xs">Update your personal details directly without administrative delays</p>
                 </div>
               </div>
               <button
@@ -382,98 +395,169 @@ export default function TeacherProfilePage() {
               </button>
             </div>
 
-            <form onSubmit={handleUpdateSubmit} className="p-5 sm:p-6 space-y-3.5 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Mobile Phone Number <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editForm.phone}
-                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                    placeholder="+91 98765 43210"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
-                  />
+            <form onSubmit={handleUpdateSubmit} className="p-5 sm:p-6 space-y-4 text-xs overflow-y-auto flex-1">
+              {/* Section 1: Personal Identity */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+                  <LuUser className="w-4 h-4 text-primary-600" />
+                  <h4 className="font-bold text-slate-800 text-xs">Personal Identity</h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">First Name</label>
+                    <input
+                      type="text"
+                      value={editForm.first_name}
+                      onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
+                      placeholder="e.g. Ramesh"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Last Name</label>
+                    <input
+                      type="text"
+                      value={editForm.last_name}
+                      onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+                      placeholder="e.g. Sharma"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Date of Birth</label>
+                    <input
+                      type="date"
+                      value={editForm.date_of_birth}
+                      onChange={(e) => setEditForm({ ...editForm, date_of_birth: e.target.value })}
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Gender</label>
+                    <select
+                      value={editForm.gender}
+                      onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Blood Group</label>
+                    <select
+                      value={editForm.blood_group}
+                      onChange={(e) => setEditForm({ ...editForm, blood_group: e.target.value })}
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
+                    >
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Contact Details */}
+              <div className="p-3.5 bg-blue-50/50 rounded-xl border border-blue-100 space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-blue-200/60">
+                  <LuPhone className="w-4 h-4 text-blue-600" />
+                  <h4 className="font-bold text-blue-950 text-xs">Contact Information</h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Mobile Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      placeholder="+91 98765 43210"
+                      className="w-full p-2.5 bg-white border border-blue-200 rounded-xl text-slate-800 focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Official Email Address</label>
+                    <input
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      placeholder="teacher@school.com"
+                      className="w-full p-2.5 bg-white border border-blue-200 rounded-xl text-slate-800 focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Emergency Contact</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Emergency Contact Number</label>
                   <input
                     type="text"
                     value={editForm.emergency_contact}
                     onChange={(e) => setEditForm({ ...editForm, emergency_contact: e.target.value })}
                     placeholder="+91 98223 34455"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
+                    className="w-full p-2.5 bg-white border border-blue-200 rounded-xl text-slate-800 focus:outline-none focus:border-blue-500 font-medium"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Gender</label>
-                  <select
-                    value={editForm.gender}
-                    onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
+              {/* Section 3: Professional & Residence */}
+              <div className="p-3.5 bg-indigo-50/40 rounded-xl border border-indigo-100 space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-indigo-200/60">
+                  <LuGraduationCap className="w-4 h-4 text-indigo-600" />
+                  <h4 className="font-bold text-indigo-950 text-xs">Professional Profile & Address</h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Highest Qualification</label>
+                    <input
+                      type="text"
+                      value={editForm.qualification}
+                      onChange={(e) => setEditForm({ ...editForm, qualification: e.target.value })}
+                      placeholder="e.g. M.Sc. Mathematics, B.Ed."
+                      className="w-full p-2.5 bg-white border border-indigo-200 rounded-xl text-slate-800 focus:outline-none focus:border-indigo-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Teaching Experience</label>
+                    <input
+                      type="text"
+                      value={editForm.experience}
+                      onChange={(e) => setEditForm({ ...editForm, experience: e.target.value })}
+                      placeholder="e.g. 5 Years Senior Secondary Educator"
+                      className="w-full p-2.5 bg-white border border-indigo-200 rounded-xl text-slate-800 focus:outline-none focus:border-indigo-500 font-medium"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Blood Group</label>
-                  <select
-                    value={editForm.blood_group}
-                    onChange={(e) => setEditForm({ ...editForm, blood_group: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
-                  >
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </select>
+                  <label className="block font-semibold text-slate-700 mb-1">Residential Street Address</label>
+                  <textarea
+                    rows={2}
+                    value={editForm.address}
+                    onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                    placeholder="Full permanent residential address..."
+                    className="w-full p-2.5 bg-white border border-indigo-200 rounded-xl text-slate-800 focus:outline-none focus:border-indigo-500 font-medium resize-none"
+                  />
                 </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Highest Qualification</label>
-                <input
-                  type="text"
-                  value={editForm.qualification}
-                  onChange={(e) => setEditForm({ ...editForm, qualification: e.target.value })}
-                  placeholder="e.g. M.Sc. Mathematics, B.Ed."
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Teaching Experience</label>
-                <input
-                  type="text"
-                  value={editForm.experience}
-                  onChange={(e) => setEditForm({ ...editForm, experience: e.target.value })}
-                  placeholder="e.g. 5 Years Senior Secondary Educator"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Residential Street Address</label>
-                <textarea
-                  rows={2}
-                  value={editForm.address}
-                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                  placeholder="Full permanent residential address..."
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-primary-500 font-medium resize-none"
-                />
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
@@ -495,7 +579,7 @@ export default function TeacherProfilePage() {
                     </>
                   ) : (
                     <>
-                      <LuSave className="w-3.5 h-3.5" /> Save Changes
+                      <LuSave className="w-3.5 h-3.5" /> Save Changes Directly
                     </>
                   )}
                 </button>

@@ -15,8 +15,15 @@ import {
 
 export default function PTMPage() {
   const navigate = useNavigate();
-  const [selectedSlot, setSelectedSlot] = useState('');
-  const [availableSlots, setAvailableSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState('10:30 AM - 11:00 AM (Current)');
+  const [availableSlots, setAvailableSlots] = useState([
+    '9:00 AM - 9:30 AM',
+    '9:30 AM - 10:00 AM',
+    '10:00 AM - 10:30 AM',
+    '10:30 AM - 11:00 AM (Current)',
+    '11:30 AM - 12:00 PM',
+    '12:00 PM - 12:30 PM',
+  ]);
   const [rescheduledSuccess, setRescheduledSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
   const [agendaNotes, setAgendaNotes] = useState('');
@@ -31,8 +38,10 @@ export default function PTMPage() {
         if (res?.data) {
           if (res.data.upcoming) {
             setUpcoming(res.data.upcoming);
-            setSelectedSlot(res.data.upcoming.timeSlot || '');
+            if (res.data.upcoming.timeSlot) setSelectedSlot(res.data.upcoming.timeSlot);
             if (res.data.upcoming.agendaNotes) setAgendaNotes(res.data.upcoming.agendaNotes);
+          } else {
+            setUpcoming(null);
           }
           if (res.data.availableSlots && Array.isArray(res.data.availableSlots)) {
             setAvailableSlots(res.data.availableSlots);
@@ -42,7 +51,7 @@ export default function PTMPage() {
           }
         }
       })
-      .catch((err) => console.log('PTM data fetch error:', err))
+      .catch((err) => console.error('PTM data fetch error from database:', err))
       .finally(() => setLoading(false));
   };
 
@@ -98,9 +107,9 @@ export default function PTMPage() {
               <LuCalendarCheck className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">{upcoming.term}</span>
-              <h2 className="text-lg font-bold text-gray-800">{upcoming.date}</h2>
-              <p className="text-xs text-gray-500">Class X-A Mid-Term Performance Consultation</p>
+              <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">{upcoming?.term || 'Term 1 Mid-Term Consultation'}</span>
+              <h2 className="text-lg font-bold text-gray-800">{upcoming?.date || 'Saturday, Sep 12, 2026'}</h2>
+              <p className="text-xs text-gray-500">Class 10-A Mid-Term Performance Consultation</p>
             </div>
           </div>
           <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 self-start sm:self-auto">
@@ -108,55 +117,55 @@ export default function PTMPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-4 rounded-xl border border-gray-200 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 bg-white p-3 sm:p-4 rounded-xl border border-gray-200 text-xs">
           <div>
-            <span className="text-gray-400 text-[10px] uppercase font-bold">Confirmed Time Slot</span>
-            <p className="font-bold text-gray-800 mt-0.5 flex items-center gap-1.5">
-              <LuClock className="w-3.5 h-3.5 text-primary-600" /> {selectedSlot}
+            <span className="text-gray-400 text-[9px] sm:text-[10px] uppercase font-bold">Confirmed Time Slot</span>
+            <p className="font-bold text-gray-800 mt-0.5 flex items-center gap-1.5 text-xs sm:text-sm">
+              <LuClock className="w-3.5 h-3.5 text-primary-600 shrink-0" /> {selectedSlot || upcoming?.timeSlot || '10:30 AM - 11:00 AM'}
             </p>
           </div>
           <div>
-            <span className="text-gray-400 text-[10px] uppercase font-bold">Faculty In-Charge</span>
-            <p className="font-bold text-gray-800 mt-0.5 flex items-center gap-1.5">
-              <LuUser className="w-3.5 h-3.5 text-primary-600" /> {upcoming.teacher}
+            <span className="text-gray-400 text-[9px] sm:text-[10px] uppercase font-bold">Faculty In-Charge</span>
+            <p className="font-bold text-gray-800 mt-0.5 flex items-center gap-1.5 text-xs sm:text-sm truncate">
+              <LuUser className="w-3.5 h-3.5 text-primary-600 shrink-0" /> {upcoming?.teacher || 'Dr. Ananya Sen'}
             </p>
           </div>
           <div>
-            <span className="text-gray-400 text-[10px] uppercase font-bold">Meeting Venue</span>
-            <p className="font-bold text-gray-800 mt-0.5 flex items-center gap-1.5">
-              <LuMapPin className="w-3.5 h-3.5 text-primary-600" /> {upcoming.venue}
+            <span className="text-gray-400 text-[9px] sm:text-[10px] uppercase font-bold">Meeting Venue</span>
+            <p className="font-bold text-gray-800 mt-0.5 flex items-center gap-1.5 text-xs sm:text-sm truncate">
+              <LuMapPin className="w-3.5 h-3.5 text-primary-600 shrink-0" /> {upcoming?.venue || 'Senior Wing Room 301'}
             </p>
           </div>
         </div>
       </div>
 
       {/* Grid: Agenda / Reschedule & Past PTM Notes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Reschedule & Agenda Form */}
-        <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-3.5 sm:p-5 rounded-xl border border-gray-200 shadow-2xs flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-bold text-gray-800 mb-1">Reschedule Slot or Update Parent Agenda</h3>
-            <p className="text-xs text-gray-400 mb-4">Choose a different 30-minute consultation slot if needed</p>
+            <h3 className="text-xs sm:text-sm font-bold text-gray-800 mb-0.5 sm:mb-1">Reschedule Slot or Parent Agenda</h3>
+            <p className="text-[11px] sm:text-xs text-gray-400 mb-3 sm:mb-4">Select an available 30-minute consultation slot</p>
 
             {rescheduledSuccess && (
-              <div className="p-3 mb-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 animate-fade-in">
+              <div className="p-2.5 sm:p-3 mb-3 sm:mb-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] sm:text-xs flex items-center gap-2 animate-fade-in">
                 <LuCheck className="w-4 h-4 shrink-0" />
-                <span>Appointment slot updated successfully with Dr. Ananya Sen!</span>
+                <span>Appointment slot updated successfully!</span>
               </div>
             )}
 
-            <form onSubmit={handleReschedule} className="space-y-4">
+            <form onSubmit={handleReschedule} className="space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Available Slots on Sep 05</label>
-                <div className="grid grid-cols-2 gap-2">
+                <label className="block text-[11px] sm:text-xs font-semibold text-gray-700 mb-1.5">Available Slots</label>
+                <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                   {availableSlots.map((slot) => (
                     <button
                       type="button"
                       key={slot}
                       onClick={() => setSelectedSlot(slot)}
-                      className={`p-2.5 rounded-lg border text-xs font-medium text-center transition-all ${
+                      className={`p-2 sm:p-2.5 rounded-lg border text-[10px] sm:text-xs font-medium text-center transition-all cursor-pointer ${
                         selectedSlot === slot
-                          ? 'bg-primary-600 border-primary-600 text-white font-bold shadow-xs'
+                          ? 'bg-primary-600 border-primary-600 text-white font-bold shadow-2xs'
                           : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
                       }`}
                     >

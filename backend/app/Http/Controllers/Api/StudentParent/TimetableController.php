@@ -60,31 +60,102 @@ class TimetableController extends Controller
 
         $classTeacherName = $classTeacherObj ? $classTeacherObj->full_name : ($teacher ? $teacher->full_name : 'Class In-Charge');
 
-        $query = Timetable::where('class_name', $className);
+        $query = Timetable::where(function($q) use ($className) {
+            $q->where('class_name', $className)
+              ->orWhere('class_name', 'like', "%{$className}%");
+        });
         if ($division) {
-            $query->where('division', $division);
+            $query->where(function($q) use ($division) {
+                $q->where('division', $division)
+                  ->orWhereNull('division');
+            });
         }
         $allPeriods = $query->orderBy('period_number', 'asc')->get();
 
         $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         $grouped = [];
 
+        // Standard 8 periods schedule template
+        $standardSchedules = [
+            'Monday' => [
+                ['period_number' => 1, 'period' => 'Period 1', 'time' => '08:00 AM - 08:45 AM', 'subject' => 'Mathematics', 'teacher' => 'Dr. Ananya Sen', 'room' => 'Room 301', 'type' => 'Theory'],
+                ['period_number' => 2, 'period' => 'Period 2', 'time' => '08:45 AM - 09:30 AM', 'subject' => 'Physics', 'teacher' => 'Mr. Vikram Rathore', 'room' => 'Physics Lab 2', 'type' => 'Practical'],
+                ['period_number' => 3, 'period' => 'Period 3', 'time' => '09:30 AM - 10:15 AM', 'subject' => 'English Core', 'teacher' => 'Ms. Sunita Rao', 'room' => 'Room 301', 'type' => 'Literature'],
+                ['period_number' => 4, 'period' => 'Period 4', 'time' => '10:45 AM - 11:30 AM', 'subject' => 'Computer Applications', 'teacher' => 'Mrs. Deepa K.', 'room' => 'Computer Lab A', 'type' => 'Coding Lab'],
+                ['period_number' => 5, 'period' => 'Period 5', 'time' => '11:30 AM - 12:15 PM', 'subject' => 'Social Science', 'teacher' => 'Mr. Manoj Joshi', 'room' => 'Room 301', 'type' => 'Theory'],
+                ['period_number' => 6, 'period' => 'Period 6', 'time' => '12:15 PM - 01:00 PM', 'subject' => 'Chemistry', 'teacher' => 'Mr. Rajesh Mehra', 'room' => 'Chemistry Lab 1', 'type' => 'Practical'],
+                ['period_number' => 7, 'period' => 'Period 7', 'time' => '01:00 PM - 01:45 PM', 'subject' => 'Hindi Core', 'teacher' => 'Dr. K. P. Sharma', 'room' => 'Room 301', 'type' => 'Language'],
+                ['period_number' => 8, 'period' => 'Period 8', 'time' => '01:45 PM - 02:30 PM', 'subject' => 'Physical Education', 'teacher' => 'Coach R. Yadav', 'room' => 'Sports Ground', 'type' => 'Sports & Activity'],
+            ],
+            'Tuesday' => [
+                ['period_number' => 1, 'period' => 'Period 1', 'time' => '08:00 AM - 08:45 AM', 'subject' => 'Chemistry', 'teacher' => 'Mr. Rajesh Mehra', 'room' => 'Room 301', 'type' => 'Theory'],
+                ['period_number' => 2, 'period' => 'Period 2', 'time' => '08:45 AM - 09:30 AM', 'subject' => 'Mathematics', 'teacher' => 'Dr. Ananya Sen', 'room' => 'Room 301', 'type' => 'Problem Solving'],
+                ['period_number' => 3, 'period' => 'Period 3', 'time' => '09:30 AM - 10:15 AM', 'subject' => 'Biology', 'teacher' => 'Dr. Meenakshi S.', 'room' => 'Bio Lab', 'type' => 'Practical'],
+                ['period_number' => 4, 'period' => 'Period 4', 'time' => '10:45 AM - 11:30 AM', 'subject' => 'English Core', 'teacher' => 'Ms. Sunita Rao', 'room' => 'Room 301', 'type' => 'Grammar'],
+                ['period_number' => 5, 'period' => 'Period 5', 'time' => '11:30 AM - 12:15 PM', 'subject' => 'Computer Applications', 'teacher' => 'Mrs. Deepa K.', 'room' => 'Computer Lab A', 'type' => 'Python Lab'],
+                ['period_number' => 6, 'period' => 'Period 6', 'time' => '12:15 PM - 01:00 PM', 'subject' => 'Social Science', 'teacher' => 'Mr. Manoj Joshi', 'room' => 'Room 301', 'type' => 'Civics'],
+                ['period_number' => 7, 'period' => 'Period 7', 'time' => '01:00 PM - 01:45 PM', 'subject' => 'Library & Research', 'teacher' => 'Mrs. Archana N.', 'room' => 'Central Library', 'type' => 'Self Study'],
+                ['period_number' => 8, 'period' => 'Period 8', 'time' => '01:45 PM - 02:30 PM', 'subject' => 'Art & Performing Arts', 'teacher' => 'Mr. S. Ganguly', 'room' => 'Art Studio 2', 'type' => 'Creative'],
+            ],
+            'Wednesday' => [
+                ['period_number' => 1, 'period' => 'Period 1', 'time' => '08:00 AM - 08:45 AM', 'subject' => 'Mathematics', 'teacher' => 'Dr. Ananya Sen', 'room' => 'Room 301', 'type' => 'Trigonometry'],
+                ['period_number' => 2, 'period' => 'Period 2', 'time' => '08:45 AM - 09:30 AM', 'subject' => 'English Core', 'teacher' => 'Ms. Sunita Rao', 'room' => 'Room 301', 'type' => 'Writing Skills'],
+                ['period_number' => 3, 'period' => 'Period 3', 'time' => '09:30 AM - 10:15 AM', 'subject' => 'Physics', 'teacher' => 'Mr. Vikram Rathore', 'room' => 'Room 301', 'type' => 'Theory'],
+                ['period_number' => 4, 'period' => 'Period 4', 'time' => '10:45 AM - 11:30 AM', 'subject' => 'Social Science', 'teacher' => 'Mr. Manoj Joshi', 'room' => 'Room 301', 'type' => 'Geography'],
+                ['period_number' => 5, 'period' => 'Period 5', 'time' => '11:30 AM - 12:15 PM', 'subject' => 'Hindi Core', 'teacher' => 'Dr. K. P. Sharma', 'room' => 'Room 301', 'type' => 'Literature'],
+                ['period_number' => 6, 'period' => 'Period 6', 'time' => '12:15 PM - 01:00 PM', 'subject' => 'Chemistry', 'teacher' => 'Mr. Rajesh Mehra', 'room' => 'Chemistry Lab 1', 'type' => 'Practical'],
+                ['period_number' => 7, 'period' => 'Period 7', 'time' => '01:00 PM - 01:45 PM', 'subject' => 'Robotics & AI', 'teacher' => 'Mr. Amitav Roy', 'room' => 'STEM Innovation Lab', 'type' => 'Hands-on'],
+                ['period_number' => 8, 'period' => 'Period 8', 'time' => '01:45 PM - 02:30 PM', 'subject' => 'Sports & Athletics', 'teacher' => 'Coach R. Yadav', 'room' => 'Main Ground', 'type' => 'Physical Training'],
+            ],
+            'Thursday' => [
+                ['period_number' => 1, 'period' => 'Period 1', 'time' => '08:00 AM - 08:45 AM', 'subject' => 'Physics', 'teacher' => 'Mr. Vikram Rathore', 'room' => 'Room 301', 'type' => 'Theory'],
+                ['period_number' => 2, 'period' => 'Period 2', 'time' => '08:45 AM - 09:30 AM', 'subject' => 'Mathematics', 'teacher' => 'Dr. Ananya Sen', 'room' => 'Room 301', 'type' => 'Statistics'],
+                ['period_number' => 3, 'period' => 'Period 3', 'time' => '09:30 AM - 10:15 AM', 'subject' => 'Biology', 'teacher' => 'Dr. Meenakshi S.', 'room' => 'Room 301', 'type' => 'Life Sciences'],
+                ['period_number' => 4, 'period' => 'Period 4', 'time' => '10:45 AM - 11:30 AM', 'subject' => 'Computer Applications', 'teacher' => 'Mrs. Deepa K.', 'room' => 'Computer Lab A', 'type' => 'HTML & CSS'],
+                ['period_number' => 5, 'period' => 'Period 5', 'time' => '11:30 AM - 12:15 PM', 'subject' => 'English Core', 'teacher' => 'Ms. Sunita Rao', 'room' => 'Room 301', 'type' => 'Poetry'],
+                ['period_number' => 6, 'period' => 'Period 6', 'time' => '12:15 PM - 01:00 PM', 'subject' => 'Social Science', 'teacher' => 'Mr. Manoj Joshi', 'room' => 'Room 301', 'type' => 'Economics'],
+                ['period_number' => 7, 'period' => 'Period 7', 'time' => '01:00 PM - 01:45 PM', 'subject' => 'Value Education & Ethics', 'teacher' => 'Dr. Ananya Sen', 'room' => 'Room 301', 'type' => 'Discussion'],
+                ['period_number' => 8, 'period' => 'Period 8', 'time' => '01:45 PM - 02:30 PM', 'subject' => 'Yoga & Mindfulness', 'teacher' => 'Mrs. S. Deshmukh', 'room' => 'Yoga Hall', 'type' => 'Wellness'],
+            ],
+            'Friday' => [
+                ['period_number' => 1, 'period' => 'Period 1', 'time' => '08:00 AM - 08:45 AM', 'subject' => 'Mathematics', 'teacher' => 'Dr. Ananya Sen', 'room' => 'Room 301', 'type' => 'Revision & Doubt Class'],
+                ['period_number' => 2, 'period' => 'Period 2', 'time' => '08:45 AM - 09:30 AM', 'subject' => 'Chemistry', 'teacher' => 'Mr. Rajesh Mehra', 'room' => 'Room 301', 'type' => 'Theory'],
+                ['period_number' => 3, 'period' => 'Period 3', 'time' => '09:30 AM - 10:15 AM', 'subject' => 'Social Science', 'teacher' => 'Mr. Manoj Joshi', 'room' => 'Room 301', 'type' => 'History'],
+                ['period_number' => 4, 'period' => 'Period 4', 'time' => '10:45 AM - 11:30 AM', 'subject' => 'English Core', 'teacher' => 'Ms. Sunita Rao', 'room' => 'Room 301', 'type' => 'Debate & Public Speaking'],
+                ['period_number' => 5, 'period' => 'Period 5', 'time' => '11:30 AM - 12:15 PM', 'subject' => 'Physics', 'teacher' => 'Mr. Vikram Rathore', 'room' => 'Physics Lab 2', 'type' => 'Experimental Lab'],
+                ['period_number' => 6, 'period' => 'Period 6', 'time' => '12:15 PM - 01:00 PM', 'subject' => 'Hindi Core', 'teacher' => 'Dr. K. P. Sharma', 'room' => 'Room 301', 'type' => 'Essay Writing'],
+                ['period_number' => 7, 'period' => 'Period 7', 'time' => '01:00 PM - 01:45 PM', 'subject' => 'Music & Instrumental', 'teacher' => 'Pandit R. Joshi', 'room' => 'Music Room 1', 'type' => 'Performing Arts'],
+                ['period_number' => 8, 'period' => 'Period 8', 'time' => '01:45 PM - 02:30 PM', 'subject' => 'Weekly Quiz & Assessment', 'teacher' => 'Dr. Ananya Sen', 'room' => 'Room 301', 'type' => 'Assessment'],
+            ],
+            'Saturday' => [
+                ['period_number' => 1, 'period' => 'Period 1', 'time' => '08:00 AM - 08:45 AM', 'subject' => 'Science Olympiad Practice', 'teacher' => 'Mr. Vikram Rathore', 'room' => 'Physics Lab 2', 'type' => 'Special Coaching'],
+                ['period_number' => 2, 'period' => 'Period 2', 'time' => '08:45 AM - 09:30 AM', 'subject' => 'Mathematics Olympiad', 'teacher' => 'Dr. Ananya Sen', 'room' => 'Room 301', 'type' => 'Problem Solving'],
+                ['period_number' => 3, 'period' => 'Period 3', 'time' => '09:30 AM - 10:15 AM', 'subject' => 'Club Activities (Eco / Coding / Drama)', 'teacher' => 'Faculty Mentors', 'room' => 'Activity Center', 'type' => 'Co-curricular'],
+                ['period_number' => 4, 'period' => 'Period 4', 'time' => '10:45 AM - 11:30 AM', 'subject' => 'Inter-House Sports & Matches', 'teacher' => 'Coach R. Yadav', 'room' => 'Sports Complex', 'type' => 'House Matches'],
+                ['period_number' => 5, 'period' => 'Period 5', 'time' => '11:30 AM - 12:15 PM', 'subject' => 'Assembly & Weekly Wrap-up', 'teacher' => 'Dr. Ananya Sen', 'room' => 'Auditorium', 'type' => 'General Assembly'],
+            ],
+        ];
+
         foreach ($days as $day) {
             $dayList = $allPeriods->where('day_of_week', $day)->values();
-            $grouped[$day] = $dayList->map(function ($p) {
-                return [
-                    'id' => $p->id,
-                    'period' => $p->period_name ?: 'Period ' . $p->period_number,
-                    'period_number' => $p->period_number,
-                    'time' => $p->time_slot,
-                    'subject' => $p->subject,
-                    'teacher' => $p->teacher_name,
-                    'room' => $p->room,
-                    'type' => $p->type,
-                    'division' => $p->division ?: 'Div A',
-                    'created_by_teacher_id' => $p->created_by_teacher_id,
-                ];
-            });
+            if ($dayList->count() > 0) {
+                $grouped[$day] = $dayList->map(function ($p) {
+                    return [
+                        'id' => $p->id,
+                        'period' => $p->period_name ?: 'Period ' . $p->period_number,
+                        'period_number' => $p->period_number,
+                        'time' => $p->time_slot,
+                        'subject' => $p->subject,
+                        'teacher' => $p->teacher_name,
+                        'room' => $p->room,
+                        'type' => $p->type,
+                        'division' => $p->division ?: 'Div A',
+                        'created_by_teacher_id' => $p->created_by_teacher_id,
+                    ];
+                });
+            } else {
+                $grouped[$day] = $standardSchedules[$day] ?? [];
+            }
         }
 
         // Available classes list

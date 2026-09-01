@@ -154,9 +154,26 @@ class HRController extends Controller
         }
         $user->save();
 
+        // Also synchronize associated Teacher/Staff record if linked
+        $teacher = Teacher::where('user_id', $user->id)->first();
+        if ($teacher) {
+            if ($request->filled('name')) {
+                $nameParts = explode(' ', trim($request->input('name')), 2);
+                $teacher->first_name = $nameParts[0];
+                $teacher->last_name = $nameParts[1] ?? '';
+            }
+            if ($request->filled('phone')) {
+                $teacher->phone = $request->input('phone');
+            }
+            if ($request->filled('email')) {
+                $teacher->email = $request->input('email');
+            }
+            $teacher->save();
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'HR profile details updated successfully.',
+            'message' => 'Profile details updated successfully.',
             'data' => $user,
         ]);
     }

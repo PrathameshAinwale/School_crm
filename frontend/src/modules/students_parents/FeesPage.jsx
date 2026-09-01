@@ -31,13 +31,12 @@ export default function FeesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' | 'paid'
 
-  // Dynamic live states
+  // Dynamic live states from database
   const [studentInfo, setStudentInfo] = useState({
     name: 'Student',
     admissionNo: '—',
-    classSection: '—',
+    classSection: 'Class 10-A',
     withTransport: false,
-    transportStatus: '',
   });
   const [summary, setSummary] = useState({
     totalAnnual: '₹0',
@@ -51,6 +50,7 @@ export default function FeesPage() {
     overdueCount: 0,
     clearancePercentage: 0,
     isGoodStanding: true,
+    withTransport: false,
     session: 'Academic Session 2026-27',
   });
   const [installments, setInstallments] = useState([]);
@@ -177,14 +177,14 @@ export default function FeesPage() {
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-slate-800 tracking-tight">Student Fees & Ledger</h1>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-100">
-                {summary.session || '2026-27'}
+                {summary?.session || 'Academic Session 2026-27'}
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
-              <span>Student: <strong className="text-slate-700">{studentInfo.name}</strong> • ID: <strong className="text-slate-700 font-mono">{studentInfo.admissionNo}</strong> ({studentInfo.classSection})</span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${studentInfo.withTransport ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+              <span>Student: <strong className="text-slate-700">{studentInfo?.name || 'Student'}</strong> • ID: <strong className="text-slate-700 font-mono">{studentInfo?.admissionNo || '—'}</strong> ({studentInfo?.classSection || 'Class 10-A'})</span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${studentInfo?.withTransport ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
                 <LuBus className="w-3 h-3" />
-                {studentInfo.withTransport ? 'School Transport Opted' : 'Without Transport'}
+                {studentInfo?.withTransport ? 'School Transport Opted' : 'Without Transport'}
               </span>
             </p>
           </div>
@@ -200,13 +200,13 @@ export default function FeesPage() {
             Sync Ledger
           </button>
 
-          {summary.rawOutstanding > 0 && (
+          {(summary?.rawOutstanding ?? 0) > 0 && (
             <button
               onClick={() => openPaymentModal(upcomingInstallments[0] || null)}
               className="px-3.5 py-1.5 rounded-xl bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <LuCreditCard className="w-3.5 h-3.5" />
-              Pay Outstanding Dues ({summary.outstandingAmount})
+              Pay Outstanding Dues ({summary?.outstandingAmount || '₹0'})
             </button>
           )}
         </div>
@@ -218,7 +218,7 @@ export default function FeesPage() {
           <div>
             <div className="text-xs font-medium text-slate-500">Total Annual Fees</div>
             <div className="text-xl font-bold text-slate-800 mt-1 tracking-tight">
-              {loading ? <div className="h-6 w-20 bg-slate-100 rounded animate-pulse" /> : summary.totalAnnual}
+              {loading ? <div className="h-6 w-20 bg-slate-100 rounded animate-pulse" /> : (summary?.totalAnnual || '₹0')}
             </div>
           </div>
           <div className="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
@@ -230,7 +230,7 @@ export default function FeesPage() {
           <div>
             <div className="text-xs font-medium text-slate-500">Total Fees Paid</div>
             <div className="text-xl font-bold text-emerald-600 mt-1 tracking-tight">
-              {loading ? <div className="h-6 w-20 bg-slate-100 rounded animate-pulse" /> : summary.paidAmount}
+              {loading ? <div className="h-6 w-20 bg-slate-100 rounded animate-pulse" /> : (summary?.paidAmount || '₹0')}
             </div>
           </div>
           <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
@@ -241,11 +241,11 @@ export default function FeesPage() {
         <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
             <div className="text-xs font-medium text-slate-500">Upcoming / Pending Dues</div>
-            <div className={`text-xl font-bold mt-1 tracking-tight ${summary.rawOutstanding > 0 ? 'text-rose-600' : 'text-slate-800'}`}>
-              {loading ? <div className="h-6 w-20 bg-slate-100 rounded animate-pulse" /> : summary.outstandingAmount}
+            <div className={`text-xl font-bold mt-1 tracking-tight ${(summary?.rawOutstanding ?? 0) > 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+              {loading ? <div className="h-6 w-20 bg-slate-100 rounded animate-pulse" /> : (summary?.outstandingAmount || '₹0')}
             </div>
           </div>
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${summary.rawOutstanding > 0 ? 'bg-rose-500/10 text-rose-600' : 'bg-slate-100 text-slate-500'}`}>
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${(summary?.rawOutstanding ?? 0) > 0 ? 'bg-rose-500/10 text-rose-600' : 'bg-slate-100 text-slate-500'}`}>
             <LuClock className="w-4 h-4" />
           </div>
         </div>
@@ -254,7 +254,7 @@ export default function FeesPage() {
           <div>
             <div className="text-xs font-medium text-slate-500">Fee Clearance Rate</div>
             <div className="text-xl font-bold text-primary-600 mt-1 tracking-tight">
-              {loading ? <div className="h-6 w-16 bg-slate-100 rounded animate-pulse" /> : `${summary.clearancePercentage}%`}
+              {loading ? <div className="h-6 w-16 bg-slate-100 rounded animate-pulse" /> : `${summary?.clearancePercentage || 0}%`}
             </div>
           </div>
           <div className="w-9 h-9 rounded-lg bg-primary-500/10 text-primary-600 flex items-center justify-center shrink-0">
@@ -310,7 +310,7 @@ export default function FeesPage() {
                       Dismiss
                     </button>
                   )}
-                  {summary.rawOutstanding > 0 && (
+                  {(summary?.rawOutstanding ?? 0) > 0 && (
                     <button
                       onClick={() => openPaymentModal(upcomingInstallments[0] || null)}
                       className="px-3 py-1 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-semibold transition-colors cursor-pointer shadow-xs"
@@ -335,7 +335,7 @@ export default function FeesPage() {
               </div>
               <div>
                 <h2 className="text-sm font-bold text-slate-800">
-                  Official Standard Fee Structure Breakdown ({studentInfo.classSection})
+                  Official Standard Fee Structure Breakdown ({studentInfo?.classSection || 'Class 10-A'})
                 </h2>
                 <p className="text-[11px] text-slate-400">
                   Approved annual fee heads and composite curriculum schedule by School Administration.
@@ -403,121 +403,187 @@ export default function FeesPage() {
 
         {/* Tab 1: Upcoming & Pending Dues */}
         {activeTab === 'upcoming' && (
-          <div className="overflow-x-auto">
+          <div>
             {upcomingInstallments.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 space-y-2">
-                <LuCircleCheck className="w-10 h-10 text-emerald-500 mx-auto" />
+              <div className="py-8 sm:py-12 text-center text-slate-400 space-y-2">
+                <LuCircleCheck className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-500 mx-auto" />
                 <h3 className="text-sm font-bold text-slate-800">All Fee Installments Cleared!</h3>
                 <p className="text-xs text-slate-400">There are no pending or overdue fee payments for this academic session.</p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    <th className="py-3.5 px-4">Fee Particular / Term</th>
-                    <th className="py-3.5 px-4">Payable Amount</th>
-                    <th className="py-3.5 px-4">Due Date</th>
-                    <th className="py-3.5 px-4">Status</th>
-                    <th className="py-3.5 px-4 text-right">Online Payment</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+              <>
+                {/* Mobile Cards View */}
+                <div className="sm:hidden space-y-2.5 p-3">
                   {upcomingInstallments.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-800">{item.term}</div>
-                        <div className="text-[10px] text-slate-400">Tuition & Academic Facilities</div>
-                      </td>
-                      <td className="py-3.5 px-4 font-extrabold text-slate-900 text-sm">
-                        {item.amount}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600">
-                        {item.dueDate}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        {item.status === 'Overdue' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 animate-pulse">
-                            <LuShieldAlert className="w-3 h-3" /> Overdue
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                            <LuClock className="w-3 h-3" /> Pending
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
+                    <div key={item.id} className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-bold text-slate-800 leading-tight">{item.term}</h4>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Due: {item.dueDate}</p>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0 ${
+                          item.status === 'Overdue' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
+                        <span className="text-sm font-black font-mono text-slate-900">{item.amount}</span>
                         <button
                           onClick={() => openPaymentModal(item)}
-                          className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-all cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs cursor-pointer"
                         >
-                          <LuCreditCard className="w-3.5 h-3.5" /> Pay {item.amount}
+                          <LuCreditCard className="w-3 h-3" /> Pay Now
                         </button>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="py-3.5 px-4">Fee Particular / Term</th>
+                        <th className="py-3.5 px-4">Payable Amount</th>
+                        <th className="py-3.5 px-4">Due Date</th>
+                        <th className="py-3.5 px-4">Status</th>
+                        <th className="py-3.5 px-4 text-right">Online Payment</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                      {upcomingInstallments.map((item) => (
+                        <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-slate-800">{item.term}</div>
+                            <div className="text-[10px] text-slate-400">Tuition & Academic Facilities</div>
+                          </td>
+                          <td className="py-3.5 px-4 font-extrabold text-slate-900 text-sm">
+                            {item.amount}
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-600">
+                            {item.dueDate}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {item.status === 'Overdue' ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 animate-pulse">
+                                <LuShieldAlert className="w-3 h-3" /> Overdue
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                <LuClock className="w-3 h-3" /> Pending
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <button
+                              onClick={() => openPaymentModal(item)}
+                              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-all cursor-pointer"
+                            >
+                              <LuCreditCard className="w-3.5 h-3.5" /> Pay {item.amount}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         )}
 
         {/* Tab 2: Paid Receipts & History */}
         {activeTab === 'paid' && (
-          <div className="overflow-x-auto">
+          <div>
             {paidInstallments.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 space-y-2">
-                <LuReceipt className="w-10 h-10 text-slate-300 mx-auto" />
+              <div className="py-8 sm:py-12 text-center text-slate-400 space-y-2">
+                <LuReceipt className="w-8 h-8 sm:w-10 sm:h-10 text-slate-300 mx-auto" />
                 <h3 className="text-sm font-bold text-slate-800">No Payment Receipts Found</h3>
                 <p className="text-xs text-slate-400">Completed payments will appear here with downloadable receipts.</p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    <th className="py-3.5 px-4">Fee Particular</th>
-                    <th className="py-3.5 px-4">Amount Paid</th>
-                    <th className="py-3.5 px-4">Payment Date</th>
-                    <th className="py-3.5 px-4">Payment Mode & Txn ID</th>
-                    <th className="py-3.5 px-4">Receipt #</th>
-                    <th className="py-3.5 px-4 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+              <>
+                {/* Mobile Cards View */}
+                <div className="sm:hidden space-y-2.5 p-3">
                   {paidInstallments.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-800">{item.term}</div>
-                        <div className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
-                          <LuCircleCheck className="w-3 h-3" /> Fully Cleared
+                    <div key={item.id} className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-bold text-slate-800 leading-tight">{item.term}</h4>
+                          <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
+                            <LuCircleCheck className="w-2.5 h-2.5" /> Paid on {item.paidDate}
+                          </p>
                         </div>
-                      </td>
-                      <td className="py-3.5 px-4 font-extrabold text-emerald-700 text-sm">
-                        {item.amount}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600 font-medium">
-                        {item.paidDate}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-slate-700">{item.mode}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">{item.txnId}</div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
-                          {item.receiptNumber}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
+                        <span className="text-xs font-black font-mono text-emerald-700">{item.amount}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-[10px] text-slate-500">
+                        <span className="font-mono">{item.receiptNumber}</span>
                         <button
                           onClick={() => setReceiptModal(item)}
-                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
                         >
-                          <LuReceipt className="w-3.5 h-3.5" /> View Receipt
+                          <LuReceipt className="w-3 h-3" /> Receipt
                         </button>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="py-3.5 px-4">Fee Particular</th>
+                        <th className="py-3.5 px-4">Amount Paid</th>
+                        <th className="py-3.5 px-4">Payment Date</th>
+                        <th className="py-3.5 px-4">Payment Mode & Txn ID</th>
+                        <th className="py-3.5 px-4">Receipt #</th>
+                        <th className="py-3.5 px-4 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                      {paidInstallments.map((item) => (
+                        <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-slate-800">{item.term}</div>
+                            <div className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
+                              <LuCircleCheck className="w-3 h-3" /> Fully Cleared
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 font-extrabold text-emerald-700 text-sm">
+                            {item.amount}
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-600 font-medium">
+                            {item.paidDate}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-semibold text-slate-700">{item.mode}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">{item.txnId}</div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
+                              {item.receiptNumber}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <button
+                              onClick={() => setReceiptModal(item)}
+                              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                              <LuReceipt className="w-3.5 h-3.5" /> View Receipt
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         )}

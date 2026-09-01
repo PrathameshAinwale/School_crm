@@ -41,7 +41,7 @@ export default function NoticesPage() {
         }
       })
       .catch((err) => {
-        console.log('Error fetching notices:', err);
+        console.error('Error fetching notices from database:', err);
         setNotices([]);
       })
       .finally(() => setLoading(false));
@@ -111,42 +111,44 @@ export default function NoticesPage() {
         {filteredNotices.map((n) => (
           <div
             key={n.id}
-            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:border-gray-300 transition-colors"
+            className="bg-white p-3 sm:p-5 rounded-xl border border-gray-200 shadow-2xs hover:border-gray-300 transition-colors"
           >
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${categoryBadgeStyles[n.category] || 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded border ${categoryBadgeStyles[n.category] || 'bg-blue-50 text-blue-700 border-blue-200'}`}>
                     {n.category}
                   </span>
                   {n.priority === 'Urgent' && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800">
-                      ⚡ Action Required
+                    <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-800">
+                      ⚡ Urgent
                     </span>
                   )}
                 </div>
-                <h3 className="text-base font-bold text-gray-800 leading-snug">{n.title}</h3>
+                <h3 className="text-xs sm:text-base font-bold text-gray-800 leading-snug">{n.title}</h3>
               </div>
-              <span className="text-xs text-gray-400 font-medium whitespace-nowrap self-start sm:self-auto">
+              <span className="text-[10px] sm:text-xs text-gray-400 font-medium whitespace-nowrap shrink-0">
                 {n.date}
               </span>
             </div>
 
-            <p className="text-xs text-gray-600 leading-relaxed my-3 bg-gray-50 p-3.5 rounded-lg border border-gray-100">
+            <p className="text-[11px] sm:text-xs text-gray-600 leading-relaxed my-2 sm:my-3 bg-gray-50 p-2.5 sm:p-3.5 rounded-lg border border-gray-100 line-clamp-2 sm:line-clamp-none">
               {n.desc}
             </p>
 
-            <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-              <span className="text-gray-500 text-[11px]">
-                Issued by: <strong className="text-gray-700">{n.sender}</strong>
+            <div className="pt-2 sm:pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 text-xs">
+              <span className="text-gray-500 text-[10px] sm:text-[11px] truncate">
+                From: <strong className="text-gray-700">{n.sender}</strong>
               </span>
 
               {n.attachment && (
                 <button
                   onClick={() => alert(`Downloading circular ${n.attachment}...`)}
-                  className="text-primary-600 hover:text-primary-800 font-semibold inline-flex items-center gap-1.5 self-start sm:self-auto text-xs"
+                  className="text-primary-600 hover:text-primary-800 font-semibold inline-flex items-center gap-1 text-[11px] sm:text-xs cursor-pointer self-start sm:self-auto"
                 >
-                  <LuDownload className="w-3.5 h-3.5" /> Download Attached Circular ({n.attachment})
+                  <LuDownload className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <span>Download Circular</span>
+                  <span className="hidden sm:inline">({n.attachment})</span>
                 </button>
               )}
             </div>

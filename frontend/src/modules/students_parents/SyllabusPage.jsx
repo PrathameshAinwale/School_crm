@@ -138,10 +138,17 @@ export default function SyllabusPage() {
           setSelectedDivision(res.data.currentDivision);
           setFormDivision(res.data.currentDivision);
         }
-        setCompletedChapters(res.data.completedChapters || []);
+        if (Array.isArray(res.data.completedChapters)) {
+          setCompletedChapters(res.data.completedChapters);
+        } else {
+          setCompletedChapters([]);
+        }
+      } else {
+        setCompletedChapters([]);
       }
     } catch (err) {
-      console.error('Failed to load completed chapters:', err);
+      console.error('Failed to load completed chapters from database:', err);
+      setCompletedChapters([]);
     } finally {
       setLoading(false);
     }
@@ -391,51 +398,51 @@ export default function SyllabusPage() {
           filteredChapters.map((chapter) => (
             <div
               key={chapter.id}
-              className="bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs hover:border-gray-300 transition-all space-y-3"
+              className="bg-white p-3 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-2xs hover:border-gray-300 transition-all space-y-2.5"
             >
               {/* Card Top: Subject & Date */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2.5 py-1 rounded-lg bg-primary-50 text-primary-700 border border-primary-100 font-bold text-xs">
+              <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-2">
+                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                  <span className="px-2 py-0.5 rounded-lg bg-primary-50 text-primary-700 border border-primary-100 font-bold text-[10px] sm:text-xs">
                     {chapter.subject}
                   </span>
-                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[11px]">
+                  <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px] sm:text-[11px]">
                     {chapter.class_name} • {chapter.division}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3 self-start sm:self-auto">
-                  <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-200/60">
-                    <LuCircleCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Completed on {chapter.completed_date_formatted}</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg text-[10px] sm:text-xs font-bold border border-emerald-200/60">
+                    <LuCircleCheck className="w-3 h-3 text-emerald-600 shrink-0" />
+                    <span>{chapter.completed_date_formatted}</span>
                   </div>
 
                   {isTeacherOrAdmin && (
                     <button
                       onClick={() => handleDeleteChapter(chapter.id, chapter.chapter_name)}
                       title="Remove Record"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                      className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                     >
-                      <LuTrash2 className="w-4 h-4" />
+                      <LuTrash2 className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
               </div>
 
               {/* Chapter Name & Description */}
-              <div className="space-y-1.5">
-                <h3 className="text-sm font-black text-gray-900">{chapter.chapter_name}</h3>
-                <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+              <div className="space-y-1">
+                <h3 className="text-xs sm:text-sm font-black text-gray-900">{chapter.chapter_name}</h3>
+                <div className="bg-slate-50/80 p-2 sm:p-3.5 rounded-lg sm:rounded-xl border border-slate-100 text-[11px] sm:text-xs text-slate-700 leading-relaxed whitespace-pre-line line-clamp-2 sm:line-clamp-none">
                   {chapter.topics_covered}
                 </div>
               </div>
 
               {/* Card Footer: Teacher Name */}
-              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                <span>
-                  Logged by: <strong className="text-slate-700">{chapter.teacher_name || 'Faculty'}</strong>
+              <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 pt-0.5">
+                <span className="truncate">
+                  By: <strong className="text-slate-700">{chapter.teacher_name || 'Faculty'}</strong>
                 </span>
-                <span>{chapter.created_at}</span>
+                <span className="shrink-0">{chapter.created_at}</span>
               </div>
             </div>
           ))

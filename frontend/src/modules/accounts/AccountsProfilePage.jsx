@@ -383,8 +383,13 @@ export default function AccountsProfilePage() {
           <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-scale-up">
             <div className="p-5 bg-gradient-to-r from-emerald-700 to-teal-700 text-white flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold">Edit Profile Details</h3>
-                <p className="text-xs text-emerald-100 mt-0.5">Update your officer contact & display information</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold">Edit Accounts Profile</h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-400 text-emerald-950">
+                    Direct Self-Edit Enabled
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-100 mt-0.5">Update your officer contact & display information directly</p>
               </div>
               <button
                 onClick={() => setEditing(false)}
@@ -455,7 +460,7 @@ export default function AccountsProfilePage() {
                     </>
                   ) : (
                     <>
-                      <LuSave className="w-3.5 h-3.5" /> Save Changes
+                      <LuSave className="w-3.5 h-3.5" /> Save Changes Directly
                     </>
                   )}
                 </button>

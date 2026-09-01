@@ -183,6 +183,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
         // Study Material & Digital Library
         Route::get('/study-material', [StudyMaterialController::class, 'index']);
+        Route::get('/study-materials', [StudyMaterialController::class, 'index']);
         Route::post('/study-material', [StudyMaterialController::class, 'store'])->middleware('role:teacher,admin');
         Route::post('/study-material/{id}/download', [StudyMaterialController::class, 'download']);
         Route::delete('/study-material/{id}', [StudyMaterialController::class, 'destroy'])->middleware('role:teacher,admin');

@@ -482,9 +482,11 @@ class StudentController extends Controller
                     'className' => $className,
                     'sectionName' => $sectionName,
                     'dateOfBirth' => $student->date_of_birth ? \Carbon\Carbon::parse($student->date_of_birth)->format('F d, Y') : null,
+                    'rawDateOfBirth' => $student->date_of_birth ? \Carbon\Carbon::parse($student->date_of_birth)->format('Y-m-d') : null,
                     'gender' => $student->gender,
                     'bloodGroup' => $student->blood_group,
                     'status' => $student->status ?: 'Active',
+                    'medicalNotes' => $student->medical_notes,
                     'admissionDate' => $student->admission_date ? \Carbon\Carbon::parse($student->admission_date)->format('F d, Y') : ($student->created_at ? $student->created_at->format('F d, Y') : null),
                 ],
                 'parents' => [
@@ -510,7 +512,7 @@ class StudentController extends Controller
     }
 
     /**
-     * Update logged in student's contact & parent details.
+     * Update logged in student's own profile and parent details directly.
      */
     public function updateProfile(Request $request)
     {
@@ -531,6 +533,11 @@ class StudentController extends Controller
         }
 
         $request->validate([
+            'first_name' => 'nullable|string|max:100',
+            'last_name' => 'nullable|string|max:100',
+            'date_of_birth' => 'nullable|date',
+            'gender' => 'nullable|string|max:20',
+            'blood_group' => 'nullable|string|max:10',
             'father_name' => 'nullable|string|max:255',
             'father_occupation' => 'nullable|string|max:255',
             'mother_name' => 'nullable|string|max:255',
@@ -543,6 +550,11 @@ class StudentController extends Controller
         ]);
 
         $data = $request->only([
+            'first_name',
+            'last_name',
+            'date_of_birth',
+            'gender',
+            'blood_group',
             'father_name',
             'father_occupation',
             'mother_name',
@@ -560,10 +572,32 @@ class StudentController extends Controller
 
         $student->update($data);
 
+        // Synchronize with linked User account if applicable
+        $linkedUser = $student->user ?: $user;
+        if ($linkedUser) {
+            $userUpdated = false;
+            if (!empty($data['first_name'])) {
+                $fullName = trim(($data['first_name'] ?? $student->first_name) . ' ' . ($data['last_name'] ?? $student->last_name));
+                $linkedUser->name = $fullName;
+                $userUpdated = true;
+            }
+            if (!empty($data['guardian_phone']) && $linkedUser->phone !== $data['guardian_phone']) {
+                $linkedUser->phone = $data['guardian_phone'];
+                $userUpdated = true;
+            }
+            if (!empty($data['guardian_email']) && $linkedUser->email !== $data['guardian_email']) {
+                $linkedUser->email = $data['guardian_email'];
+                $userUpdated = true;
+            }
+            if ($userUpdated) {
+                $linkedUser->save();
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'Student & Parent contact information updated successfully in database.',
-            'data' => $student,
+            'message' => 'Profile information updated successfully!',
+            'data' => $student->fresh(),
         ]);
     }
 }

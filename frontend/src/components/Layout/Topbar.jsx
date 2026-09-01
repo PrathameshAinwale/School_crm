@@ -512,23 +512,25 @@ export default function Topbar({ onToggleMobileMenu }) {
                 <p className="text-xs font-bold text-gray-800 truncate">{user?.name || 'User'}</p>
                 <p className="text-[11px] text-gray-400 truncate">{user?.email || user?.phone || ''}</p>
               </div>
-              {currentRole !== 'admin' && (
-                <button
-                  onClick={() => {
-                    if (currentRole === 'teacher') {
-                      navigate('/teacher/profile');
-                    } else if (currentRole === 'hr') {
-                      navigate('/hr/profile');
-                    } else {
-                      navigate('/profile');
-                    }
-                    setShowProfile(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-gray-600 hover:bg-gray-50 font-medium cursor-pointer"
-                >
-                  <LuUser className="w-3.5 h-3.5" /> My Profile
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  if (currentRole === 'teacher') {
+                    navigate('/teacher/profile');
+                  } else if (currentRole === 'hr' || currentRole === 'staff') {
+                    navigate('/hr/profile');
+                  } else if (currentRole === 'accountant') {
+                    navigate('/accounts/profile');
+                  } else if (currentRole === 'student_parent') {
+                    navigate('/student/profile');
+                  } else {
+                    navigate('/profile');
+                  }
+                  setShowProfile(false);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-gray-600 hover:bg-gray-50 font-medium cursor-pointer"
+              >
+                <LuUser className="w-3.5 h-3.5" /> My Profile
+              </button>
               <div className="border-t border-gray-100 mt-1 pt-1">
                 <button
                   onClick={logout}

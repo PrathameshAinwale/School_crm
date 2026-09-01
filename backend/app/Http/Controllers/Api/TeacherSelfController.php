@@ -468,6 +468,7 @@ class TeacherSelfController extends Controller
                 'gender' => $teacher->gender,
                 'blood_group' => $teacher->blood_group,
                 'date_of_birth' => $teacher->date_of_birth ? Carbon::parse($teacher->date_of_birth)->format('F d, Y') : null,
+                'raw_date_of_birth' => $teacher->date_of_birth ? Carbon::parse($teacher->date_of_birth)->format('Y-m-d') : null,
                 'joining_date' => $teacher->joining_date ? Carbon::parse($teacher->joining_date)->format('F d, Y') : ($teacher->created_at ? $teacher->created_at->format('F d, Y') : null),
                 'department' => $teacher->department ?: 'Academic',
                 'qualification' => $teacher->qualification,
@@ -492,7 +493,7 @@ class TeacherSelfController extends Controller
     }
 
     /**
-     * Update teacher's own contact and profile information.
+     * Update teacher's own contact and profile information directly.
      */
     public function updateProfile(Request $request)
     {
@@ -505,7 +506,11 @@ class TeacherSelfController extends Controller
         }
 
         $request->validate([
+            'first_name' => 'nullable|string|max:100',
+            'last_name' => 'nullable|string|max:100',
+            'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:20',
+            'date_of_birth' => 'nullable|date',
             'gender' => 'nullable|string|max:20',
             'blood_group' => 'nullable|string|max:10',
             'qualification' => 'nullable|string|max:255',
@@ -514,15 +519,43 @@ class TeacherSelfController extends Controller
             'emergency_contact' => 'nullable|string|max:50',
         ]);
 
-        $teacher->update($request->only([
+        $updateData = $request->only([
+            'first_name',
+            'last_name',
+            'email',
             'phone',
+            'date_of_birth',
             'gender',
             'blood_group',
             'qualification',
             'experience',
             'address',
             'emergency_contact',
-        ]));
+        ]);
+
+        $teacher->update($updateData);
+
+        // Synchronize with User authentication account if linked
+        $user = $teacher->user ?: $request->user();
+        if ($user) {
+            $userUpdated = false;
+            if (!empty($updateData['first_name'])) {
+                $fullName = trim(($updateData['first_name'] ?? $teacher->first_name) . ' ' . ($updateData['last_name'] ?? $teacher->last_name));
+                $user->name = $fullName;
+                $userUpdated = true;
+            }
+            if (!empty($updateData['email']) && $user->email !== $updateData['email']) {
+                $user->email = $updateData['email'];
+                $userUpdated = true;
+            }
+            if (!empty($updateData['phone']) && $user->phone !== $updateData['phone']) {
+                $user->phone = $updateData['phone'];
+                $userUpdated = true;
+            }
+            if ($userUpdated) {
+                $user->save();
+            }
+        }
 
         return response()->json([
             'success' => true,

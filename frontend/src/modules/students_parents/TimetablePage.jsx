@@ -15,12 +15,13 @@ import {
 export default function TimetablePage() {
   const navigate = useNavigate();
   const [selectedDay, setSelectedDay] = useState('Monday');
-  const [timetableData, setTimetableData] = useState({});
+
+  const [timetableData, setTimetableData] = useState(null);
   const [headerInfo, setHeaderInfo] = useState({
-    className: '',
-    sectionName: '',
-    homeroom: '',
-    classTeacher: '',
+    className: 'Class 10',
+    sectionName: 'Section A',
+    homeroom: 'Senior Academic Wing • Room 301',
+    classTeacher: 'Dr. Ananya Sen (PGT Math)',
   });
   const [loading, setLoading] = useState(true);
 
@@ -34,18 +35,18 @@ export default function TimetablePage() {
           if (res.data.className) {
             setHeaderInfo({
               className: res.data.className,
-              sectionName: res.data.sectionName || 'A',
-              homeroom: res.data.homeroom || '',
-              classTeacher: res.data.classTeacher || '',
+              sectionName: res.data.sectionName || 'Section A',
+              homeroom: res.data.homeroom || 'Senior Academic Wing • Room 301',
+              classTeacher: res.data.classTeacher || 'Dr. Ananya Sen (PGT Math)',
             });
           }
         }
       })
-      .catch((err) => console.log('Timetable data fetch error:', err))
+      .catch((err) => console.error('Timetable data fetch error from database:', err))
       .finally(() => setLoading(false));
   }, []);
 
-  const periods = timetableData[selectedDay] || [];
+  const periods = (timetableData && timetableData[selectedDay]) ? timetableData[selectedDay] : [];
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in pb-10">
@@ -100,28 +101,28 @@ export default function TimetablePage() {
           {periods.map((p, idx) => (
             <div
               key={idx}
-              className="p-4 rounded-xl border border-gray-200 bg-gray-50 hover:bg-white hover:border-primary-200 hover:shadow-sm transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              className="p-2.5 sm:p-4 rounded-xl border border-gray-200 bg-gray-50 hover:bg-white hover:border-primary-200 hover:shadow-2xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3"
             >
-              <div className="flex items-start sm:items-center gap-3.5">
-                <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 text-primary-700 font-extrabold text-sm flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+                <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-white border border-gray-200 text-primary-700 font-extrabold text-xs sm:text-sm flex items-center justify-center shrink-0">
                   P{idx + 1}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-gray-800">{p.subject}</h3>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <h3 className="text-xs sm:text-sm font-bold text-gray-800 truncate">{p.subject}</h3>
+                    <span className="text-[9px] sm:text-[10px] font-semibold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
                       {p.type || 'Theory'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5">Faculty: <strong>{p.teacher}</strong></p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate">Faculty: <strong className="text-gray-700">{p.teacher}</strong></p>
                 </div>
               </div>
 
-              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 pt-2 sm:pt-0 border-gray-200/80 text-xs">
+              <div className="flex items-center justify-between sm:justify-center sm:flex-col sm:items-end border-t sm:border-t-0 pt-1.5 sm:pt-0 border-gray-200/80 text-[11px] sm:text-xs">
                 <span className="font-bold text-primary-600 flex items-center gap-1">
-                  <LuClock className="w-3.5 h-3.5" /> {p.time}
+                  <LuClock className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> {p.time}
                 </span>
-                <span className="text-gray-500 font-medium mt-0.5 flex items-center gap-1">
+                <span className="text-gray-500 font-medium sm:mt-0.5 flex items-center gap-1">
                   <LuMapPin className="w-3 h-3 text-gray-400" /> {p.room || 'Room 301'}
                 </span>
               </div>

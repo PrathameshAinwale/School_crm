@@ -133,7 +133,7 @@ function ProfileRouter() {
   if (role === 'teacher') {
     return <TeacherProfilePage />;
   }
-  if (role === 'hr') {
+  if (role === 'hr' || role === 'staff') {
     return <HRProfilePage />;
   }
   if (role === 'accountant') {
@@ -190,10 +190,10 @@ function AppRoutes() {
 
         {/* Role Aware Profile Route */}
         <Route path="profile" element={<ProfileRouter />} />
-        <Route path="teacher/profile" element={<RoleRoute allowedRoles={['teacher']} moduleName="Teacher Profile"><TeacherProfilePage /></RoleRoute>} />
-        <Route path="hr/profile" element={<RoleRoute allowedRoles={['hr']} moduleName="HR Profile"><HRProfilePage /></RoleRoute>} />
+        <Route path="teacher/profile" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Teacher Profile"><TeacherProfilePage /></RoleRoute>} />
+        <Route path="hr/profile" element={<RoleRoute allowedRoles={['hr', 'staff', 'admin']} moduleName="HR Profile"><HRProfilePage /></RoleRoute>} />
         <Route path="accounts/profile" element={<RoleRoute allowedRoles={['accountant', 'admin']} moduleName="Accounts Profile"><AccountsProfilePage /></RoleRoute>} />
-        <Route path="student/profile" element={<RoleRoute allowedRoles={['student_parent']} moduleName="Student Profile"><ProfilePage /></RoleRoute>} />
+        <Route path="student/profile" element={<RoleRoute allowedRoles={['student_parent', 'admin']} moduleName="Student Profile"><ProfilePage /></RoleRoute>} />
 
         {/* Student & Parent Dedicated Pages */}
         <Route path="syllabus" element={<SyllabusPage />} />

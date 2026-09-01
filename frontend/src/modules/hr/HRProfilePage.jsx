@@ -288,8 +288,13 @@ export default function HRProfilePage() {
                   <LuPencil className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">Edit HR Profile Details</h3>
-                  <p className="text-purple-100 text-xs">Update your official name, email, and phone</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base">Edit HR / Staff Profile</h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-400 text-emerald-950">
+                      Direct Self-Edit Enabled
+                    </span>
+                  </div>
+                  <p className="text-purple-100 text-xs">Update your official name, email, and phone directly</p>
                 </div>
               </div>
               <button
@@ -362,7 +367,7 @@ export default function HRProfilePage() {
                     </>
                   ) : (
                     <>
-                      <LuSave className="w-3.5 h-3.5" /> Save Changes
+                      <LuSave className="w-3.5 h-3.5" /> Save Changes Directly
                     </>
                   )}
                 </button>

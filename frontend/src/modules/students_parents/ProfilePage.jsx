@@ -28,7 +28,12 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Form states for editable parent & contact details
+  // Form states for editable student, parent & contact details
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gender, setGender] = useState('Male');
+  const [bloodGroup, setBloodGroup] = useState('O+');
   const [fatherName, setFatherName] = useState('');
   const [fatherOccupation, setFatherOccupation] = useState('');
   const [motherName, setMotherName] = useState('');
@@ -37,6 +42,7 @@ export default function ProfilePage() {
   const [contactEmail, setContactEmail] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
   const [residentialAddress, setResidentialAddress] = useState('');
+  const [medicalNotes, setMedicalNotes] = useState('');
 
   const loadProfile = async () => {
     setLoading(true);
@@ -45,6 +51,12 @@ export default function ProfilePage() {
       if (res.success && res.data) {
         const d = res.data;
         setProfileData(d);
+        setFirstName(d.student?.first_name || '');
+        setLastName(d.student?.last_name || '');
+        setDateOfBirth(d.student?.rawDateOfBirth || '');
+        setGender(d.student?.gender || 'Male');
+        setBloodGroup(d.student?.bloodGroup || 'O+');
+        setMedicalNotes(d.student?.medicalNotes || '');
         setFatherName(d.parents?.father?.name || d.parents?.guardianName || '');
         setFatherOccupation(d.parents?.father?.occupation || '');
         setMotherName(d.parents?.mother?.name || '');
@@ -70,11 +82,16 @@ export default function ProfilePage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const handleUpdateRequest = async (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
       const payload = {
+        first_name: firstName,
+        last_name: lastName,
+        date_of_birth: dateOfBirth,
+        gender,
+        blood_group: bloodGroup,
         father_name: fatherName,
         father_occupation: fatherOccupation,
         mother_name: motherName,
@@ -83,15 +100,16 @@ export default function ProfilePage() {
         guardian_email: contactEmail,
         emergency_contact: emergencyPhone,
         address: residentialAddress,
+        medical_notes: medicalNotes,
       };
       const res = await adminService.updateStudentProfile(payload);
       if (res.success) {
         setShowUpdateModal(false);
-        showToast('Parent and contact details updated successfully!');
+        showToast('Profile information updated successfully!');
         loadProfile();
       }
     } catch (err) {
-      showToast(err.data?.message || err.message || 'Failed to update records.');
+      showToast(err.data?.message || err.message || 'Failed to update profile.');
     } finally {
       setSaving(false);
     }
@@ -134,67 +152,67 @@ export default function ProfilePage() {
       )}
 
       {/* Top Navigation Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-xl border border-gray-200/80 shadow-xs">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 sm:p-5 rounded-xl border border-gray-200/80 shadow-xs">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <button
             onClick={() => navigate('/dashboard')}
-            className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
+            className="p-1.5 sm:p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
             title="Back to Dashboard"
           >
             <LuArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-gray-800">Student Profile</h1>
-            <p className="text-xs text-gray-400">Official Student & Parent Registration Record</p>
+            <h1 className="text-base sm:text-xl font-bold text-gray-800">Student Profile</h1>
+            <p className="text-[10px] sm:text-xs text-gray-400">Official Student & Parent Record</p>
           </div>
         </div>
 
         <button
           onClick={() => setShowUpdateModal(true)}
-          className="px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
+          className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-colors self-start sm:self-auto cursor-pointer"
         >
-          <LuPencil className="w-3.5 h-3.5" /> Edit Profile Details
+          <LuPencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Edit Profile
         </button>
       </div>
 
       {/* Student Banner Card */}
       <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
-        <div className="bg-gradient-to-r from-primary-700 via-primary-600 to-blue-600 p-5 sm:p-6 text-white">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center text-xl sm:text-2xl font-extrabold text-white shadow-inner shrink-0">
+        <div className="bg-gradient-to-r from-primary-700 via-primary-600 to-blue-600 p-3.5 sm:p-6 text-white">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center text-base sm:text-2xl font-extrabold text-white shadow-inner shrink-0">
                 {initials}
               </div>
               <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-xl sm:text-2xl font-bold text-white leading-tight">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <h2 className="text-base sm:text-2xl font-bold text-white leading-tight">
                     {student.fullName || 'Student Name'}
                   </h2>
                   {student.rollNo && (
-                    <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-white/20 text-white border border-white/30">
-                      Roll #{student.rollNo}
+                    <span className="text-[10px] sm:text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-white/20 text-white border border-white/30">
+                      #{student.rollNo}
                     </span>
                   )}
-                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-400 text-emerald-950">
+                  <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-400 text-emerald-950">
                     {student.status || 'Active'}
                   </span>
                 </div>
 
-                <p className="text-xs sm:text-sm text-blue-100 mt-1">
+                <p className="text-xs sm:text-sm text-blue-100 mt-0.5 sm:mt-1">
                   {student.classSection || `${student.className || 'Class 10'} • ${student.sectionName || 'Section A'}`}
                 </p>
 
                 {student.admissionNo && (
-                  <p className="text-xs text-blue-200 font-mono mt-0.5">
-                    Admission Number: <strong>{student.admissionNo}</strong>
+                  <p className="text-[11px] sm:text-xs text-blue-200 font-mono mt-0.5">
+                    Admission: <strong>{student.admissionNo}</strong>
                   </p>
                 )}
               </div>
             </div>
 
             {student.admissionDate && (
-              <div className="text-left sm:text-right bg-white/10 sm:bg-transparent p-2.5 sm:p-0 rounded-lg sm:rounded-none w-full sm:w-auto">
-                <span className="text-[11px] text-blue-200 block">Admission Date</span>
+              <div className="text-left sm:text-right bg-white/10 sm:bg-transparent p-2 sm:p-0 rounded-lg sm:rounded-none w-full sm:w-auto">
+                <span className="text-[10px] sm:text-[11px] text-blue-200 block">Admission Date</span>
                 <span className="text-xs sm:text-sm font-bold text-white">{student.admissionDate}</span>
               </div>
             )}
@@ -203,20 +221,20 @@ export default function ProfilePage() {
       </div>
 
       {/* Grid: Student Demographics & Academic Placement */}
-      <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200/80 shadow-xs space-y-4">
-        <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <LuIdCard className="w-4 h-4" />
+      <div className="bg-white rounded-xl sm:rounded-2xl p-3.5 sm:p-6 border border-gray-200/80 shadow-xs space-y-3 sm:space-y-4">
+        <div className="flex items-center gap-2 pb-2.5 sm:pb-3 border-b border-gray-100">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <LuIdCard className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-gray-800">Student Identity & Demographics</h3>
-            <p className="text-xs text-gray-400">Personal & Academic Class Placement</p>
+            <h3 className="text-xs sm:text-sm font-bold text-gray-800">Student Identity & Demographics</h3>
+            <p className="text-[10px] sm:text-xs text-gray-400">Personal & Academic Placement</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="p-3 bg-gray-50/80 rounded-xl border border-gray-100">
-            <span className="text-[10px] text-gray-400 font-bold uppercase block">First Name</span>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+          <div className="p-2.5 sm:p-3 bg-gray-50/80 rounded-lg sm:rounded-xl border border-gray-100">
+            <span className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase block">First Name</span>
             <p className="font-bold text-gray-800 text-xs sm:text-sm mt-0.5">{student.first_name || '—'}</p>
           </div>
 
@@ -393,11 +411,16 @@ export default function ProfilePage() {
       {/* Edit Details Modal */}
       {showUpdateModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-gray-200 animate-scale-up my-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+          <div className="bg-white rounded-2xl p-5 sm:p-6 max-w-2xl w-full shadow-2xl border border-gray-200 animate-scale-up my-6 max-h-[92vh] flex flex-col">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 shrink-0">
               <div>
-                <h3 className="text-base font-bold text-gray-800">Edit Profile & Contact Details</h3>
-                <p className="text-xs text-gray-400">Update parents' names, occupations, phone and address</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-gray-800">Edit Student & Parent Profile</h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-400 text-emerald-950">
+                    Direct Self-Edit Enabled
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400">Update personal, parental, and contact records directly without administrative delays</p>
               </div>
               <button
                 onClick={() => setShowUpdateModal(false)}
@@ -407,101 +430,198 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            <form onSubmit={handleUpdateRequest} className="space-y-3.5 text-xs">
-              {/* Father Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-blue-50/60 rounded-xl border border-blue-100">
+            <form onSubmit={handleSaveProfile} className="space-y-4 text-xs overflow-y-auto flex-1 pr-1">
+              {/* Student Identity */}
+              <div className="p-3.5 bg-gray-50/80 rounded-xl border border-gray-200/80 space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
+                  <LuUser className="w-4 h-4 text-primary-600" />
+                  <h4 className="font-bold text-gray-800 text-xs">Student Identity & Demographics</h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-1">First Name</label>
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="e.g. Aarav"
+                      className="w-full p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 focus:outline-none focus:border-primary-500 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-1">Last Name</label>
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="e.g. Patel"
+                      className="w-full p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 focus:outline-none focus:border-primary-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-1">Date of Birth</label>
+                    <input
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      className="w-full p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 focus:outline-none focus:border-primary-500 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-1">Gender</label>
+                    <select
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                      className="w-full p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 focus:outline-none focus:border-primary-500 font-medium"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-1">Blood Group</label>
+                    <select
+                      value={bloodGroup}
+                      onChange={(e) => setBloodGroup(e.target.value)}
+                      className="w-full p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 focus:outline-none focus:border-primary-500 font-medium"
+                    >
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Parents / Guardians Details */}
+              <div className="space-y-3">
+                {/* Father Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-blue-50/60 rounded-xl border border-blue-100">
+                  <div>
+                    <label className="block font-semibold text-blue-950 mb-1">Father's Full Name</label>
+                    <input
+                      type="text"
+                      value={fatherName}
+                      onChange={(e) => setFatherName(e.target.value)}
+                      placeholder="e.g. Rajesh Patel"
+                      className="w-full p-2.5 bg-white rounded-lg border border-blue-200 text-gray-800 focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-blue-950 mb-1">Father's Occupation</label>
+                    <input
+                      type="text"
+                      value={fatherOccupation}
+                      onChange={(e) => setFatherOccupation(e.target.value)}
+                      placeholder="e.g. Civil Engineer"
+                      className="w-full p-2.5 bg-white rounded-lg border border-blue-200 text-gray-800 focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Mother Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-purple-50/60 rounded-xl border border-purple-100">
+                  <div>
+                    <label className="block font-semibold text-purple-950 mb-1">Mother's Full Name</label>
+                    <input
+                      type="text"
+                      value={motherName}
+                      onChange={(e) => setMotherName(e.target.value)}
+                      placeholder="e.g. Meena Patel"
+                      className="w-full p-2.5 bg-white rounded-lg border border-purple-200 text-gray-800 focus:outline-none focus:border-purple-500 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-purple-950 mb-1">Mother's Occupation</label>
+                    <input
+                      type="text"
+                      value={motherOccupation}
+                      onChange={(e) => setMotherOccupation(e.target.value)}
+                      placeholder="e.g. Professor / Homemaker"
+                      className="w-full p-2.5 bg-white rounded-lg border border-purple-200 text-gray-800 focus:outline-none focus:border-purple-500 font-medium"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information & Residence */}
+              <div className="p-3.5 bg-emerald-50/40 rounded-xl border border-emerald-100 space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-emerald-200/60">
+                  <LuPhone className="w-4 h-4 text-emerald-600" />
+                  <h4 className="font-bold text-emerald-950 text-xs">Contact Information & Residence</h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-1">
+                      Primary Mobile Phone (Login ID) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                      placeholder="+91 98765 43210"
+                      className="w-full p-2.5 rounded-lg border border-gray-200 bg-white text-gray-800 focus:outline-none focus:border-primary-500 font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-1">Parent Email Address</label>
+                    <input
+                      type="email"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      placeholder="parent@example.com"
+                      className="w-full p-2.5 rounded-lg border border-gray-200 bg-white text-gray-800 focus:outline-none focus:border-primary-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-1">Emergency Contact Number</label>
+                    <input
+                      type="tel"
+                      value={emergencyPhone}
+                      onChange={(e) => setEmergencyPhone(e.target.value)}
+                      placeholder="+91 98765 43210"
+                      className="w-full p-2.5 rounded-lg border border-gray-200 bg-white text-gray-800 focus:outline-none focus:border-primary-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-1">Medical / Health Notes</label>
+                    <input
+                      type="text"
+                      value={medicalNotes}
+                      onChange={(e) => setMedicalNotes(e.target.value)}
+                      placeholder="e.g. Allergic to penicillin, wears glasses"
+                      className="w-full p-2.5 rounded-lg border border-gray-200 bg-white text-gray-800 focus:outline-none focus:border-primary-500"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block font-semibold text-blue-950 mb-1">Father's Full Name</label>
-                  <input
-                    type="text"
-                    value={fatherName}
-                    onChange={(e) => setFatherName(e.target.value)}
-                    placeholder="e.g. Rajesh Patel"
-                    className="w-full p-2.5 bg-white rounded-lg border border-blue-200 text-gray-800 focus:outline-none focus:border-blue-500 font-medium"
+                  <label className="block font-semibold text-gray-700 mb-1">Residential Street Address</label>
+                  <textarea
+                    rows={2}
+                    value={residentialAddress}
+                    onChange={(e) => setResidentialAddress(e.target.value)}
+                    placeholder="Enter full residential address..."
+                    className="w-full p-2.5 rounded-lg border border-gray-200 bg-white text-gray-800 focus:outline-none focus:border-primary-500 resize-none"
                   />
                 </div>
-                <div>
-                  <label className="block font-semibold text-blue-950 mb-1">Father's Occupation</label>
-                  <input
-                    type="text"
-                    value={fatherOccupation}
-                    onChange={(e) => setFatherOccupation(e.target.value)}
-                    placeholder="e.g. Civil Engineer"
-                    className="w-full p-2.5 bg-white rounded-lg border border-blue-200 text-gray-800 focus:outline-none focus:border-blue-500 font-medium"
-                  />
-                </div>
-              </div>
-
-              {/* Mother Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-purple-50/60 rounded-xl border border-purple-100">
-                <div>
-                  <label className="block font-semibold text-purple-950 mb-1">Mother's Full Name</label>
-                  <input
-                    type="text"
-                    value={motherName}
-                    onChange={(e) => setMotherName(e.target.value)}
-                    placeholder="e.g. Meena Patel"
-                    className="w-full p-2.5 bg-white rounded-lg border border-purple-200 text-gray-800 focus:outline-none focus:border-purple-500 font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-purple-950 mb-1">Mother's Occupation</label>
-                  <input
-                    type="text"
-                    value={motherOccupation}
-                    onChange={(e) => setMotherOccupation(e.target.value)}
-                    placeholder="e.g. Professor / Homemaker"
-                    className="w-full p-2.5 bg-white rounded-lg border border-purple-200 text-gray-800 focus:outline-none focus:border-purple-500 font-medium"
-                  />
-                </div>
-              </div>
-
-              {/* Contact Information */}
-              <div>
-                <label className="block font-semibold text-gray-700 mb-1">
-                  Primary Mobile Phone (Login ID) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  placeholder="+91 98765 43210"
-                  className="w-full p-2.5 rounded-lg border border-gray-200 text-gray-800 focus:outline-none focus:border-primary-500 font-mono font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-gray-700 mb-1">Parent Email Address</label>
-                <input
-                  type="email"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="parent@example.com"
-                  className="w-full p-2.5 rounded-lg border border-gray-200 text-gray-800 focus:outline-none focus:border-primary-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-gray-700 mb-1">Emergency Contact Number</label>
-                <input
-                  type="tel"
-                  value={emergencyPhone}
-                  onChange={(e) => setEmergencyPhone(e.target.value)}
-                  placeholder="+91 98765 43210"
-                  className="w-full p-2.5 rounded-lg border border-gray-200 text-gray-800 focus:outline-none focus:border-primary-500 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-gray-700 mb-1">Residential Street Address</label>
-                <textarea
-                  rows={2}
-                  value={residentialAddress}
-                  onChange={(e) => setResidentialAddress(e.target.value)}
-                  placeholder="Enter full address..."
-                  className="w-full p-2.5 rounded-lg border border-gray-200 text-gray-800 focus:outline-none focus:border-primary-500 resize-none"
-                />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
@@ -518,7 +638,7 @@ export default function ProfilePage() {
                   className="px-5 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-bold shadow-xs transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {saving ? <LuLoader className="w-4 h-4 animate-spin" /> : null}
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? 'Saving...' : 'Save Changes Directly'}
                 </button>
               </div>
             </form>

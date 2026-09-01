@@ -108,11 +108,14 @@ export default function AssignmentsPage() {
         status: statusFilter,
         search: searchQuery,
       });
-      if (res.success) {
-        setAssignments(res.data || []);
+      if (res.success && Array.isArray(res.data)) {
+        setAssignments(res.data);
+      } else {
+        setAssignments([]);
       }
     } catch (err) {
-      console.error('Failed to load assignments:', err);
+      console.error('Failed to load assignments from database:', err);
+      setAssignments([]);
     } finally {
       setLoading(false);
     }
@@ -387,37 +390,37 @@ export default function AssignmentsPage() {
             return (
               <div
                 key={asn.id}
-                className="bg-white p-6 rounded-3xl border border-gray-200/80 shadow-xs hover:border-gray-300 transition-all"
+                className="bg-white p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl border border-gray-200/80 shadow-2xs hover:border-gray-300 transition-all"
               >
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-3 mb-2">
                   <div>
-                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                      <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-primary-50 text-primary-700">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
+                      <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md bg-primary-50 text-primary-700">
                         {asn.class_name}
                       </span>
-                      <span className="text-xs font-bold text-gray-700">• {asn.subject}</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                      <span className="text-[11px] sm:text-xs font-bold text-gray-700">• {asn.subject}</span>
+                      <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">
                         Max: {asn.max_marks}
                       </span>
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded ${
                           asn.priority === 'High'
                             ? 'bg-rose-50 text-rose-700'
                             : 'bg-slate-100 text-slate-700'
                         }`}
                       >
-                        {asn.priority} Priority
+                        {asn.priority}
                       </span>
                     </div>
-                    <h3 className="text-base font-bold text-gray-900">{asn.title}</h3>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Assigned by: <strong className="text-gray-800">{asn.teacher}</strong> • Assigned on: {asn.assigned_date}
+                    <h3 className="text-sm sm:text-base font-bold text-gray-900">{asn.title}</h3>
+                    <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+                      Assigned by: <strong className="text-gray-800">{asn.teacher}</strong> <span className="hidden sm:inline">• {asn.assigned_date}</span>
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2 self-start sm:self-auto">
                     <span
-                      className={`text-xs font-bold px-3 py-1 rounded-lg ${
+                      className={`text-[10px] sm:text-xs font-bold px-2.5 py-0.5 sm:py-1 rounded-lg ${
                         asn.status === 'Active'
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/70'
                           : 'bg-gray-100 text-gray-600 border border-gray-200'
@@ -429,7 +432,7 @@ export default function AssignmentsPage() {
                 </div>
 
                 {asn.description && (
-                  <p className="text-xs text-gray-600 bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100 my-3.5 leading-relaxed">
+                  <p className="text-[11px] sm:text-xs text-gray-600 bg-gray-50/80 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-gray-100 my-2 sm:my-3.5 leading-relaxed line-clamp-2 sm:line-clamp-none">
                     {asn.description}
                   </p>
                 )}

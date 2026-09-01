@@ -141,58 +141,58 @@ export default function AccountsDashboard() {
       )}
 
       {/* Welcome Card & Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 bg-white p-3 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
-          <h1 className="text-xl font-bold text-slate-800 tracking-tight">Accounts & Finance Portal</h1>
-          <p className="text-slate-500 text-xs mt-0.5">
-            Student fee recovery, clearance tracking & staff salary disbursements
+          <h1 className="text-base sm:text-xl font-bold text-slate-800 tracking-tight">Accounts & Finance</h1>
+          <p className="text-slate-500 text-[10px] sm:text-xs mt-0.5">
+            Student fee recovery, clearance tracking & staff payroll
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
+            className="px-2.5 py-1.5 rounded-lg sm:rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-[11px] sm:text-xs font-semibold shadow-2xs flex items-center gap-1 transition-all cursor-pointer disabled:opacity-60"
           >
-            <LuRefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            Sync Ledger
+            <LuRefreshCw className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            Sync
           </button>
           <button
             onClick={handleQuickBulkRemind}
             disabled={bulkReminderLoading}
-            className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
+            className="px-3 py-1.5 rounded-lg sm:rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-[11px] sm:text-xs font-semibold shadow-2xs flex items-center gap-1 transition-all cursor-pointer disabled:opacity-60"
           >
-            <LuBellRing className="w-3.5 h-3.5" />
-            {bulkReminderLoading ? 'Dispatching...' : 'Push Fee Reminders'}
+            <LuBellRing className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            {bulkReminderLoading ? 'Dispatching...' : 'Fee Reminders'}
           </button>
         </div>
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3.5">
         {kpis.map((kpi, idx) => {
           const Icon = kpi.icon;
           return (
             <div
               key={idx}
               onClick={() => navigate(kpi.path)}
-              className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-xs hover:shadow-sm hover:border-primary-200 transition-all flex items-center justify-between cursor-pointer group"
+              className="bg-white rounded-xl p-2.5 sm:p-4 border border-slate-200/80 shadow-2xs hover:shadow-sm hover:border-primary-200 transition-all flex items-center justify-between cursor-pointer group"
             >
-              <div>
-                <div className="text-xs font-medium text-slate-500">{kpi.title}</div>
-                <div className="text-xl font-bold text-slate-800 mt-0.5 tracking-tight font-mono">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] sm:text-xs font-medium text-slate-500 truncate">{kpi.title}</div>
+                <div className="text-sm sm:text-xl font-bold text-slate-800 mt-0.5 tracking-tight font-mono truncate">
                   {loading ? (
-                    <div className="h-6 w-24 bg-slate-100 rounded animate-pulse my-0.5" />
+                    <div className="h-5 w-16 bg-slate-100 rounded animate-pulse my-0.5" />
                   ) : (
                     kpi.value
                   )}
                 </div>
-                <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+                <div className="text-[9px] sm:text-[11px] text-slate-400 font-medium mt-0.5 truncate">
                   {kpi.subtitle}
                 </div>
               </div>
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${kpi.iconBg} shrink-0 group-hover:scale-105 transition-transform`}>
-                <Icon className="w-5 h-5" />
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${kpi.iconBg} shrink-0 group-hover:scale-105 transition-transform ml-1.5`}>
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           );
