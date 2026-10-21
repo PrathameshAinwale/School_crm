@@ -957,7 +957,7 @@ export default function StudentFeesManagementPage() {
 
             <div className="p-6 space-y-4 text-xs">
               <div className="text-center pb-3 border-b border-slate-100">
-                <h4 className="text-base font-extrabold text-slate-800">EDUFLOW INTERNATIONAL SCHOOL</h4>
+                <h4 className="text-base font-extrabold text-slate-800">ARCH CAMPUS INTERNATIONAL SCHOOL</h4>
                 <p className="text-slate-400 text-[11px]">Affiliated to CBSE Board • Accounts Department</p>
                 <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <LuCircleCheck className="w-3.5 h-3.5" /> PAYMENT CLEARED

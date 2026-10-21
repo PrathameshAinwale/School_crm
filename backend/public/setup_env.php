@@ -11,7 +11,7 @@ if (file_exists($envPath)) {
 }
 
 $content = <<<'ENV'
-APP_NAME="School CRM"
+APP_NAME="Arch Campus"
 APP_ENV=production
 APP_KEY=base64:B39gZBC5HcPL6sBP0PA2V1ANd15LgFeG5TF0Ne0cy54=
 APP_DEBUG=true

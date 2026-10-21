@@ -1,13 +1,13 @@
 // Centralized Trainings Store with LocalStorage Persistence
 export const TEACHERS_LIST = [
-  { id: 'TCH-101', name: 'Dr. Ananya Sen', role: 'Senior PGT Mathematics & HOD', dept: 'Mathematics', email: 'ananya.sen@eduflow.edu' },
-  { id: 'TCH-102', name: 'Mr. Vikram Rathore', role: 'PGT Physics & Robotics Mentor', dept: 'Science', email: 'vikram.r@eduflow.edu' },
-  { id: 'TCH-103', name: 'Ms. Sunita Rao', role: 'TGT English Literature', dept: 'Languages', email: 'sunita.rao@eduflow.edu' },
-  { id: 'TCH-104', name: 'Mr. Rajesh Mehra', role: 'PGT Chemistry & Lab Coordinator', dept: 'Science', email: 'rajesh.mehra@eduflow.edu' },
-  { id: 'TCH-105', name: 'Mrs. Deepa Krishnan', role: 'Head of Computer Science & AI', dept: 'IT & CS', email: 'deepa.k@eduflow.edu' },
-  { id: 'TCH-106', name: 'Mr. Alok Verma', role: 'TGT Social Studies', dept: 'Humanities', email: 'alok.v@eduflow.edu' },
-  { id: 'TCH-107', name: 'Mrs. Kavita Saxena', role: 'PRT Primary Wing Coordinator', dept: 'Primary Wing', email: 'kavita.s@eduflow.edu' },
-  { id: 'TCH-108', name: 'Mr. Sanjay Gupta', role: 'PGT Physical Education & Sports', dept: 'Sports & PE', email: 'sanjay.g@eduflow.edu' },
+  { id: 'TCH-101', name: 'Dr. Ananya Sen', role: 'Senior PGT Mathematics & HOD', dept: 'Mathematics', email: 'ananya.sen@archcampus.edu' },
+  { id: 'TCH-102', name: 'Mr. Vikram Rathore', role: 'PGT Physics & Robotics Mentor', dept: 'Science', email: 'vikram.r@archcampus.edu' },
+  { id: 'TCH-103', name: 'Ms. Sunita Rao', role: 'TGT English Literature', dept: 'Languages', email: 'sunita.rao@archcampus.edu' },
+  { id: 'TCH-104', name: 'Mr. Rajesh Mehra', role: 'PGT Chemistry & Lab Coordinator', dept: 'Science', email: 'rajesh.mehra@archcampus.edu' },
+  { id: 'TCH-105', name: 'Mrs. Deepa Krishnan', role: 'Head of Computer Science & AI', dept: 'IT & CS', email: 'deepa.k@archcampus.edu' },
+  { id: 'TCH-106', name: 'Mr. Alok Verma', role: 'TGT Social Studies', dept: 'Humanities', email: 'alok.v@archcampus.edu' },
+  { id: 'TCH-107', name: 'Mrs. Kavita Saxena', role: 'PRT Primary Wing Coordinator', dept: 'Primary Wing', email: 'kavita.s@archcampus.edu' },
+  { id: 'TCH-108', name: 'Mr. Sanjay Gupta', role: 'PGT Physical Education & Sports', dept: 'Sports & PE', email: 'sanjay.g@archcampus.edu' },
 ];
 
 export const TEACHER_GROUPS = [
@@ -105,11 +105,12 @@ const INITIAL_TRAININGS = [
   },
 ];
 
-const STORAGE_KEY = 'eduflow_school_trainings_v1';
+const STORAGE_KEY = 'archcampus_school_trainings_v1';
+const LEGACY_STORAGE_KEY = 'eduflow_school_trainings_v1';
 
 export function getStoredTrainings() {
   try {
-    const data = localStorage.getItem(STORAGE_KEY);
+    const data = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
     if (data) {
       return JSON.parse(data);
     }

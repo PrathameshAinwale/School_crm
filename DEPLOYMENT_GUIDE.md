@@ -71,7 +71,7 @@ In your Hostinger File Manager, the folder layout is organized as follows:
 1. **Laravel `.env` File**:
    Make sure you have your `.env` file in your `backend/` directory on Hostinger containing your production DB credentials:
    ```env
-   APP_NAME="School CRM"
+   APP_NAME="Arch Campus"
    APP_ENV=production
    APP_DEBUG=false
    APP_URL=http://powderblue-trout-993647.hostingersite.com

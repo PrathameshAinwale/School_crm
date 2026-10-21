@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import navigation from '../../data/navigation';
 import { LuChevronLeft, LuLogOut, LuGraduationCap, LuX, LuChevronDown, LuChevronRight } from 'react-icons/lu';
@@ -10,6 +11,7 @@ export default function Sidebar({
   mobileMenuOpen,
   setMobileMenuOpen,
 }) {
+  const { t } = useTranslation();
   const { user, currentRole, logout } = useAuth();
   const location = useLocation();
   const navItems = navigation[currentRole] || navigation.admin;
@@ -23,6 +25,12 @@ export default function Sidebar({
       ...prev,
       [label]: prev[label] === undefined ? false : !prev[label]
     }));
+  };
+
+  const getNavLabel = (item) => {
+    if (item.labelKey) return t(item.labelKey, item.label);
+    const key = `nav.${item.label.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    return t(key, item.label);
   };
 
   return (
@@ -44,8 +52,8 @@ export default function Sidebar({
           </div>
           {(!collapsed || mobileMenuOpen) && (
             <div>
-              <h1 className="text-lg font-bold text-gray-800 leading-tight">EduFlow</h1>
-              <p className="text-[10px] text-gray-400">SMS</p>
+              <h1 className="text-lg font-bold text-gray-800 leading-tight">Arch Campus</h1>
+              <p className="text-[10px] text-gray-400">School Management System</p>
             </div>
           )}
         </div>
@@ -75,7 +83,7 @@ export default function Sidebar({
                   <div className="flex items-center gap-3">
                     <Icon className="w-[18px] h-[18px] shrink-0 text-gray-400 group-hover:text-gray-600" />
                     {(!collapsed || mobileMenuOpen) && (
-                      <span className="truncate">{item.label}</span>
+                      <span className="truncate">{getNavLabel(item)}</span>
                     )}
                   </div>
                   {(!collapsed || mobileMenuOpen) && (
@@ -87,7 +95,7 @@ export default function Sidebar({
                   )}
                   {collapsed && !mobileMenuOpen && (
                     <div className="absolute left-full ml-2 px-2.5 py-1 rounded-md bg-gray-800 text-white text-xs whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-md">
-                      {item.label}
+                      {getNavLabel(item)}
                     </div>
                   )}
                 </button>
@@ -114,7 +122,7 @@ export default function Sidebar({
                               isChildActive ? 'text-primary-600' : 'text-gray-400 group-hover:text-gray-600'
                             }`}
                           />
-                          <span className="truncate">{child.label}</span>
+                          <span className="truncate">{getNavLabel(child)}</span>
                         </NavLink>
                       );
                     })}
@@ -143,11 +151,11 @@ export default function Sidebar({
                 }`}
               />
               {(!collapsed || mobileMenuOpen) && (
-                <span className="truncate">{item.label}</span>
+                <span className="truncate">{getNavLabel(item)}</span>
               )}
               {collapsed && !mobileMenuOpen && (
                 <div className="absolute left-full ml-2 px-2.5 py-1 rounded-md bg-gray-800 text-white text-xs whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-md">
-                  {item.label}
+                  {getNavLabel(item)}
                 </div>
               )}
             </NavLink>

@@ -702,10 +702,10 @@ export default function FeesPage() {
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-extrabold text-sm shadow-xs">
-                  EF
+                  AC
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-slate-800">EduFlow International School</h3>
+                  <h3 className="text-sm font-extrabold text-slate-800">Arch Campus International School</h3>
                   <p className="text-[10px] text-slate-400">Official Student Fee Payment Receipt</p>
                 </div>
               </div>

@@ -320,6 +320,17 @@ export const adminService = {
       body: data,
     });
   },
+
+  // Multi-School & Branch Operations
+  getBranches() {
+    return apiRequest('/schools/branches');
+  },
+  switchBranch(branchId) {
+    return apiRequest('/schools/switch-branch', {
+      method: 'POST',
+      body: { branch_id: branchId },
+    });
+  },
 };
 
 export default adminService;

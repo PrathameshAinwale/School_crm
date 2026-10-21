@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { changeLanguage } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import { adminService } from '../../services/adminService';
+import BranchSwitcher from './BranchSwitcher';
 import {
   LuSearch,
   LuBell,
@@ -20,10 +23,19 @@ import {
   LuFileText,
   LuReceipt,
   LuChevronRight,
+  LuGlobe,
 } from 'react-icons/lu';
+
+const LANGUAGES = [
+  { code: 'en', label: 'English', native: 'English' },
+  { code: 'mr', label: 'Marathi', native: 'मराठी' },
+  { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
+];
 
 export default function Topbar({ onToggleMobileMenu }) {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const currentLang = LANGUAGES.find((l) => l.code === (i18n.language || 'en').substring(0, 2)) || LANGUAGES[0];
   const { user, currentRole, logout, ROLE_LABELS } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -394,6 +406,9 @@ export default function Topbar({ onToggleMobileMenu }) {
 
       {/* Right Actions */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Branch / Multi-Campus Switcher */}
+        <BranchSwitcher />
+
         {/* Notifications */}
         <div ref={notifRef} className="relative">
           <button
@@ -490,7 +505,7 @@ export default function Topbar({ onToggleMobileMenu }) {
           )}
         </div>
 
-        {/* Profile Avatar */}
+        {/* Profile Avatar & Dropdown */}
         <div ref={profileRef} className="relative">
           <button
             onClick={() => setShowProfile(!showProfile)}
@@ -507,11 +522,14 @@ export default function Topbar({ onToggleMobileMenu }) {
           </button>
 
           {showProfile && (
-            <div className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl border border-gray-200 shadow-xl p-1.5 z-50 animate-fade-in">
+            <div className="absolute right-0 top-full mt-1.5 w-56 bg-white rounded-xl border border-gray-200 shadow-xl p-1.5 z-50 animate-fade-in">
+              {/* User Header */}
               <div className="px-3 py-2 border-b border-gray-100 mb-1">
                 <p className="text-xs font-bold text-gray-800 truncate">{user?.name || 'User'}</p>
                 <p className="text-[11px] text-gray-400 truncate">{user?.email || user?.phone || ''}</p>
               </div>
+
+              {/* My Profile */}
               <button
                 onClick={() => {
                   if (currentRole === 'teacher') {
@@ -527,16 +545,53 @@ export default function Topbar({ onToggleMobileMenu }) {
                   }
                   setShowProfile(false);
                 }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-gray-600 hover:bg-gray-50 font-medium cursor-pointer"
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-gray-50 font-medium cursor-pointer transition-colors"
               >
-                <LuUser className="w-3.5 h-3.5" /> My Profile
+                <LuUser className="w-3.5 h-3.5 text-gray-500" />
+                <span>{t('nav.my_profile', 'My Profile')}</span>
               </button>
+
+              {/* Language Selection */}
+              <div className="border-t border-gray-100 my-1 pt-1.5 px-1">
+                <div className="flex items-center justify-between px-2 py-1 text-[11px] font-semibold text-gray-500">
+                  <span className="flex items-center gap-1.5">
+                    <LuGlobe className="w-3.5 h-3.5 text-primary-600" />
+                    <span>{t('common.language', 'Language')}</span>
+                  </span>
+                  <span className="text-[10px] font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full border border-primary-100">
+                    {currentLang.native}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-1 bg-gray-50 p-1 rounded-lg border border-gray-100 mt-1">
+                  {LANGUAGES.map((lang) => {
+                    const isSelected = currentLang.code === lang.code;
+                    return (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => changeLanguage(lang.code)}
+                        className={`py-1.5 px-1 rounded-md text-xs font-semibold text-center transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-white text-primary-700 shadow-xs border border-gray-200/90'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
+                        }`}
+                        title={`${lang.label} (${lang.native})`}
+                      >
+                        {lang.native}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Logout Button */}
               <div className="border-t border-gray-100 mt-1 pt-1">
                 <button
                   onClick={logout}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-rose-600 hover:bg-rose-50 font-semibold cursor-pointer"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-rose-600 hover:bg-rose-50 font-semibold cursor-pointer transition-colors"
                 >
-                  <LuLogOut className="w-3.5 h-3.5" /> Logout
+                  <LuLogOut className="w-3.5 h-3.5" />
+                  <span>{t('common.logout', 'Logout')}</span>
                 </button>
               </div>
             </div>

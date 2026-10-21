@@ -10,7 +10,7 @@ export default function CredentialsModal({ isOpen, onClose, credentials, title =
   const password = credentials.temporary_password || '';
 
   const copyToClipboard = () => {
-    const text = `School CRM Login Credentials:\nIdentifier: ${loginId}\nTemporary Password: ${password}\nPlease change your password on first login.`;
+    const text = `Arch Campus Login Credentials:\nIdentifier: ${loginId}\nTemporary Password: ${password}\nPlease change your password on first login.`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);

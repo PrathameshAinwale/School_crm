@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\HR\HRController;
 use App\Http\Controllers\Api\Accounts\AccountsController;
 use App\Http\Controllers\Api\SuperAdmin\SuperAdminController;
 use App\Http\Controllers\Api\TeacherSelfController;
+use App\Http\Controllers\Api\BranchController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -40,7 +41,7 @@ Route::prefix('v1/auth')->group(function () {
 });
 
 // Protected Routes (Sanctum)
-Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(function () {
     // Auth actions
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
@@ -282,5 +283,11 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/schools/{id}/reset-admin-password', [SuperAdminController::class, 'resetSchoolAdminPassword']);
         Route::delete('/schools/{id}', [SuperAdminController::class, 'destroySchool']);
     });
+
+    // -------------------------------------------------------------
+    // MULTI-SCHOOL / MULTI-BRANCH CAMPUS SWITCHER
+    // -------------------------------------------------------------
+    Route::get('/schools/branches', [BranchController::class, 'branches']);
+    Route::post('/schools/switch-branch', [BranchController::class, 'switchBranch'])->middleware('role:admin,super_admin');
 });
 

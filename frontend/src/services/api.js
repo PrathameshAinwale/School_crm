@@ -7,9 +7,14 @@ const API_BASE_URL = (typeof window !== 'undefined' && (window.location.hostname
  */
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('auth_token');
+  const activeSchoolId = localStorage.getItem('active_school_id');
+  const activeLang = localStorage.getItem('app_language') || 'en';
+
   const headers = {
     'Accept': 'application/json',
     'Bypass-Tunnel-Reminder': 'true',
+    'Accept-Language': activeLang,
+    ...(activeSchoolId ? { 'X-School-Id': activeSchoolId } : {}),
     ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...options.headers,

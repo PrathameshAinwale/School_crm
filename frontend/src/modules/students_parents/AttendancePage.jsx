@@ -386,11 +386,7 @@ export default function AttendancePage() {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl font-bold text-gray-800 tracking-tight">Student Attendance & Heatmap</h1>
-  
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Student ID: <strong>STU-2024-X-101</strong> • Aarav Patel (Class 10-A) • Academic Session 2026-27
-            </p>
           </div>
         </div>
 

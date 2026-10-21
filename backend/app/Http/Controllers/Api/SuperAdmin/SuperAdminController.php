@@ -253,7 +253,7 @@ class SuperAdminController extends Controller
             'school_id' => $school->id,
             'user_id' => $adminUser->id,
             'role' => 'admin',
-            'title' => "Welcome to EduFlow SaaS SMS: {$school->name}",
+            'title' => "Welcome to Arch Campus: {$school->name}",
             'message' => "Your school instance ({$school->code}) has been successfully provisioned on the {$school->subscription_plan} plan. You can now add teachers, enroll students, and manage your campus.",
             'type' => 'success',
             'link' => '/dashboard',

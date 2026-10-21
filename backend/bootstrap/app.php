@@ -12,8 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->api(append: [
+            \App\Http\Middleware\ResolveActiveSchool::class,
+        ]);
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
+            'resolve.school' => \App\Http\Middleware\ResolveActiveSchool::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
