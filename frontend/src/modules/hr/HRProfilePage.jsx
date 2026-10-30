@@ -130,12 +130,6 @@ export default function HRProfilePage() {
                   <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
                     {profile.name}
                   </h1>
-                  <span className="px-2.5 py-0.5 rounded-full bg-white/25 text-white font-mono text-xs font-bold backdrop-blur-xs">
-                    {profile.employee_id || 'EMP-HR-001'}
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-400 text-emerald-950 text-xs font-bold">
-                    {profile.status || 'Active'}
-                  </span>
                 </div>
 
                 <p className="text-purple-100 text-xs sm:text-sm font-medium flex items-center justify-center sm:justify-start gap-2 flex-wrap">

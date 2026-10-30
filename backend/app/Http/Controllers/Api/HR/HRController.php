@@ -83,7 +83,7 @@ class HRController extends Controller
                     'salary' => [
                         'title' => 'Salary & Payroll Cycle',
                         'badge' => $currentMonth,
-                        'highlight' => $totalPayroll > 0 ? ('₹' . number_format($totalPayroll, 0) . ' Total') : '₹15.2 Lakhs Processed',
+                        'highlight' => $totalPayroll > 0 ? ('₹' . number_format($totalPayroll, 0) . ' Total') : '₹0 Processed',
                         'time' => "{$disbursedCount} / {$totalStaffCount} Disbursed",
                         'subtext' => 'Attendance-linked deductions & allowances calculated',
                     ],
@@ -312,7 +312,7 @@ class HRController extends Controller
             $name = $teacher instanceof Teacher ? $teacher->full_name : $teacher->name;
             $empId = $teacher instanceof Teacher ? ($teacher->teacher_id ?: 'TCH-' . str_pad($teacher->id, 3, '0', STR_PAD_LEFT)) : 'TCH-' . str_pad($teacher->id, 3, '0', STR_PAD_LEFT);
             $dept = $teacher instanceof Teacher ? ($teacher->department ?: 'Teaching Faculty') : 'Teaching Faculty';
-            $phone = $teacher instanceof Teacher ? ($teacher->phone ?: '+91 98765 00000') : ($teacher->phone ?: '+91 98765 00000');
+            $phone = $teacher instanceof Teacher ? ($teacher->phone ?: ($teacher->user?->phone ?: '-')) : ($teacher->phone ?: '-');
             $email = $teacher instanceof Teacher ? ($teacher->email ?: $teacher->user?->email) : $teacher->email;
 
             $att = $attendances->get($teacherId);
@@ -554,8 +554,8 @@ class HRController extends Controller
                 'grossSalary' => $gross,
                 'netSalary' => $net,
                 'status' => $s->status ?: 'Processed',
-                'accountNo' => $s->account_no ?: '•••• •••• 4589',
-                'bankName' => $s->bank_name ?: 'HDFC Bank',
+                'accountNo' => $s->account_no ?: '-',
+                'bankName' => $s->bank_name ?: '-',
                 'disbursed_at' => $s->disbursed_at ? $s->disbursed_at->format('d M Y') : null,
             ];
         });

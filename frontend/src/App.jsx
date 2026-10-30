@@ -4,6 +4,8 @@ import DashboardLayout from './components/Layout/DashboardLayout';
 import Login from './modules/auth/Login';
 import SuperAdminLogin from './modules/auth/SuperAdminLogin';
 import AdminDashboard from './modules/admin/AdminDashboard';
+import AdminProfilePage from './modules/admin/AdminProfilePage';
+import CommunicationHubPage from './modules/admin/communication/CommunicationHubPage';
 import TeacherDashboard from './modules/teacher/TeacherDashboard';
 import StudentParentDashboard from './modules/students_parents/StudentParentDashboard';
 import HRDashboard from './modules/hr/HRDashboard';
@@ -54,6 +56,18 @@ import StudentFeesManagementPage from './modules/accounts/StudentFeesManagementP
 import SchoolExpensesPage from './modules/accounts/SchoolExpensesPage';
 import SalaryDisbursementPage from './modules/accounts/SalaryDisbursementPage';
 import AccountsProfilePage from './modules/accounts/AccountsProfilePage';
+import VendorsPurchasesPage from './modules/accounts/VendorsPurchasesPage';
+
+// Sports & Athletics Module Pages
+import SportsDashboard from './modules/sports/SportsDashboard';
+import SportsActivitiesPage from './modules/sports/SportsActivitiesPage';
+import SportsParticipantsPage from './modules/sports/SportsParticipantsPage';
+import SportsAchievementsPage from './modules/sports/SportsAchievementsPage';
+import SportsProfilePage from './modules/sports/SportsProfilePage';
+import SportsSchedulesPage from './modules/sports/SportsSchedulesPage';
+import SportsFacilitiesPage from './modules/sports/SportsFacilitiesPage';
+import SportsInventoryPage from './modules/sports/SportsInventoryPage';
+import SportsFitnessPage from './modules/sports/SportsFitnessPage';
 
 // Administrator Detailed Pages
 import ManageTeachersPage from './modules/admin/ManageTeachersPage';
@@ -64,6 +78,25 @@ import AdminVehiclesPage from './modules/admin/AdminVehiclesPage';
 import AdminResourcesPage from './modules/admin/AdminResourcesPage';
 import AdminEventsCalendarPage from './modules/admin/AdminEventsCalendarPage';
 import AdminFeeStructurePage from './modules/admin/AdminFeeStructurePage';
+import SchoolSettingsPage from './modules/admin/SchoolSettingsPage';
+import AdminExaminationsPage from './modules/admin/AdminExaminationsPage';
+
+// Teacher Examination & Scoresheet Pages
+import TeacherScoresheetPage from './modules/teacher/TeacherScoresheetPage';
+
+// Shared Academic Results Page
+import ResultsPage from './modules/shared/ResultsPage';
+
+// Principal & Admission Portal Pages
+import PrincipalDashboard from './modules/principal/PrincipalDashboard';
+import PrincipalAdmissionsPage from './modules/principal/PrincipalAdmissionsPage';
+import AdmissionPortalPage from './modules/admission/AdmissionPortalPage';
+import AdmissionDashboard from './modules/admission/AdmissionDashboard';
+import AdmissionInquiriesPage from './modules/admission/AdmissionInquiriesPage';
+import AdmissionDocumentsPage from './modules/admission/AdmissionDocumentsPage';
+import AdmissionInterviewsPage from './modules/admission/AdmissionInterviewsPage';
+import AdmissionOffersPage from './modules/admission/AdmissionOffersPage';
+import AdmissionInterviewCalendarPage from './modules/admission/AdmissionInterviewCalendarPage';
 
 // Protected route wrapper
 function ProtectedRoute({ children }) {
@@ -87,10 +120,13 @@ function DashboardRouter() {
   const dashboardMap = {
     super_admin: <SuperAdminDashboard />,
     admin: <AdminDashboard />,
+    principal: <PrincipalDashboard />,
+    admission_officer: <AdminAdmissionPage />,
     teacher: <TeacherDashboard />,
     student_parent: <StudentParentDashboard />,
     hr: <HRDashboard />,
     accountant: <AccountsDashboard />,
+    sports_incharge: <SportsDashboard />,
   };
 
   return dashboardMap[currentRole] || <AdminDashboard />;
@@ -99,7 +135,7 @@ function DashboardRouter() {
 // Role-aware Attendance Router
 function AttendanceRouter() {
   const { currentRole } = useAuth();
-  if (currentRole === 'admin') {
+  if (currentRole === 'admin' || currentRole === 'principal') {
     return <AdminAttendancePage />;
   }
   if (currentRole === 'hr') {
@@ -114,7 +150,7 @@ function AttendanceRouter() {
 // Role-aware Students Router
 function StudentsRouter() {
   const { currentRole } = useAuth();
-  if (currentRole === 'admin') {
+  if (currentRole === 'admin' || currentRole === 'principal') {
     return <AdminStudentsPage />;
   }
   if (currentRole === 'teacher') {
@@ -127,8 +163,8 @@ function StudentsRouter() {
 function ProfileRouter() {
   const { currentRole, user } = useAuth();
   const role = (user?.role || currentRole || '').toLowerCase();
-  if (role === 'admin') {
-    return <HRProfilePage />;
+  if (role === 'admin' || role === 'principal' || role === 'admission_officer') {
+    return <AdminProfilePage />;
   }
   if (role === 'teacher') {
     return <TeacherProfilePage />;
@@ -138,6 +174,9 @@ function ProfileRouter() {
   }
   if (role === 'accountant') {
     return <AccountsProfilePage />;
+  }
+  if (role === 'sports_incharge') {
+    return <SportsProfilePage />;
   }
   if (role === 'student_parent') {
     return <ProfilePage />;
@@ -190,6 +229,7 @@ function AppRoutes() {
 
         {/* Role Aware Profile Route */}
         <Route path="profile" element={<ProfileRouter />} />
+        <Route path="admin/profile" element={<RoleRoute allowedRoles={['admin']} moduleName="Admin Profile"><AdminProfilePage /></RoleRoute>} />
         <Route path="teacher/profile" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Teacher Profile"><TeacherProfilePage /></RoleRoute>} />
         <Route path="hr/profile" element={<RoleRoute allowedRoles={['hr', 'staff', 'admin']} moduleName="HR Profile"><HRProfilePage /></RoleRoute>} />
         <Route path="accounts/profile" element={<RoleRoute allowedRoles={['accountant', 'admin']} moduleName="Accounts Profile"><AccountsProfilePage /></RoleRoute>} />
@@ -215,15 +255,31 @@ function AppRoutes() {
         <Route path="accounts/fees" element={<RoleRoute allowedRoles={['accountant', 'admin']} moduleName="Student Fees"><StudentFeesManagementPage /></RoleRoute>} />
         <Route path="accounts/expenses" element={<RoleRoute allowedRoles={['accountant', 'admin']} moduleName="School Expenses"><SchoolExpensesPage /></RoleRoute>} />
         <Route path="accounts/salary-disbursements" element={<RoleRoute allowedRoles={['accountant', 'admin']} moduleName="Salary Disbursements"><SalaryDisbursementPage /></RoleRoute>} />
+        <Route path="accounts/vendors" element={<RoleRoute allowedRoles={['accountant', 'admin']} moduleName="Vendors & Purchases"><VendorsPurchasesPage /></RoleRoute>} />
+        <Route path="accounts/purchases" element={<RoleRoute allowedRoles={['accountant', 'admin']} moduleName="Vendors & Purchases"><VendorsPurchasesPage /></RoleRoute>} />
         <Route path="accounts/dashboard" element={<RoleRoute allowedRoles={['accountant', 'admin']} moduleName="Accounts Dashboard"><AccountsDashboard /></RoleRoute>} />
+
+        {/* Sports & Athletics Module Routes */}
+        <Route path="sports/dashboard" element={<RoleRoute allowedRoles={['sports_incharge', 'admin']} moduleName="Sports Dashboard"><SportsDashboard /></RoleRoute>} />
+        <Route path="sports/activities" element={<RoleRoute allowedRoles={['sports_incharge', 'admin']} moduleName="Sports Activities"><SportsActivitiesPage /></RoleRoute>} />
+        <Route path="sports/competitions" element={<RoleRoute allowedRoles={['sports_incharge', 'admin']} moduleName="Sports Competitions"><SportsActivitiesPage /></RoleRoute>} />
+        <Route path="sports/participants" element={<RoleRoute allowedRoles={['sports_incharge', 'admin']} moduleName="Student Athletes Roster"><SportsParticipantsPage /></RoleRoute>} />
+        <Route path="sports/attendance" element={<RoleRoute allowedRoles={['sports_incharge', 'admin']} moduleName="Student Athletes Attendance"><SportsParticipantsPage /></RoleRoute>} />
+        <Route path="sports/schedules" element={<RoleRoute allowedRoles={['sports_incharge', 'admin']} moduleName="Training Schedules"><SportsSchedulesPage /></RoleRoute>} />
+        <Route path="sports/facilities" element={<RoleRoute allowedRoles={['sports_incharge', 'admin']} moduleName="Grounds & Facilities"><SportsFacilitiesPage /></RoleRoute>} />
+        <Route path="sports/inventory" element={<RoleRoute allowedRoles={['sports_incharge', 'admin']} moduleName="Sports Inventory"><SportsInventoryPage /></RoleRoute>} />
+        <Route path="sports/equipment" element={<RoleRoute allowedRoles={['sports_incharge', 'admin']} moduleName="Sports Equipment"><SportsInventoryPage /></RoleRoute>} />
+        <Route path="sports/fitness" element={<RoleRoute allowedRoles={['sports_incharge', 'admin']} moduleName="Fitness Assessments"><SportsFitnessPage /></RoleRoute>} />
+        <Route path="sports/achievements" element={<RoleRoute allowedRoles={['sports_incharge', 'admin']} moduleName="Sports Honors"><SportsAchievementsPage /></RoleRoute>} />
+        <Route path="sports/profile" element={<RoleRoute allowedRoles={['sports_incharge', 'admin']} moduleName="Sports Incharge Profile"><SportsProfilePage /></RoleRoute>} />
 
         {/* HR Module Routes */}
         <Route path="salary" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Salaries"><StaffSalaryPage /></RoleRoute>} />
         <Route path="salaries" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Salaries"><StaffSalaryPage /></RoleRoute>} />
         <Route path="payroll" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Payroll"><StaffSalaryPage /></RoleRoute>} />
-        <Route path="hr/attendance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'admin']} moduleName="Staff Attendance"><TeacherAttendancePage /></RoleRoute>} />
-        <Route path="hr/leave-balance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'admin']} moduleName="Leave Balance"><TeacherLeaveBalancePage /></RoleRoute>} />
-        <Route path="hr/apply-leave" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'admin']} moduleName="Apply for Leave"><TeacherApplyLeavePage /></RoleRoute>} />
+        <Route path="hr/attendance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'sports_incharge', 'admission_officer', 'admin']} moduleName="Staff Attendance"><TeacherAttendancePage /></RoleRoute>} />
+        <Route path="hr/leave-balance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'sports_incharge', 'admission_officer', 'admin']} moduleName="Leave Balance"><TeacherLeaveBalancePage /></RoleRoute>} />
+        <Route path="hr/apply-leave" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'sports_incharge', 'admission_officer', 'admin']} moduleName="Apply for Leave"><TeacherApplyLeavePage /></RoleRoute>} />
         <Route path="hr/staff-attendance" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Attendance"><StaffAttendancePage /></RoleRoute>} />
         <Route path="hr/staff-leaves" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Leaves"><StaffLeavesPage /></RoleRoute>} />
         <Route path="hr/leaves" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Leaves"><StaffLeavesPage /></RoleRoute>} />
@@ -232,17 +288,30 @@ function AppRoutes() {
         <Route path="recruitment" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Recruitment"><Placeholder /></RoleRoute>} />
         <Route path="employees" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Employees"><Placeholder /></RoleRoute>} />
 
-        {/* Admin Module Dedicated Routes */}
-        <Route path="manage-teachers" element={<RoleRoute allowedRoles={['admin']} moduleName="Manage Teachers"><ManageTeachersPage /></RoleRoute>} />
-        <Route path="teachers" element={<RoleRoute allowedRoles={['admin']} moduleName="Teachers Directory"><ManageTeachersPage /></RoleRoute>} />
-        <Route path="admin/fee-structure" element={<RoleRoute allowedRoles={['admin']} moduleName="Fee Structure"><AdminFeeStructurePage /></RoleRoute>} />
-        <Route path="fee-structure" element={<RoleRoute allowedRoles={['admin']} moduleName="Fee Structure"><AdminFeeStructurePage /></RoleRoute>} />
-        <Route path="admission" element={<RoleRoute allowedRoles={['admin']} moduleName="Admissions"><AdminAdmissionPage /></RoleRoute>} />
-        <Route path="admissions" element={<RoleRoute allowedRoles={['admin']} moduleName="Admissions"><AdminAdmissionPage /></RoleRoute>} />
-        <Route path="school-vehicles" element={<RoleRoute allowedRoles={['admin']} moduleName="School Vehicles"><AdminVehiclesPage /></RoleRoute>} />
-        <Route path="school-resources" element={<RoleRoute allowedRoles={['admin']} moduleName="School Resources"><AdminResourcesPage /></RoleRoute>} />
-        <Route path="admin/calendar" element={<RoleRoute allowedRoles={['admin']} moduleName="Calendar & Events"><AdminEventsCalendarPage /></RoleRoute>} />
-        <Route path="admin/events" element={<RoleRoute allowedRoles={['admin']} moduleName="Calendar & Events"><AdminEventsCalendarPage /></RoleRoute>} />
+        {/* Principal Executive Desk & Admission Portal Dedicated Routes */}
+        <Route path="principal/dashboard" element={<RoleRoute allowedRoles={['principal', 'admin', 'super_admin']} moduleName="Principal Executive Desk"><PrincipalDashboard /></RoleRoute>} />
+        <Route path="principal/admissions" element={<RoleRoute allowedRoles={['principal', 'admin', 'super_admin']} moduleName="Student Admissions"><PrincipalAdmissionsPage /></RoleRoute>} />
+        <Route path="admission/overview" element={<RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="Student Admissions"><AdminAdmissionPage /></RoleRoute>} />
+        <Route path="admission/dashboard" element={<RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="Student Admissions"><AdminAdmissionPage /></RoleRoute>} />
+        <Route path="admission-portal" element={<RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="Admission Portal"><AdminAdmissionPage /></RoleRoute>} />
+        <Route path="admission/calendar" element={<RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="Interview Calendar"><AdmissionInterviewCalendarPage /></RoleRoute>} />
+        <Route path="admission/inquiries" element={<RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="Student Admissions"><AdminAdmissionPage /></RoleRoute>} />
+        <Route path="admission/documents" element={<RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="Student Admissions"><AdminAdmissionPage /></RoleRoute>} />
+        <Route path="admission/interviews" element={<RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="Interview Calendar"><AdmissionInterviewCalendarPage /></RoleRoute>} />
+        <Route path="admission/offers" element={<RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="Student Admissions"><AdminAdmissionPage /></RoleRoute>} />
+        <Route path="admission/pipeline" element={<RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="Admission Pipeline"><AdminAdmissionPage /></RoleRoute>} />
+
+        {/* Admin & Principal Operational Module Routes */}
+        <Route path="manage-teachers" element={<RoleRoute allowedRoles={['admin', 'principal', 'super_admin']} moduleName="Manage Teachers"><ManageTeachersPage /></RoleRoute>} />
+        <Route path="teachers" element={<RoleRoute allowedRoles={['admin', 'principal', 'super_admin']} moduleName="Teachers Directory"><ManageTeachersPage /></RoleRoute>} />
+        <Route path="admin/fee-structure" element={<RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="Fee Structure"><AdminFeeStructurePage /></RoleRoute>} />
+        <Route path="fee-structure" element={<RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="Fee Structure"><AdminFeeStructurePage /></RoleRoute>} />
+        <Route path="admission" element={<RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="Admissions"><AdminAdmissionPage /></RoleRoute>} />
+        <Route path="admissions" element={<RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="Admissions"><AdminAdmissionPage /></RoleRoute>} />
+        <Route path="school-vehicles" element={<RoleRoute allowedRoles={['admin', 'principal', 'super_admin']} moduleName="School Vehicles"><AdminVehiclesPage /></RoleRoute>} />
+        <Route path="school-resources" element={<RoleRoute allowedRoles={['admin', 'principal', 'super_admin']} moduleName="School Resources"><AdminResourcesPage /></RoleRoute>} />
+        <Route path="admin/calendar" element={<RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="Calendar & Events"><AdminEventsCalendarPage /></RoleRoute>} />
+        <Route path="admin/events" element={<RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="Calendar & Events"><AdminEventsCalendarPage /></RoleRoute>} />
         <Route path="subjects" element={<Placeholder />} />
 
         {/* Teacher & Staff Academic & Self Routes */}
@@ -255,17 +324,18 @@ function AppRoutes() {
         <Route path="teacher/leave-balance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Leave Balance"><TeacherLeaveBalancePage /></RoleRoute>} />
         <Route path="teacher/apply-leave" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Apply Leave"><TeacherApplyLeavePage /></RoleRoute>} />
         <Route path="student-records" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Student Records"><StudentRecordsPage /></RoleRoute>} />
-        <Route path="scoresheet" element={<Placeholder />} />
+        <Route path="scoresheet" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Scoresheet Entry"><TeacherScoresheetPage /></RoleRoute>} />
         <Route path="my-hr" element={<Placeholder />} />
-        <Route path="classes" element={<RoleRoute allowedRoles={['admin', 'teacher']} moduleName="Classes"><AdminStudentsPage /></RoleRoute>} />
+        <Route path="classes" element={<RoleRoute allowedRoles={['admin', 'principal', 'teacher', 'super_admin']} moduleName="Classes"><AdminStudentsPage /></RoleRoute>} />
         <Route path="academics" element={<Placeholder />} />
-        <Route path="examinations" element={<Placeholder />} />
-        <Route path="messages" element={<Placeholder />} />
+        <Route path="examinations" element={<RoleRoute allowedRoles={['admin', 'principal', 'super_admin']} moduleName="Examinations"><AdminExaminationsPage /></RoleRoute>} />
+        <Route path="admin/communication" element={<RoleRoute allowedRoles={['admin', 'super_admin']} moduleName="Communication"><CommunicationHubPage /></RoleRoute>} />
+        <Route path="messages" element={<Navigate to="/admin/communication" replace />} />
         <Route path="leave" element={<Placeholder />} />
-        <Route path="results" element={<Placeholder />} />
-        <Route path="transport" element={<RoleRoute allowedRoles={['admin']} moduleName="Transport"><AdminVehiclesPage /></RoleRoute>} />
+        <Route path="results" element={<ResultsPage />} />
+        <Route path="transport" element={<RoleRoute allowedRoles={['admin', 'principal', 'super_admin']} moduleName="Transport"><AdminVehiclesPage /></RoleRoute>} />
         <Route path="health" element={<Placeholder />} />
-        <Route path="settings" element={<Placeholder />} />
+        <Route path="settings" element={<RoleRoute allowedRoles={['admin', 'principal', 'super_admin']} moduleName="School Settings"><SchoolSettingsPage /></RoleRoute>} />
 
         {/* Catch-all */}
         <Route path="*" element={<Placeholder />} />

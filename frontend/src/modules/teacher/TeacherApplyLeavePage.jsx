@@ -19,7 +19,7 @@ export default function TeacherApplyLeavePage() {
   const navigate = useNavigate();
   const { currentRole, user } = useAuth();
   const role = (user?.role || currentRole || '').toLowerCase();
-  const leaveBalancePath = role === 'hr' ? '/hr/leave-balance' : '/teacher/leave-balance';
+  const leaveBalancePath = role === 'teacher' ? '/teacher/leave-balance' : '/hr/leave-balance';
 
   const [leaveType, setLeaveType] = useState('CL');
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);

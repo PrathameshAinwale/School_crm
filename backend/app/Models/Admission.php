@@ -21,6 +21,7 @@ class Admission extends Model
         'school_class_id',
         'with_transport',
         'academic_year',
+        'lead_source',
         'guardian_name',
         'guardian_phone',
         'guardian_email',
@@ -28,14 +29,38 @@ class Admission extends Model
         'previous_school',
         'previous_score',
         'address',
-        'status', // Pending, Under Review, Approved, Rejected, Enrolled
+        'status', // Inquiry (Pending), Document Review (Under Review), Assessment/Interview, Offer Extended (Approved), Fee Paid, Enrolled, Rejected
+        'documents',
+        'test_score',
+        'test_date',
+        'test_status',
+        'interview_date',
+        'interview_interviewer',
+        'interview_notes',
+        'interview_result',
+        'offer_date',
+        'offer_valid_until',
+        'admission_fee',
+        'admission_fee_status',
+        'admission_fee_receipt',
+        'admission_fee_date',
+        'admission_fee_mode',
         'enrolled_student_id',
         'remarks',
+        'pipeline_notes',
     ];
 
     protected $casts = [
         'with_transport' => 'boolean',
         'date_of_birth' => 'date',
+        'documents' => 'array',
+        'test_date' => 'date',
+        'interview_date' => 'datetime',
+        'offer_date' => 'date',
+        'offer_valid_until' => 'date',
+        'admission_fee_date' => 'date',
+        'admission_fee' => 'decimal:2',
+        'pipeline_notes' => 'array',
     ];
 
     public function schoolClass()

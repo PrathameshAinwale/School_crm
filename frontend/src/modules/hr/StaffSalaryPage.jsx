@@ -19,7 +19,6 @@ import {
   LuChevronDown,
   LuArrowRight,
   LuSparkles,
-  LuRefreshCw,
   LuLoader,
   LuDollarSign,
   LuPercent,
@@ -278,14 +277,6 @@ export default function StaffSalaryPage() {
                 ))}
               </select>
             </div>
-
-            <button
-              onClick={fetchSalaries}
-              title="Refresh Salary Calculation"
-              className="p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
-            >
-              <LuRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
 
             <button
               onClick={handleRequestDisbursementToAccounts}

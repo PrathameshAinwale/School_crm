@@ -40,6 +40,46 @@ class CheckRole
             return $next($request);
         }
 
+        // Principal has executive view-only access across operational endpoints, with authorized school settings editing
+        if ($user->role === 'principal') {
+            // Whitelisted authenticated session & authorized principal management actions
+            if ($request->is('*auth/logout*') ||
+                $request->is('*auth/change-password*') ||
+                $request->is('*academic-years/switch*') ||
+                $request->is('*admin/settings*') ||
+                $request->is('*settings*') ||
+                $request->is('*admin/academic-years*') ||
+                $request->is('*academic-years*') ||
+                $request->is('*files/upload*')) {
+                return $next($request);
+            }
+
+            // Strictly allow only read-safe HTTP methods (GET, HEAD, OPTIONS)
+            if (in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'])) {
+                return $next($request);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Principal role has view-only executive access. Modification actions are forbidden.'
+            ], 403);
+        }
+
+        // Admission Officer has scoped access to admissions, academic structure, fee structures, events, and staff self-service
+        if ($user->role === 'admission_officer') {
+            if (in_array('admission_officer', $allowedRoles) ||
+                $request->is('*admissions*') ||
+                $request->is('*academic/classes*') ||
+                $request->is('*fee-structures*') ||
+                $request->is('*admin/events*') ||
+                $request->is('*teacher/my-attendance*') ||
+                $request->is('*teacher/punch*') ||
+                $request->is('*teacher/leaves*') ||
+                $request->is('*teacher/profile*')) {
+                return $next($request);
+            }
+        }
+
         if (!empty($allowedRoles) && !in_array($user->role, $allowedRoles)) {
             return response()->json([
                 'success' => false,

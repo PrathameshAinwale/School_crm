@@ -11,7 +11,6 @@ import {
   LuArrowRight,
   LuCircleCheck,
   LuShieldAlert,
-  LuRefreshCw,
   LuSparkles,
   LuSearch,
   LuKeyRound,
@@ -22,7 +21,6 @@ export default function SuperAdminDashboard() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
@@ -34,7 +32,6 @@ export default function SuperAdminDashboard() {
       console.error('Error loading super admin dashboard:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -43,20 +40,20 @@ export default function SuperAdminDashboard() {
   }, []);
 
   const summary = data?.summary || {
-    totalSchools: 3,
-    activeSchools: 3,
+    totalSchools: 0,
+    activeSchools: 0,
     suspendedSchools: 0,
     trialSchools: 0,
-    totalStudents: 10,
-    totalTeachers: 8,
-    estimatedMRR: 115000,
-    estimatedARR: 1380000,
+    totalStudents: 0,
+    totalTeachers: 0,
+    estimatedMRR: 0,
+    estimatedARR: 0,
   };
 
   const planDist = data?.planDistribution || {
-    Enterprise: 1,
-    Pro: 1,
-    Standard: 1,
+    Enterprise: 0,
+    Pro: 0,
+    Standard: 0,
     Trial: 0,
   };
 
@@ -77,16 +74,6 @@ export default function SuperAdminDashboard() {
         </div>
 
         <div className="relative z-10 flex items-center gap-3 shrink-0">
-          <button
-            onClick={() => {
-              setRefreshing(true);
-              fetchDashboardData();
-            }}
-            className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
-          >
-            <LuRefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
           <button
             onClick={() => navigate('/super-admin/schools?action=new')}
             className="px-5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold shadow-lg shadow-primary-500/30 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"

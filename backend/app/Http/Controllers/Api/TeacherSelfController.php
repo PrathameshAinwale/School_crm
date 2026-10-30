@@ -30,11 +30,28 @@ class TeacherSelfController extends Controller
             ->orWhere('email', $user->email)
             ->first();
 
-        if (!$teacher && in_array($user->role, ['hr', 'teacher', 'admin'])) {
-            $nameParts = explode(' ', $user->name ?: ($user->role === 'hr' ? 'HR Staff' : 'Faculty Staff'));
+        if (!$teacher && in_array($user->role, ['hr', 'teacher', 'admin', 'sports_incharge', 'admission_officer', 'accountant'])) {
+            $role = $user->role;
+            $deptMap = [
+                'hr' => 'Human Resources',
+                'accountant' => 'Accounts & Finance',
+                'sports_incharge' => 'Physical Education & Sports',
+                'admission_officer' => 'Admissions & Student Intake',
+                'teacher' => 'Faculty & Academics',
+                'admin' => 'Administration',
+            ];
+            $prefixMap = [
+                'hr' => 'HR-',
+                'accountant' => 'ACC-',
+                'sports_incharge' => 'SPT-',
+                'admission_officer' => 'ADM-',
+                'teacher' => 'TCH-',
+                'admin' => 'ADM-',
+            ];
+            $nameParts = explode(' ', $user->name ?: 'Staff Member');
             $firstName = $nameParts[0] ?? 'Staff';
             $lastName = count($nameParts) > 1 ? implode(' ', array_slice($nameParts, 1)) : '';
-            $teacherId = ($user->role === 'hr' ? 'HR-' : 'TCH-') . str_pad($user->id, 3, '0', STR_PAD_LEFT);
+            $teacherId = ($prefixMap[$role] ?? 'STF-') . str_pad($user->id, 3, '0', STR_PAD_LEFT);
 
             $teacher = Teacher::create([
                 'user_id' => $user->id,
@@ -42,10 +59,10 @@ class TeacherSelfController extends Controller
                 'first_name' => $firstName,
                 'last_name' => $lastName,
                 'email' => strtolower($user->email),
-                'phone' => $user->phone ?? '+91 98765 00000',
-                'department' => $user->role === 'hr' ? 'Human Resources' : 'General',
+                'phone' => $user->phone ?? '-',
+                'department' => $deptMap[$role] ?? 'General',
                 'status' => 'Active',
-                'salary' => $user->role === 'hr' ? 55000 : 50000,
+                'salary' => 50000,
                 'allowance' => 10000,
             ]);
         }
@@ -790,7 +807,7 @@ class TeacherSelfController extends Controller
                         'badge' => "{$assignmentsCount} Active Sets",
                         'pendingEvaluations' => $pendingSubmissions,
                         'highlight' => "{$pendingSubmissions} Pending Evaluations",
-                        'time' => $nearestDueAssignment ? "Due " . $nearestDueAssignment->due_date->format('M d') : "Due Tomorrow: Set 4.2",
+                        'time' => $nearestDueAssignment ? "Due " . $nearestDueAssignment->due_date->format('M d') : "No upcoming assignments",
                         'room' => $homeroomClass,
                         'subtext' => "{$pendingSubmissions} submissions received awaiting review",
                     ],

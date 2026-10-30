@@ -29,6 +29,7 @@ class School extends Model
         'max_students',
         'max_staff',
         'status',
+        'webhook_key',
     ];
 
     protected $casts = [

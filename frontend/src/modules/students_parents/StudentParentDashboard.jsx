@@ -191,7 +191,7 @@ export default function StudentParentDashboard() {
             <div>
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <h3 className="text-xs sm:text-sm font-bold text-slate-800">
-                  Fee Account • {feeSummary.student?.classSection || 'Class 10'}
+                  Fee Account{feeSummary.student?.classSection ? ` • ${feeSummary.student.classSection}` : ''}
                 </h3>
                 <span className={`text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full ${feeSummary.summary?.rawOutstanding > 0 ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
                   {feeSummary.summary?.rawOutstanding > 0 ? `${feeSummary.summary?.pendingCount + feeSummary.summary?.overdueCount} Due` : 'Cleared'}

@@ -64,6 +64,16 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
+    public function isPrincipal(): bool
+    {
+        return $this->role === 'principal';
+    }
+
+    public function isAdmissionOfficer(): bool
+    {
+        return $this->role === 'admission_officer';
+    }
+
     public function isHr(): bool
     {
         return $this->role === 'hr';
@@ -82,6 +92,11 @@ class User extends Authenticatable
     public function isStudentParent(): bool
     {
         return $this->role === 'student_parent';
+    }
+
+    public function isSportsIncharge(): bool
+    {
+        return $this->role === 'sports_incharge';
     }
 
     public function school()

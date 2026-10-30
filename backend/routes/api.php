@@ -24,9 +24,33 @@ use App\Http\Controllers\Api\StudentParent\SyllabusController;
 use App\Http\Controllers\Api\StudentParent\TimetableController;
 use App\Http\Controllers\Api\HR\HRController;
 use App\Http\Controllers\Api\Accounts\AccountsController;
+use App\Http\Controllers\Api\Accounts\VendorPurchaseController;
+use App\Http\Controllers\Api\Accounts\FeePaymentController;
+use App\Http\Controllers\Api\Accounts\FeeConcessionController;
+use App\Http\Controllers\Api\Accounts\FeeRefundController;
+use App\Http\Controllers\Api\Accounts\FeeReportController;
 use App\Http\Controllers\Api\SuperAdmin\SuperAdminController;
 use App\Http\Controllers\Api\TeacherSelfController;
 use App\Http\Controllers\Api\BranchController;
+use App\Http\Controllers\Api\Sports\SportsController;
+use App\Http\Controllers\Api\Admin\AcademicYearController;
+use App\Http\Controllers\Api\Admin\SchoolSettingsController;
+use App\Http\Controllers\Api\Admin\AuditLogController;
+use App\Http\Controllers\Api\Admin\CommunicationCampaignController;
+use App\Http\Controllers\Api\Admin\CommunicationTemplateController;
+use App\Http\Controllers\Api\Admin\CommunicationLogController;
+use App\Http\Controllers\Api\Communication\PushTokenController;
+use App\Http\Controllers\Api\Communication\OptOutController;
+use App\Http\Controllers\Api\Webhooks\WhatsAppWebhookController;
+use App\Http\Controllers\Api\Webhooks\SmsWebhookController;
+use App\Http\Controllers\Api\MediaFileController;
+use App\Http\Controllers\Api\Admin\GradingScaleController;
+use App\Http\Controllers\Api\Admin\TeacherAllocationController;
+use App\Http\Controllers\Api\Admin\StudentEnrollmentController;
+use App\Http\Controllers\Api\Admin\ExamScheduleController;
+use App\Http\Controllers\Api\Admin\ExamReportController;
+use App\Http\Controllers\Api\Teacher\ScoresheetController;
+use App\Http\Controllers\Api\StudentParent\ExamResultController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -35,13 +59,32 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-// Public Authentication
-Route::prefix('v1/auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
+// Public Authentication & Public Assets & Inbound Webhooks
+Route::prefix('v1')->group(function () {
+    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::get('/settings/public', [SchoolSettingsController::class, 'publicConfig']);
+    Route::get('/files/public/{token}', [MediaFileController::class, 'publicStream']);
+
+    // Inbound Webhooks (Unauthenticated, identified strictly by school webhook_key)
+    Route::get('/webhooks/whatsapp/{webhook_key}', [WhatsAppWebhookController::class, 'verify']);
+    Route::post('/webhooks/whatsapp/{webhook_key}', [WhatsAppWebhookController::class, 'handle']);
+    Route::match(['get', 'post'], '/webhooks/sms/{webhook_key}', [SmsWebhookController::class, 'handle']);
 });
 
 // Protected Routes (Sanctum)
 Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(function () {
+    // Academic Year Context (All Authenticated)
+    Route::get('/academic-years', [AcademicYearController::class, 'index']);
+    Route::post('/academic-years/switch', [AcademicYearController::class, 'switchYear']);
+
+    // Device Push Token registration (All authenticated users)
+    Route::post('/communication/push/register-token', [PushTokenController::class, 'registerToken']);
+
+    // Media & Document Vault
+    Route::post('/files/upload', [MediaFileController::class, 'upload']);
+    Route::get('/files/{token}/preview', [MediaFileController::class, 'preview']);
+    Route::get('/files/{token}/download', [MediaFileController::class, 'download']);
+
     // Auth actions
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
@@ -116,10 +159,65 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
         Route::post('fee-structures', [FeeStructureController::class, 'storeOrUpdate']);
         Route::post('fee-structures/{id}/sync-students', [FeeStructureController::class, 'syncStudents']);
         Route::delete('fee-structures/{id}', [FeeStructureController::class, 'destroy']);
+
+        // Academic Years Management (Admin CRUD)
+        Route::post('academic-years', [AcademicYearController::class, 'store']);
+        Route::put('academic-years/{id}', [AcademicYearController::class, 'update']);
+        Route::post('academic-years/{id}/set-current', [AcademicYearController::class, 'setCurrent']);
+        Route::delete('academic-years/{id}', [AcademicYearController::class, 'destroy']);
+
+        // School Settings Management
+        Route::get('settings', [SchoolSettingsController::class, 'index']);
+        Route::post('settings', [SchoolSettingsController::class, 'updateGroup']);
+        Route::post('settings/regenerate-webhook-key', [SchoolSettingsController::class, 'regenerateWebhookKey']);
+
+        // System Audit Trail Logs
+        Route::get('audit-logs', [AuditLogController::class, 'index']);
+
+        // Communication Module (Admin Broadcasts, Templates, Logs, Opt-Outs)
+        Route::get('communication/campaigns', [CommunicationCampaignController::class, 'index']);
+        Route::post('communication/campaigns', [CommunicationCampaignController::class, 'store']);
+        Route::post('communication/campaigns/preview', [CommunicationCampaignController::class, 'preview']);
+        Route::get('communication/campaigns/{id}', [CommunicationCampaignController::class, 'show']);
+        Route::post('communication/campaigns/{id}/cancel', [CommunicationCampaignController::class, 'cancel']);
+        Route::post('communication/campaigns/{id}/retry-failed', [CommunicationCampaignController::class, 'retryFailed']);
+
+        Route::apiResource('communication/templates', CommunicationTemplateController::class);
+
+        Route::get('communication/logs', [CommunicationLogController::class, 'index']);
+        Route::post('communication/logs/{id}/retry', [CommunicationLogController::class, 'retry']);
+
+        Route::get('communication/push-tokens', [PushTokenController::class, 'index']);
+        Route::get('communication/opt-outs', [OptOutController::class, 'index']);
+        Route::post('communication/opt-outs', [OptOutController::class, 'store']);
+        Route::delete('communication/opt-outs/{id}', [OptOutController::class, 'destroy']);
+
+        // --- Batch 3: Examinations & Results (Admin) ---
+        Route::apiResource('grading-scales', GradingScaleController::class);
+        Route::get('teacher-assignments', [TeacherAllocationController::class, 'index']);
+        Route::post('teacher-assignments', [TeacherAllocationController::class, 'store']);
+        Route::delete('teacher-assignments/{id}', [TeacherAllocationController::class, 'destroy']);
+        Route::get('class-teacher-assignments', [TeacherAllocationController::class, 'classTeachersIndex']);
+        Route::post('class-teacher-assignments', [TeacherAllocationController::class, 'classTeachersStore']);
+        Route::get('student-enrollments', [StudentEnrollmentController::class, 'index']);
+        Route::post('student-enrollments', [StudentEnrollmentController::class, 'store']);
+        Route::delete('student-enrollments/{id}', [StudentEnrollmentController::class, 'destroy']);
+        Route::get('exams/terms', [ExamScheduleController::class, 'listTerms']);
+        Route::post('exams/terms', [ExamScheduleController::class, 'storeTerm']);
+        Route::post('exams/schedules', [ExamScheduleController::class, 'storeExam']);
+        Route::post('exams/{id}/verify', [ExamScheduleController::class, 'verifyExam']);
+        Route::post('exams/{id}/lock', [ExamScheduleController::class, 'lockExam']);
+        Route::post('exams/{id}/unlock', [ExamScheduleController::class, 'unlockExam']);
+        Route::post('exams/terms/{id}/publish', [ExamScheduleController::class, 'publishTerm']);
+        Route::post('exams/terms/{id}/broadcast', [ExamScheduleController::class, 'broadcastNotification']);
+        Route::get('settings/audit-retention', [ExamReportController::class, 'getAuditRetention']);
+        Route::post('settings/audit-retention', [ExamReportController::class, 'updateAuditRetention']);
+        Route::post('exams/reports/bulk-generate', [ExamReportController::class, 'bulkGenerateReportCards']);
+        Route::get('exams/reports/download-zip/{token}', [ExamReportController::class, 'downloadZip']);
     });
 
-    // Teacher & Staff Self Operations (Accessible to Teacher, HR, Admin)
-    Route::prefix('teacher')->middleware('role:teacher,admin,hr')->group(function () {
+    // Teacher & Staff Self Operations (Accessible to Faculty and Employee Staff)
+    Route::prefix('teacher')->middleware('role:teacher,admin,hr,accountant,sports_incharge,admission_officer')->group(function () {
         // Teacher Realtime Dashboard
         Route::get('/dashboard', [TeacherSelfController::class, 'dashboard']);
 
@@ -152,6 +250,13 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
         Route::get('/students/{student}', [StudentController::class, 'show']);
         Route::get('/teachers', [TeacherController::class, 'index']);
         Route::get('/trainings', [HRController::class, 'trainings']);
+
+        // Batch 3: Scoresheets & Remarks
+        Route::get('/scoresheets/assigned', [ScoresheetController::class, 'assignedPapers']);
+        Route::get('/scoresheets/{exam_id}', [ScoresheetController::class, 'examRoster']);
+        Route::post('/scoresheets/{exam_id}/save-draft', [ScoresheetController::class, 'saveDraft']);
+        Route::post('/scoresheets/{exam_id}/submit', [ScoresheetController::class, 'submitMarks']);
+        Route::post('/remarks/{term_id}/{student_id}', [ScoresheetController::class, 'saveClassTeacherRemarks']);
     });
 
     // -------------------------------------------------------------
@@ -169,9 +274,15 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
         Route::get('/attendance', [StudentAttendanceController::class, 'index']);
         Route::post('/leaves/apply', [StudentAttendanceController::class, 'applyLeave']);
 
-        // Fees & Payment Gateway
+        // Fees Summary, Ledger & Receipts
         Route::get('/fees', [FeeController::class, 'index']);
-        Route::post('/fees/pay', [FeeController::class, 'payFee']);
+        Route::get('/fees/ledger', [FeeReportController::class, 'studentLedger']);
+        Route::get('/fees/receipts/{id}/download', [FeePaymentController::class, 'downloadReceipt']);
+        Route::get('/fees/installments/{id}/legacy-receipt', [FeePaymentController::class, 'legacyInstallmentReceipt']);
+
+        // Batch 3: Academic Results & Report Card
+        Route::get('/results', [ExamResultController::class, 'index']);
+        Route::get('/results/report-card/{term_id}/pdf', [ExamResultController::class, 'downloadReportCard']);
 
         // Faculty & Academic Feedback
         Route::get('/feedback', [FeedbackController::class, 'index']);
@@ -252,9 +363,40 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
 
         // Student Fees Management & Reminders
         Route::get('/fees', [AccountsController::class, 'feesList']);
-        Route::post('/fees/{id}/pay', [AccountsController::class, 'recordFeePayment']);
+        Route::get('/fee-templates', [AccountsController::class, 'feeTemplates']);
         Route::post('/fees/{id}/remind', [AccountsController::class, 'sendFeeReminder']);
         Route::post('/fees/bulk-remind', [AccountsController::class, 'sendBulkFeeReminders']);
+
+        // Batch 2: Advanced Fee Management (Payments, Cheques, Receipts, Ledgers, Reports)
+        Route::post('/fees/preview-allocation', [FeePaymentController::class, 'previewAllocation']);
+        Route::post('/fees/collect', [FeePaymentController::class, 'collect']);
+        Route::post('/fees/payments/{id}/clear-cheque', [FeePaymentController::class, 'clearCheque']);
+        Route::post('/fees/payments/{id}/bounce-cheque', [FeePaymentController::class, 'bounceCheque']);
+        Route::post('/fees/payments/{id}/void', [FeePaymentController::class, 'voidPayment'])->middleware('role:admin,super_admin');
+        Route::get('/fees/payments/{id}/receipt', [FeePaymentController::class, 'downloadReceipt']);
+        Route::get('/fees/installments/{id}/legacy-receipt', [FeePaymentController::class, 'legacyInstallmentReceipt']);
+
+        // Concessions & Scholarships
+        Route::get('/fees/concession-types', [FeeConcessionController::class, 'typesList']);
+        Route::post('/fees/concession-types', [FeeConcessionController::class, 'storeType'])->middleware('role:admin,super_admin');
+        Route::post('/fees/concessions/apply', [FeeConcessionController::class, 'apply']);
+        Route::post('/fees/concessions/{id}/approve', [FeeConcessionController::class, 'approve'])->middleware('role:admin,super_admin');
+        Route::post('/fees/concessions/{id}/revoke', [FeeConcessionController::class, 'revoke'])->middleware('role:admin,super_admin');
+
+        // Refunds & Disbursements
+        Route::post('/fees/refunds/request', [FeeRefundController::class, 'requestRefund']);
+        Route::post('/fees/refunds/{id}/approve', [FeeRefundController::class, 'approve'])->middleware('role:admin,super_admin');
+
+        // Reports, Defaulters & Ledger
+        Route::get('/fees/reports/daily-collection', [FeeReportController::class, 'dailyCollection']);
+        Route::get('/fees/reports/defaulters', [FeeReportController::class, 'defaulters']);
+        Route::get('/fees/students/{studentId}/ledger', [FeeReportController::class, 'studentLedger']);
+        Route::post('/fees/waive-fine', [FeeReportController::class, 'waiveFine'])->middleware('role:admin,super_admin');
+
+        // Batch 3: Academic Examination Analytics & Exports
+        Route::get('/exams/analytics/class-summary', [ExamReportController::class, 'classSummary'])->middleware('role:admin,super_admin,teacher');
+        Route::get('/exams/analytics/export-csv', [ExamReportController::class, 'exportCsv'])->middleware('role:admin,super_admin,teacher');
+
 
         // School Expenses & Resource Expenditure
         Route::get('/expenses', [AccountsController::class, 'expensesList']);
@@ -265,6 +407,22 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
         Route::get('/salary-disbursements', [AccountsController::class, 'disbursementRequests']);
         Route::post('/salary-disbursements/record-staff', [AccountsController::class, 'recordStaffSalaryDisbursement']);
         Route::post('/salary-disbursements/{id}/action', [AccountsController::class, 'actionDisbursementRequest']);
+
+        // Vendor Management & Sales/Purchase Orders
+        Route::middleware('role:accountant,admin')->group(function () {
+            Route::get('/vendors', [VendorPurchaseController::class, 'vendorsList']);
+            Route::post('/vendors', [VendorPurchaseController::class, 'storeVendor']);
+            Route::put('/vendors/{id}', [VendorPurchaseController::class, 'updateVendor']);
+            Route::delete('/vendors/{id}', [VendorPurchaseController::class, 'destroyVendor']);
+
+            Route::get('/purchase-orders', [VendorPurchaseController::class, 'ordersList']);
+            Route::get('/purchase-orders/{id}', [VendorPurchaseController::class, 'showOrder']);
+            Route::post('/purchase-orders', [VendorPurchaseController::class, 'storeOrder']);
+            Route::patch('/purchase-orders/{id}/status', [VendorPurchaseController::class, 'updateOrderStatus']);
+            Route::patch('/purchase-orders/{id}/payment', [VendorPurchaseController::class, 'updatePaymentStatus']);
+            Route::delete('/purchase-orders/{id}', [VendorPurchaseController::class, 'destroyOrder']);
+            Route::get('/procurement-resources', [VendorPurchaseController::class, 'availableResources']);
+        });
     });
 
     // -------------------------------------------------------------
@@ -283,6 +441,69 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
         Route::post('/schools/{id}/reset-admin-password', [SuperAdminController::class, 'resetSchoolAdminPassword']);
         Route::delete('/schools/{id}', [SuperAdminController::class, 'destroySchool']);
     });
+
+    // -------------------------------------------------------------
+    // SPORTS & ATHLETICS MODULE ROUTES
+    // -------------------------------------------------------------
+    Route::prefix('sports')->middleware('role:sports_incharge,admin')->group(function () {
+        Route::get('/dashboard', [SportsController::class, 'dashboard']);
+        
+        // Sports Disciplines
+        Route::get('/disciplines', [SportsController::class, 'sportsList']);
+        Route::get('/activities', [SportsController::class, 'sportsList']);
+        Route::post('/disciplines', [SportsController::class, 'storeSport']);
+        Route::put('/disciplines/{id}', [SportsController::class, 'updateSport']);
+        Route::delete('/disciplines/{id}', [SportsController::class, 'destroySport']);
+
+        // Competitions & Tournaments
+        Route::get('/competitions', [SportsController::class, 'competitionsList']);
+        Route::post('/competitions', [SportsController::class, 'storeCompetition']);
+        Route::put('/competitions/{id}', [SportsController::class, 'updateCompetition']);
+        Route::delete('/competitions/{id}', [SportsController::class, 'destroyCompetition']);
+
+        // Participants & Student Attendance
+        Route::get('/participants', [SportsController::class, 'participantsList']);
+        Route::post('/participants', [SportsController::class, 'enrollParticipant']);
+        Route::patch('/participants/{id}/attendance', [SportsController::class, 'updateParticipantAttendance']);
+        Route::patch('/participants/{id}/achievement', [SportsController::class, 'recordAchievement']);
+        Route::delete('/participants/{id}', [SportsController::class, 'destroyParticipant']);
+        Route::get('/available-students', [SportsController::class, 'availableStudents']);
+
+        // Profile
+        Route::get('/profile', [SportsController::class, 'profile']);
+        Route::put('/profile', [SportsController::class, 'updateProfile']);
+
+        // Facilities & Grounds
+        Route::get('/facilities', [SportsController::class, 'facilitiesList']);
+        Route::post('/facilities', [SportsController::class, 'storeFacility']);
+        Route::put('/facilities/{id}', [SportsController::class, 'updateFacility']);
+        Route::delete('/facilities/{id}', [SportsController::class, 'destroyFacility']);
+
+        // Training & Practice Schedules
+        Route::get('/schedules', [SportsController::class, 'schedulesList']);
+        Route::post('/schedules', [SportsController::class, 'storeSchedule']);
+        Route::put('/schedules/{id}', [SportsController::class, 'updateSchedule']);
+        Route::delete('/schedules/{id}', [SportsController::class, 'destroySchedule']);
+
+        // Equipment & Inventory
+        Route::get('/equipment', [SportsController::class, 'equipmentList']);
+        Route::post('/equipment', [SportsController::class, 'storeEquipment']);
+        Route::put('/equipment/{id}', [SportsController::class, 'updateEquipment']);
+        Route::delete('/equipment/{id}', [SportsController::class, 'destroyEquipment']);
+        Route::post('/equipment/issue', [SportsController::class, 'issueEquipment']);
+        Route::post('/equipment/issues/{id}/return', [SportsController::class, 'returnEquipment']);
+
+        // Athletic Fitness & Health Assessments
+        Route::get('/fitness', [SportsController::class, 'fitnessAssessmentsList']);
+        Route::post('/fitness', [SportsController::class, 'storeFitnessAssessment']);
+        Route::delete('/fitness/{id}', [SportsController::class, 'destroyFitnessAssessment']);
+    });
+
+    // -------------------------------------------------------------
+    // BATCH 3: ACADEMIC EXAMINATION ANALYTICS & EXPORTS
+    // -------------------------------------------------------------
+    Route::get('/exams/analytics/class-summary', [ExamReportController::class, 'classSummary'])->middleware('role:admin,super_admin,teacher');
+    Route::get('/exams/analytics/export-csv', [ExamReportController::class, 'exportCsv'])->middleware('role:admin,super_admin,teacher');
 
     // -------------------------------------------------------------
     // MULTI-SCHOOL / MULTI-BRANCH CAMPUS SWITCHER

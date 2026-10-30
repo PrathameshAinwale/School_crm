@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/adminService';
 import CredentialsModal from '../../components/Common/CredentialsModal';
+import { useAuth } from '../../context/AuthContext';
 import {
   LuUsers,
   LuUserPlus,
@@ -108,6 +109,8 @@ export const getStaffRoleMeta = (teacher) => {
 };
 
 export default function ManageTeachersPage() {
+  const { currentRole } = useAuth();
+  const isPrincipal = currentRole === 'principal';
   const [teachers, setTeachers] = useState([]);
   const [classList, setClassList] = useState(ALL_DEFAULT_CLASSES);
   const [loading, setLoading] = useState(true);
@@ -458,30 +461,32 @@ export default function ManageTeachersPage() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-primary-500/20">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
             <LuUsers className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-xl font-bold text-slate-800 leading-tight">Faculty & Staff</h1>
+              <h1 className="text-base sm:text-xl font-bold text-gray-900 leading-tight">Faculty & Staff</h1>
               <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-primary-50 text-primary-700">
                 {teachers.length} Total
               </span>
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+            <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
               Staff profiles, roles, class in-charges & salary management
             </p>
           </div>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="w-full sm:w-auto px-4 py-2 sm:py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
-        >
-          <LuUserPlus className="w-4 h-4" /> Add Staff Member
-        </button>
+        {!isPrincipal && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="w-full sm:w-auto px-4 py-2 sm:py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+          >
+            <LuUserPlus className="w-4 h-4" /> Add Staff Member
+          </button>
+        )}
       </div>
 
       {/* Filter & Search Bar */}
@@ -645,19 +650,23 @@ export default function ManageTeachersPage() {
                     >
                       <LuEye className="w-3.5 h-3.5 text-slate-500" /> Profile
                     </button>
-                    <button
-                      onClick={() => openEditModal(teacher)}
-                      className="px-3 py-1.5 rounded-lg text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <LuPencil className="w-3.5 h-3.5 text-amber-600" /> Edit
-                    </button>
-                    <button
-                      onClick={() => setDeleteTargetTeacher(teacher)}
-                      className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                      title="Delete"
-                    >
-                      <LuTrash2 className="w-4 h-4" />
-                    </button>
+                    {!isPrincipal && (
+                      <>
+                        <button
+                          onClick={() => openEditModal(teacher)}
+                          className="px-3 py-1.5 rounded-lg text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <LuPencil className="w-3.5 h-3.5 text-amber-600" /> Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteTargetTeacher(teacher)}
+                          className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="Delete"
+                        >
+                          <LuTrash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               );
@@ -772,20 +781,24 @@ export default function ManageTeachersPage() {
                             >
                               <LuEye className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => openEditModal(teacher)}
-                              title="Edit Staff & Salary"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
-                            >
-                              <LuPencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => setDeleteTargetTeacher(teacher)}
-                              title="Remove Teacher"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                            >
-                              <LuTrash2 className="w-4 h-4" />
-                            </button>
+                            {!isPrincipal && (
+                              <>
+                                <button
+                                  onClick={() => openEditModal(teacher)}
+                                  title="Edit Staff & Salary"
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
+                                >
+                                  <LuPencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteTargetTeacher(teacher)}
+                                  title="Remove Teacher"
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                >
+                                  <LuTrash2 className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -803,19 +816,19 @@ export default function ManageTeachersPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full my-8 overflow-hidden animate-scale-up">
             {/* Header */}
-            <div className="bg-gradient-to-r from-primary-600 to-indigo-600 p-5 text-white flex items-center justify-between">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
-                  <LuUserPlus className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center shrink-0">
+                  <LuUserPlus className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">Onboard New Faculty Member</h3>
-                  <p className="text-primary-100 text-xs">Set Base Salary, Allowance, and auto-generate staff login credentials</p>
+                  <h3 className="font-bold text-base text-gray-900">Onboard New Faculty Member</h3>
+                  <p className="text-gray-500 text-xs mt-0.5">Set Base Salary, Allowance, and auto-generate staff login credentials</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 <LuX className="w-5 h-5" />
               </button>
@@ -1235,19 +1248,19 @@ export default function ManageTeachersPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full my-8 overflow-hidden animate-scale-up">
             {/* Header */}
-            <div className="bg-gradient-to-r from-amber-600 to-primary-600 p-5 text-white flex items-center justify-between">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
-                  <LuPencil className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center shrink-0">
+                  <LuPencil className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">Edit Faculty Details, Salary & Allowances</h3>
-                  <p className="text-amber-100 text-xs">Update teacher profile, salary, allowance, and class assignments</p>
+                  <h3 className="font-bold text-base text-gray-900">Edit Faculty Details, Salary & Allowances</h3>
+                  <p className="text-gray-500 text-xs mt-0.5">Update teacher profile, salary, allowance, and class assignments</p>
                 </div>
               </div>
               <button
                 onClick={() => setEditingTeacher(null)}
-                className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 <LuX className="w-5 h-5" />
               </button>

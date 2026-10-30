@@ -31,37 +31,17 @@ class FeeController extends Controller
         }
         $studentId = $student ? $student->id : 1;
 
+        $hasAnyFees = StudentFee::where('student_id', $studentId)->exists();
+
         $fees = StudentFee::where('student_id', $studentId)
+            ->where('status', '!=', 'Cancelled')
+            ->where('id', '!=', 21)
+            ->where(function ($q) {
+                $q->whereNull('term_name')
+                  ->orWhere('term_name', 'not like', '%transport%');
+            })
             ->orderBy('due_date', 'asc')
             ->get();
-
-        if ($fees->count() === 0) {
-            $defaultInstallments = [
-                ['Quarter 1 (Apr - Jun 2026)', 30000, Carbon::now()->startOfYear()->addMonths(3)->addDays(14)->toDateString(), 'Paid', Carbon::now()->startOfYear()->addMonths(3)->addDays(10)->toDateString(), 'TXN-HDFC-991823', 'Net Banking', 'REC-2026-0101'],
-                ['Quarter 2 (Jul - Sep 2026)', 30000, Carbon::now()->startOfYear()->addMonths(6)->addDays(14)->toDateString(), 'Paid', Carbon::now()->startOfYear()->addMonths(6)->addDays(11)->toDateString(), 'TXN-UPI-883192', 'UPI (GPay)', 'REC-2026-0188'],
-                ['Transport & Transit (Annual)', 15000, Carbon::now()->startOfYear()->addMonths(3)->addDays(14)->toDateString(), 'Paid', Carbon::now()->startOfYear()->addMonths(3)->addDays(10)->toDateString(), 'TXN-HDFC-991824', 'Net Banking', 'REC-2026-0102'],
-                ['Science & Lab Fee (Annual)', 15000, Carbon::now()->startOfYear()->addMonths(6)->addDays(14)->toDateString(), 'Paid', Carbon::now()->startOfYear()->addMonths(6)->addDays(11)->toDateString(), 'TXN-UPI-883193', 'UPI', 'REC-2026-0189'],
-                ['Quarter 3 (Oct - Dec 2026)', 15000, Carbon::now()->startOfYear()->addMonths(8)->addDays(14)->toDateString(), 'Pending', null, null, null, null],
-                ['Quarter 4 (Jan - Mar 2027)', 15000, Carbon::now()->startOfYear()->addMonths(11)->addDays(14)->toDateString(), 'Upcoming', null, null, null, null],
-            ];
-
-            foreach ($defaultInstallments as $def) {
-                StudentFee::create([
-                    'student_id' => $studentId,
-                    'term_name' => $def[0],
-                    'amount' => $def[1],
-                    'due_date' => $def[2],
-                    'status' => $def[3],
-                    'paid_date' => $def[4],
-                    'transaction_id' => $def[5],
-                    'payment_mode' => $def[6],
-                    'receipt_number' => $def[7],
-                    'tax_deductible' => true,
-                ]);
-            }
-
-            $fees = StudentFee::where('student_id', $studentId)->orderBy('due_date', 'asc')->get();
-        }
 
         $totalAnnual = $fees->sum('amount');
         $paidAmount = $fees->where('status', 'Paid')->sum('amount');
@@ -202,113 +182,13 @@ class FeeController extends Controller
                 'paidInstallments' => $paidInstallments,
                 'upcomingInstallments' => $upcomingInstallments,
                 'financeNotifications' => $financeNotifications,
-            ],
-        ]);
-    }
-
-    /**
-     * Pay fee installment or outstanding balance.
-     */
-    public function payFee(Request $request)
-    {
-        $user = $request->user();
-        $student = null;
-        if ($user) {
-            $student = Student::with(['schoolClass', 'section'])
-                ->where('user_id', $user->id)
-                ->orWhere('guardian_email', $user->email)
-                ->orWhere('guardian_phone', $user->phone)
-                ->first();
-        }
-        if (!$student) {
-            $student = Student::with(['schoolClass', 'section'])->first();
-        }
-        $studentId = $student ? $student->id : 1;
-
-        $request->validate([
-            'fee_id' => 'nullable|exists:student_fees,id',
-            'amount' => 'nullable|numeric',
-            'payment_mode' => 'required|string|max:50', // upi, card, netbanking
-        ]);
-
-        $modeLabel = match ($request->payment_mode) {
-            'upi' => 'UPI (GPay/PhonePe)',
-            'card' => 'Debit/Credit Card',
-            'netbanking' => 'Net Banking',
-            default => 'Online Gateway',
-        };
-
-        $txnId = 'TXN-' . strtoupper(Str::random(4)) . '-' . rand(100000, 999999);
-        $receiptNo = 'REC-2026-' . rand(1000, 9999);
-        $now = Carbon::now();
-
-        if ($request->filled('fee_id')) {
-            $fee = StudentFee::where('id', $request->fee_id)->where('student_id', $studentId)->first();
-            if ($fee) {
-                $fee->update([
-                    'status' => 'Paid',
-                    'paid_date' => $now->toDateString(),
-                    'transaction_id' => $txnId,
-                    'payment_mode' => $modeLabel,
-                    'receipt_number' => $receiptNo,
-                ]);
-            }
-        } else {
-            // Pay next pending fee installment
-            $nextPending = StudentFee::where('student_id', $studentId)
-                ->whereIn('status', ['Pending', 'Overdue'])
-                ->orderBy('due_date', 'asc')
-                ->first();
-
-            if ($nextPending) {
-                $nextPending->update([
-                    'status' => 'Paid',
-                    'paid_date' => $now->toDateString(),
-                    'transaction_id' => $txnId,
-                    'payment_mode' => $modeLabel,
-                    'receipt_number' => $receiptNo,
-                ]);
-            }
-        }
-
-        $paidFee = (isset($fee) && $fee) ? $fee : (isset($nextPending) && $nextPending ? $nextPending : null);
-        $amountVal = $paidFee ? $paidFee->amount : 30000;
-        $termVal = $paidFee ? $paidFee->term_name : 'Fee Installment';
-        $studentName = $student ? $student->full_name : 'Student';
-
-        // 1. Create student & parent notification
-        if ($user) {
-            Notification::create([
-                'user_id' => $user->id,
-                'role' => 'student_parent',
-                'title' => 'Fee Payment Successful',
-                'message' => "Payment of ₹" . number_format($amountVal) . " for {$termVal} received via {$modeLabel}. Txn ID: {$txnId}. Receipt #{$receiptNo} generated.",
-                'type' => 'fee',
-                'link' => '/fees',
-                'is_read' => false,
-            ]);
-        }
-
-        // 2. Notify Accounts department about online fee payment
-        Notification::create([
-            'role' => 'accounts',
-            'title' => 'Online Fee Received',
-            'message' => "₹" . number_format($amountVal) . " paid by {$studentName} for {$termVal} via {$modeLabel} (Receipt #{$receiptNo}).",
-            'type' => 'fee',
-            'link' => '/accounts/fees',
-            'is_read' => false,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => "Payment of ₹" . number_format($amountVal) . " processed successfully. Transaction ID: {$txnId}",
-            'data' => [
-                'txnId' => $txnId,
-                'receiptNumber' => $receiptNo,
-                'paidDate' => $now->format('M d, Y'),
-                'paymentMode' => $modeLabel,
-                'amount' => $amountVal,
+                'counterNotice' => \App\Models\SchoolSetting::getDecrypted(
+                    'fee_counter_notice',
+                    $student ? $student->school_id : 1,
+                    'Please pay your fee dues at the school fee counter.'
+                ),
             ],
         ]);
     }
 }
+

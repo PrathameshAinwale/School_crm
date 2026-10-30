@@ -14,7 +14,6 @@ import {
   LuCalendar,
   LuMegaphone,
   LuShare2,
-  LuRefreshCw,
   LuLoader,
 } from 'react-icons/lu';
 

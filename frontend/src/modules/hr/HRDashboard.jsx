@@ -9,7 +9,6 @@ import {
   LuArrowRight,
   LuCalendarDays,
   LuSparkles,
-  LuRefreshCw,
   LuCalendar,
   LuMapPin,
   LuPlus,
@@ -19,7 +18,6 @@ export default function HRDashboard() {
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const fetchDashboard = async () => {
     try {
@@ -31,18 +29,12 @@ export default function HRDashboard() {
       console.log('Error fetching HR dashboard, using fallback:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchDashboard();
   }, []);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchDashboard();
-  };
 
   // Dynamic cards built from live backend response
   const cardsConfig = dashboardData?.cards;
@@ -51,25 +43,25 @@ export default function HRDashboard() {
     {
       id: 'attendance',
       title: cardsConfig?.attendance?.title || "Today's Staff Attendance",
-      badge: cardsConfig?.attendance?.badge || '24 / 26 Present',
+      badge: cardsConfig?.attendance?.badge || '0 / 0 Present',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       icon: LuUsers,
       iconBg: 'bg-emerald-50 text-emerald-600',
-      highlight: cardsConfig?.attendance?.highlight || '92.3% Campus Turnout',
-      time: cardsConfig?.attendance?.time || 'Live Check-ins Active',
-      subtext: cardsConfig?.attendance?.subtext || '1 unexcused absence • 1 approved leave',
+      highlight: cardsConfig?.attendance?.highlight || '0% Turnout',
+      time: cardsConfig?.attendance?.time || 'No Check-ins Active',
+      subtext: cardsConfig?.attendance?.subtext || 'Staff muster roll',
       actionText: 'View Staff Attendance',
       path: '/hr/staff-attendance',
     },
     {
       id: 'salary',
       title: cardsConfig?.salary?.title || 'Salary & Payroll Cycle',
-      badge: cardsConfig?.salary?.badge || 'August 2026',
+      badge: cardsConfig?.salary?.badge || 'Current Month',
       badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
       icon: LuBanknote,
       iconBg: 'bg-blue-50 text-blue-600',
-      highlight: cardsConfig?.salary?.highlight || '₹15.2 Lakhs Processed',
-      time: cardsConfig?.salary?.time || '8 Employees Calculated',
+      highlight: cardsConfig?.salary?.highlight || '₹0 Processed',
+      time: cardsConfig?.salary?.time || '0 Employees Calculated',
       subtext: cardsConfig?.salary?.subtext || 'Attendance-linked deductions applied',
       actionText: 'Manage Staff Salary & Slips',
       path: '/salary',
@@ -77,11 +69,11 @@ export default function HRDashboard() {
     {
       id: 'leaves',
       title: cardsConfig?.leaves?.title || 'Staff Leaves & Approvals',
-      badge: cardsConfig?.leaves?.badge || '2 Pending Review',
+      badge: cardsConfig?.leaves?.badge || '0 Pending Review',
       badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
       icon: LuClock,
       iconBg: 'bg-amber-50 text-amber-600',
-      highlight: cardsConfig?.leaves?.highlight || '2 Requests Awaiting Decision',
+      highlight: cardsConfig?.leaves?.highlight || '0 Requests Awaiting Decision',
       time: cardsConfig?.leaves?.time || 'Teaching & Support Faculty',
       subtext: cardsConfig?.leaves?.subtext || 'Casual, Medical & Duty leave requests',
       actionText: 'Review Staff Leaves',
@@ -90,23 +82,19 @@ export default function HRDashboard() {
     {
       id: 'trainings',
       title: cardsConfig?.trainings?.title || 'Faculty Trainings & Muster',
-      badge: cardsConfig?.trainings?.badge || '3 Active Workshops',
+      badge: cardsConfig?.trainings?.badge || '0 Active Workshops',
       badgeColor: 'bg-primary-50 text-primary-700 border-primary-200',
       icon: LuUsers,
       iconBg: 'bg-primary-50 text-primary-600',
-      highlight: cardsConfig?.trainings?.highlight || '94% Attendance Rate',
-      time: cardsConfig?.trainings?.time || 'Assigned & Notified',
-      subtext: cardsConfig?.trainings?.subtext || 'Targeted faculty pedagogy sessions',
+      highlight: cardsConfig?.trainings?.highlight || 'Faculty Pedagogy',
+      time: cardsConfig?.trainings?.time || 'Workshops & Programs',
+      subtext: cardsConfig?.trainings?.subtext || 'Faculty training sessions',
       actionText: 'Plan & Track Trainings',
       path: '/trainings',
     },
   ];
 
-  const upcomingEvents = dashboardData?.upcomingEvents || [
-    { id: 1, title: 'Annual Faculty Pedagogical & AI Workshop', date: 'Aug 22, 2026', time: '09:00 AM', venue: 'Main Auditorium' },
-    { id: 2, title: 'Inter-School Sports Championship Meet', date: 'Aug 26, 2026', time: '08:30 AM', venue: 'Athletics Ground' },
-    { id: 3, title: 'Science & Robotics Innovation Expo', date: 'Sep 02, 2026', time: '10:00 AM', venue: 'Tinkering Lab' },
-  ];
+  const upcomingEvents = dashboardData?.upcomingEvents || [];
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12 max-w-7xl mx-auto">
@@ -120,13 +108,6 @@ export default function HRDashboard() {
             <LuSparkles className="w-4 h-4 text-primary-600" />
             Today's HR Key Priorities
           </h2>
-          <button
-            onClick={handleRefresh}
-            className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-[11px] sm:text-xs font-semibold text-slate-600 flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <LuRefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            Sync Realtime
-          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
@@ -197,26 +178,32 @@ export default function HRDashboard() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {upcomingEvents.map((event, idx) => (
-            <div key={event.id || idx} className="p-4 rounded-2xl bg-gray-50/60 border border-gray-100 space-y-2">
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-gray-200 text-gray-700">
-                {event.category || 'Event'}
-              </span>
-              <h4 className="text-sm font-bold text-gray-800 line-clamp-1">{event.title}</h4>
-              <div className="flex items-center gap-3 text-xs text-gray-500 pt-1">
-                <span className="flex items-center gap-1 font-medium">
-                  <LuCalendar className="w-3.5 h-3.5 text-gray-400" />
-                  {event.date}
+        {upcomingEvents.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {upcomingEvents.map((event, idx) => (
+              <div key={event.id || idx} className="p-4 rounded-2xl bg-gray-50/60 border border-gray-100 space-y-2">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-gray-200 text-gray-700">
+                  {event.category || 'Event'}
                 </span>
-                <span className="flex items-center gap-1 font-medium">
-                  <LuMapPin className="w-3.5 h-3.5 text-gray-400" />
-                  {event.venue}
-                </span>
+                <h4 className="text-sm font-bold text-gray-800 line-clamp-1">{event.title}</h4>
+                <div className="flex items-center gap-3 text-xs text-gray-500 pt-1">
+                  <span className="flex items-center gap-1 font-medium">
+                    <LuCalendar className="w-3.5 h-3.5 text-gray-400" />
+                    {event.date}
+                  </span>
+                  <span className="flex items-center gap-1 font-medium">
+                    <LuMapPin className="w-3.5 h-3.5 text-gray-400" />
+                    {event.venue}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-8 text-center text-xs text-gray-400">
+            No upcoming school events scheduled. Click "Manage Events" to schedule one.
+          </div>
+        )}
       </div>
     </div>
   );

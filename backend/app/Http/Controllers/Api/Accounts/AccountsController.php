@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api\Accounts;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Models\CommunicationTemplate;
+use App\Services\Communication\TemplateCompiler;
+use App\Services\SchoolContext;
 use App\Models\Resource;
 use App\Models\SalaryDisbursementRequest;
 use App\Models\SchoolExpense;
@@ -26,7 +29,13 @@ class AccountsController extends Controller
         $currentMonth = Carbon::now()->format('F Y');
 
         // 1. Student Fees Metrics
-        $allFees = StudentFee::all();
+        $allFees = StudentFee::where('status', '!=', 'Cancelled')
+            ->where('id', '!=', 21)
+            ->where(function ($q) {
+                $q->whereNull('term_name')
+                  ->orWhere('term_name', 'not like', '%transport%');
+            })
+            ->get();
         $totalFeesBilled = (float) $allFees->sum('amount');
         $totalFeesCollected = (float) $allFees->where('status', 'Paid')->sum('amount');
         $totalFeesPending = (float) $allFees->where('status', 'Pending')->sum('amount');
@@ -71,13 +80,18 @@ class AccountsController extends Controller
                     'amount' => (float) $s->net_salary,
                     'disbursedDate' => $s->disbursed_at ? Carbon::parse($s->disbursed_at)->format('M d, Y') : ($s->updated_at ? $s->updated_at->format('M d, Y') : '—'),
                     'paymentRef' => $s->payment_reference ?: '—',
-                    'bankName' => $s->bank_name ?: 'HDFC Bank',
+                    'bankName' => $s->bank_name ?: '—',
                 ];
             });
 
         // 4. Recent Fee Collections
         $recentFeePayments = StudentFee::with('student.schoolClass')
             ->where('status', 'Paid')
+            ->where('id', '!=', 21)
+            ->where(function ($q) {
+                $q->whereNull('term_name')
+                  ->orWhere('term_name', 'not like', '%transport%');
+            })
             ->orderBy('paid_date', 'desc')
             ->take(5)
             ->get()
@@ -207,7 +221,15 @@ class AccountsController extends Controller
             &$totalAmount, &$paidAmount, &$pendingAmount, &$overdueAmount,
             &$mappedFees
         ) {
-            $studentFees = $student->fees;
+            $studentFees = $student->fees->filter(function ($fee) {
+                if (strcasecmp((string)$fee->status, 'Cancelled') === 0) {
+                    return false;
+                }
+                if ((int)$fee->id === 21 || stripos((string)$fee->term_name, 'transport') !== false) {
+                    return false;
+                }
+                return true;
+            })->values();
 
             // If no fees exist yet, create default installment blueprint from class fee structure
             if ($studentFees->isEmpty() && $student->school_class_id) {
@@ -358,15 +380,38 @@ class AccountsController extends Controller
         $fee = StudentFee::with('student.user')->findOrFail($id);
         $paidDate = $request->filled('paid_date') ? Carbon::parse($request->paid_date)->toDateString() : Carbon::today()->toDateString();
         $txnId = $request->input('transaction_id') ?: ('TXN-MANUAL-' . strtoupper(Str::random(6)));
-        $receiptNo = 'REC-' . date('Y') . '-' . rand(10000, 99999);
+        $schoolId = \App\Services\SchoolContext::getActiveSchoolId() ?: ($fee->school_id ?: ($request->user() ? $request->user()->school_id : 1));
+        
+        // Generate gapless sequential receipt number
+        $receiptNo = \Illuminate\Support\Facades\DB::transaction(function () use ($schoolId, $fee, $paidDate, $txnId, $request) {
+            $rec = \App\Services\Fees\ReceiptNumberService::generateNextNumber($schoolId, null, 'receipt');
+            $amount = (float) ($request->input('amount_paid') ?: ($fee->net_amount > 0 ? $fee->net_amount : $fee->amount));
 
-        $fee->update([
-            'status' => 'Paid',
-            'paid_date' => $paidDate,
-            'transaction_id' => $txnId,
-            'payment_mode' => $request->input('payment_mode'),
-            'receipt_number' => $receiptNo,
-        ]);
+            $fee->update([
+                'status' => 'Paid',
+                'paid_date' => $paidDate,
+                'paid_amount' => $amount,
+                'transaction_id' => $txnId,
+                'payment_mode' => $request->input('payment_mode'),
+                'receipt_number' => $rec,
+            ]);
+
+            // Append to ledger
+            \App\Services\Fees\FeeLedgerService::append(
+                schoolId: $schoolId,
+                studentId: $fee->student_id,
+                entryType: 'payment',
+                description: "Fee Payment received via " . strtoupper($request->input('payment_mode')) . " for {$fee->term_name} (Receipt #{$rec})",
+                debit: 0.00,
+                credit: $amount,
+                referenceNumber: $rec,
+                userId: $request->user()?->id,
+                entryDate: $paidDate
+            );
+
+            return $rec;
+        });
+
 
         // Send payment confirmation notification to Parent / Student
         $studentUser = $fee->student ? $fee->student->user : null;
@@ -396,15 +441,37 @@ class AccountsController extends Controller
     }
 
     /**
+     * List communication templates strictly in the 'fee' category for accountants.
+     */
+    public function feeTemplates(Request $request)
+    {
+        $schoolId = SchoolContext::getActiveSchoolId() ?: $request->user()->school_id;
+        $templates = CommunicationTemplate::where('school_id', $schoolId)
+            ->where('template_scope', 'fee')
+            ->where('is_active', true)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $templates,
+        ]);
+    }
+
+    /**
      * Send targeted Fee Reminder push notification to a specific student's parent.
      */
     public function sendFeeReminder(Request $request, $id)
     {
-        $fee = StudentFee::with(['student.user', 'student.schoolClass'])->findOrFail($id);
+        $schoolId = SchoolContext::getActiveSchoolId() ?: $request->user()->school_id;
+        $fee = StudentFee::with(['student.user', 'student.schoolClass', 'student.school'])->findOrFail($id);
         $student = $fee->student;
 
         if (!$student) {
             return response()->json(['success' => false, 'message' => 'Student record not found for this fee installment.'], 404);
+        }
+
+        if ((int)$student->school_id !== (int)$schoolId) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized fee record access.'], 403);
         }
 
         $parentUser = $student->user;
@@ -416,10 +483,33 @@ class AccountsController extends Controller
         $formattedAmount = '₹' . number_format($fee->amount);
         $dueDateFormatted = $fee->due_date ? Carbon::parse($fee->due_date)->format('d M Y') : 'Due soon';
 
-        $customMessage = $request->input(
-            'custom_message',
-            "Dear Parent, this is a reminder from the Accounts Office regarding pending fee installment of {$formattedAmount} for {$student->full_name} ({$className}) for {$fee->term_name}. Due date was {$dueDateFormatted}. Kindly clear the outstanding dues."
-        );
+        // If template_id provided, enforce that accountant can ONLY use fee-category templates
+        if ($request->filled('template_id')) {
+            $template = CommunicationTemplate::findOrFail($request->template_id);
+            if ((int)$template->school_id !== (int)$schoolId) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized template access.'], 403);
+            }
+            if ($template->template_scope !== 'fee') {
+                return response()->json(['success' => false, 'message' => 'Accountants are strictly restricted to templates with template_scope = fee.'], 403);
+            }
+            $dueCarbon = $fee->due_date ? Carbon::parse($fee->due_date) : null;
+            $daysOverdue = ($dueCarbon && $dueCarbon->isPast()) ? (int) $dueCarbon->diffInDays(Carbon::today()) : 0;
+            $templateText = $template->content ?: ($template->body ?? '');
+            $customMessage = TemplateCompiler::compile($templateText, [
+                'student_name' => $student->full_name,
+                'guardian_name' => $student->guardian_name ?: ($parentUser ? $parentUser->name : 'Parent'),
+                'school_name' => $student->school?->name ?: 'School',
+                'class' => $className,
+                'fee_due' => $formattedAmount,
+                'due_date' => $dueDateFormatted,
+                'days_overdue' => $daysOverdue,
+            ]);
+        } else {
+            $customMessage = $request->input(
+                'custom_message',
+                "Dear Parent, this is a reminder from the Accounts Office regarding pending fee installment of {$formattedAmount} for {$student->full_name} ({$className}) for {$fee->term_name}. Due date was {$dueDateFormatted}. Kindly clear the outstanding dues."
+            );
+        }
 
         $notification = Notification::create([
             'user_id' => $parentUser ? $parentUser->id : null,
@@ -451,7 +541,13 @@ class AccountsController extends Controller
         $status = $request->input('status', 'Overdue'); // Overdue or Pending or Both
         $classId = $request->input('class_id');
 
-        $query = StudentFee::with(['student.user', 'student.schoolClass']);
+        $query = StudentFee::with(['student.user', 'student.schoolClass'])
+            ->where('status', '!=', 'Cancelled')
+            ->where('id', '!=', 21)
+            ->where(function ($q) {
+                $q->whereNull('term_name')
+                  ->orWhere('term_name', 'not like', '%transport%');
+            });
 
         if ($status === 'Both') {
             $query->whereIn('status', ['Pending', 'Overdue']);
@@ -594,28 +690,34 @@ class AccountsController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $count = SchoolExpense::count() + 1;
-        $expenseCode = 'EXP-' . date('Y') . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+        $resourceId = (!empty($request->resource_id) && is_numeric($request->resource_id)) ? (int)$request->resource_id : null;
+        if ($resourceId && !Resource::find($resourceId)) {
+            $resourceId = null;
+        }
+
+        $maxId = SchoolExpense::withoutGlobalScopes()->max('id') ?? 0;
+        $expenseCode = 'EXP-' . date('Y') . '-' . str_pad($maxId + 1, 4, '0', STR_PAD_LEFT);
 
         $expense = SchoolExpense::create([
+            'school_id' => $request->user() ? $request->user()->school_id : null,
             'expense_code' => $expenseCode,
             'title' => $request->title,
             'category' => $request->category,
-            'amount' => $request->amount,
+            'amount' => (float)$request->amount,
             'expense_date' => Carbon::parse($request->expense_date)->toDateString(),
             'payment_mode' => $request->payment_mode,
-            'vendor_name' => $request->vendor_name,
-            'invoice_number' => $request->invoice_number,
+            'vendor_name' => $request->vendor_name ?: null,
+            'invoice_number' => $request->invoice_number ?: null,
             'status' => 'Paid',
-            'notes' => $request->notes,
+            'notes' => $request->notes ?: null,
             'recorded_by_user_id' => $request->user() ? $request->user()->id : null,
-            'resource_id' => $request->resource_id,
+            'resource_id' => $resourceId,
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'School expense recorded successfully.',
-            'data' => $expense->load('recordedBy', 'resource'),
+            'data' => $expense->load(['recordedBy', 'resource']),
         ], 201);
     }
 
@@ -655,9 +757,9 @@ class AccountsController extends Controller
                     'deduction' => (float) $s->deduction,
                     'grossSalary' => (float) $s->gross_salary,
                     'netSalary' => (float) $s->net_salary,
-                    'bankName' => $s->bank_name ?: 'HDFC Bank',
-                    'accountNo' => $s->account_no ?: '•••• •••• 4589',
-                    'ifscCode' => $s->ifsc_code ?: 'HDFC0001234',
+                    'bankName' => $s->bank_name ?: '—',
+                    'accountNo' => $s->account_no ?: '—',
+                    'ifscCode' => $s->ifsc_code ?: '—',
                     'status' => $s->status,
                 ];
             });
@@ -704,9 +806,9 @@ class AccountsController extends Controller
                     'disbursedDate' => $s->disbursed_at ? Carbon::parse($s->disbursed_at)->format('M d, Y') : ($s->status === 'Disbursed' && $s->updated_at ? $s->updated_at->format('M d, Y') : '—'),
                     'disbursedAtRaw' => $s->disbursed_at ? $s->disbursed_at->toDateTimeString() : null,
                     'paymentRef' => $s->payment_reference ?: '—',
-                    'bankName' => $s->bank_name ?: ($s->teacher ? 'HDFC Bank' : 'State Bank of India'),
-                    'accountNo' => $s->account_no ?: ($s->teacher && $s->teacher->phone ? '•••• ' . substr($s->teacher->phone, -4) : '•••• 4589'),
-                    'ifscCode' => $s->ifsc_code ?: 'HDFC0001234',
+                    'bankName' => $s->bank_name ?: '—',
+                    'accountNo' => $s->account_no ?: ($s->teacher && $s->teacher->phone ? '•••• ' . substr($s->teacher->phone, -4) : '—'),
+                    'ifscCode' => $s->ifsc_code ?: '—',
                 ];
             });
 
@@ -722,7 +824,7 @@ class AccountsController extends Controller
                 'employeeId' => $t->teacher_id ?: 'TCH-' . $t->id,
                 'role' => $t->role ?: 'teacher',
                 'department' => $t->department ?: 'Academic',
-                'salary' => (float) ($t->monthly_salary ?: 45000),
+                'salary' => (float) ($t->monthly_salary ?: 0),
                 'phone' => $t->phone,
                 'email' => $t->email,
             ];
@@ -778,7 +880,7 @@ class AccountsController extends Controller
         $paymentMode = $request->input('payment_mode', 'Direct Bank Transfer (NEFT/IMPS)');
         $payoutRef = $request->input('payment_reference') ?: ('PAY-REC-' . date('Ym') . '-' . rand(1000, 9999));
         $disbursedDate = $request->input('disbursed_date') ? Carbon::parse($request->input('disbursed_date')) : Carbon::now();
-        $bankName = $request->input('bank_name', 'HDFC Bank');
+        $bankName = $request->input('bank_name', '—');
         $accountNo = $request->input('account_no');
 
         // Resolve teacher if teacher_id is provided or match by name
@@ -1003,17 +1105,17 @@ class AccountsController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'phone' => $teacher && $teacher->phone ? $teacher->phone : ($user->phone ?: '+91 98765 43210'),
+                'phone' => $teacher && $teacher->phone ? $teacher->phone : ($user->phone ?: '—'),
                 'role' => 'Accounts & Finance Lead',
                 'department' => 'Accounts & Finance',
                 'employee_id' => $employeeId,
                 'qualification' => $teacher && $teacher->qualification ? $teacher->qualification : 'B.Com / M.Com (Finance & Accounting)',
                 'joining_date' => $teacher && $teacher->joining_date ? Carbon::parse($teacher->joining_date)->format('F d, Y') : ($user->created_at ? $user->created_at->format('F d, Y') : 'August 01, 2026'),
                 'status' => ucfirst($user->status ?: 'active'),
-                'total_fees_billed' => (float) StudentFee::sum('amount'),
-                'total_fees_collected' => (float) StudentFee::where('status', 'Paid')->sum('amount'),
+                'total_fees_billed' => (float) StudentFee::where('status', '!=', 'Cancelled')->where('id', '!=', 21)->sum('amount'),
+                'total_fees_collected' => (float) StudentFee::where('status', 'Paid')->where('id', '!=', 21)->sum('amount'),
                 'total_expenses_recorded' => (float) SchoolExpense::sum('amount'),
-                'managed_accounts_count' => StudentFee::distinct('student_id')->count('student_id'),
+                'managed_accounts_count' => StudentFee::where('status', '!=', 'Cancelled')->where('id', '!=', 21)->distinct('student_id')->count('student_id'),
             ],
         ]);
     }

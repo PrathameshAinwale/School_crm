@@ -10,8 +10,44 @@ const colorMap = {
   cyan: { bg: 'bg-cyan-50', text: 'text-cyan-600', iconBg: 'bg-cyan-50 border border-cyan-100' },
 };
 
-export default function StatCard({ label, value, trend, trendUp, color = 'blue', icon: Icon }) {
+export default function StatCard({
+  label,
+  value,
+  trend,
+  trendUp,
+  color = 'blue',
+  icon: Icon,
+  layout = 'horizontal',
+}) {
   const c = colorMap[color] || colorMap.blue;
+
+  if (layout === 'stacked') {
+    return (
+      <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-200/80 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between h-full relative overflow-hidden group">
+        <div className="flex items-center justify-between gap-1.5 mb-2 sm:mb-2.5">
+          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl ${c.iconBg} flex items-center justify-center shrink-0`}>
+            {Icon ? <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${c.text}`} /> : <div className={`w-2 h-2 rounded-full ${c.bg}`} />}
+          </div>
+          {trend && (
+            <span
+              className={`inline-flex items-center gap-0.5 text-[9px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 ${
+                trendUp
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+              }`}
+            >
+              {trendUp ? <LuTrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> : <LuTrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />}
+              <span>{trend}</span>
+            </span>
+          )}
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight leading-tight">{value}</h3>
+          <p className="text-[11px] sm:text-xs font-semibold text-gray-500 mt-0.5 leading-snug line-clamp-2">{label}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-4 border border-gray-200/80 shadow-2xs hover:shadow-md transition-all flex items-center justify-between gap-2 h-full relative overflow-hidden">
@@ -40,4 +76,3 @@ export default function StatCard({ label, value, trend, trendUp, color = 'blue',
     </div>
   );
 }
-

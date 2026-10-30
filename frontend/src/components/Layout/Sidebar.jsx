@@ -18,6 +18,8 @@ export default function Sidebar({
   const [expandedGroups, setExpandedGroups] = useState({
     'HR Operations': true,
     'Employee (Self)': true,
+    'Sports Operations': true,
+    'Incharge (Self)': true,
   });
 
   const toggleGroup = (label) => {
@@ -47,13 +49,12 @@ export default function Sidebar({
       {/* Logo & Mobile Close */}
       <div className="flex items-center justify-between px-4 h-16 border-b border-gray-100 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-primary-600 flex items-center justify-center shrink-0 shadow-xs">
-            <LuGraduationCap className="w-5 h-5 text-white" />
+          <div className="w-9 h-9 rounded-lg bg-white border border-gray-200/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-0.5">
+            <img src="/logo.svg" alt="Arch Campus Logo" className="w-7 h-7 object-contain" />
           </div>
           {(!collapsed || mobileMenuOpen) && (
             <div>
               <h1 className="text-lg font-bold text-gray-800 leading-tight">Arch Campus</h1>
-              <p className="text-[10px] text-gray-400">School Management System</p>
             </div>
           )}
         </div>

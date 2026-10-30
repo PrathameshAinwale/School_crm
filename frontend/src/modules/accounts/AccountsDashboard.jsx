@@ -10,7 +10,6 @@ import {
   LuArrowRight,
   LuTrendingUp,
   LuTrendingDown,
-  LuRefreshCw,
   LuShieldAlert,
   LuCircleCheck,
   LuPlus,
@@ -26,7 +25,6 @@ export default function AccountsDashboard() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [bulkReminderLoading, setBulkReminderLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
@@ -40,18 +38,12 @@ export default function AccountsDashboard() {
       console.error('Error fetching accounts dashboard:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchDashboard();
   }, []);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchDashboard();
-  };
 
   const handleQuickBulkRemind = async () => {
     setBulkReminderLoading(true);
@@ -111,7 +103,7 @@ export default function AccountsDashboard() {
     },
     {
       title: 'Active Faculty & Staff',
-      value: `${summary.activeStaffCount || 24} Staff`,
+      value: `${summary.activeStaffCount ?? 0} Staff`,
       subtitle: 'Managed payroll accounts',
       icon: LuUsers,
       iconBg: 'bg-indigo-500/10 text-indigo-600',
@@ -149,14 +141,6 @@ export default function AccountsDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="px-2.5 py-1.5 rounded-lg sm:rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-[11px] sm:text-xs font-semibold shadow-2xs flex items-center gap-1 transition-all cursor-pointer disabled:opacity-60"
-          >
-            <LuRefreshCw className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            Sync
-          </button>
           <button
             onClick={handleQuickBulkRemind}
             disabled={bulkReminderLoading}

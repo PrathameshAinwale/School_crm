@@ -182,5 +182,18 @@
     "event_name": "Event / Tournament",
     "event_date": "Date",
     "teacher_incharge": "Faculty Mentor"
+  },
+  "branches": {
+    "switch_school": "Switch School",
+    "switching": "Switching...",
+    "add_another_school": "+ Connect Another School",
+    "add_school_account": "Connect School Account",
+    "add_school_desc": "Link another school campus using its admin credentials",
+    "available_campuses": "Registered Campuses",
+    "switch_immediately": "Switch to this school immediately after connecting",
+    "credentials_saved_note": "Credentials are securely validated and saved locally in your browser so you can switch anytime without re-entering password.",
+    "verifying": "Verifying & Connecting...",
+    "verify_and_connect": "Verify & Connect School",
+    "unlink_school": "Disconnect School"
   }
 }

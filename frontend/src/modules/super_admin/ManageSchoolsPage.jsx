@@ -11,7 +11,6 @@ import {
   LuEye,
   LuKeyRound,
   LuTrash2,
-  LuRefreshCw,
   LuX,
   LuCheck,
   LuCopy,
@@ -28,7 +27,6 @@ export default function ManageSchoolsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [planFilter, setPlanFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -84,7 +82,6 @@ export default function ManageSchoolsPage() {
       console.error('Error fetching schools:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -228,16 +225,6 @@ export default function ManageSchoolsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              setRefreshing(true);
-              fetchSchools();
-            }}
-            className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
-          >
-            <LuRefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
           <button
             onClick={() => {
               setShowAddModal(true);

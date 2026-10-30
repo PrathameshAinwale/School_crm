@@ -16,7 +16,6 @@ import {
   LuCreditCard,
   LuReceipt,
   LuWallet,
-  LuLayers,
   LuBadgeCheck,
   LuGraduationCap,
 } from 'react-icons/lu';
@@ -135,12 +134,6 @@ export default function AccountsProfilePage() {
                   <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
                     {profile.name}
                   </h1>
-                  <span className="px-2.5 py-0.5 rounded-full bg-white/25 text-white font-mono text-xs font-bold backdrop-blur-xs">
-                    {profile.employee_id || 'ACC-001'}
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-300 text-emerald-950 text-xs font-bold">
-                    {profile.status || 'Active'}
-                  </span>
                 </div>
 
                 <p className="text-emerald-100 text-xs sm:text-sm font-medium flex items-center justify-center sm:justify-start gap-2 flex-wrap">
@@ -177,44 +170,6 @@ export default function AccountsProfilePage() {
         </div>
       </div>
 
-      {/* Financial Leadership KPI Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <LuCreditCard className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Fee Collections Cleared</div>
-            <div className="text-lg font-extrabold text-emerald-600 font-mono tracking-tight mt-0.5">
-              ₹{Number(profile.total_fees_collected || 0).toLocaleString('en-IN')}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <LuReceipt className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Recorded Campus Expenses</div>
-            <div className="text-lg font-extrabold text-slate-800 font-mono tracking-tight mt-0.5">
-              ₹{Number(profile.total_expenses_recorded || 0).toLocaleString('en-IN')}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-            <LuLayers className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Managed Student Accounts</div>
-            <div className="text-lg font-extrabold text-indigo-700 font-mono tracking-tight mt-0.5">
-              {profile.managed_accounts_count || 1} Enrolled
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Profile Details Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">

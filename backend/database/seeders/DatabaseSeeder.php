@@ -41,6 +41,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Production safety guard: Prevent default fixture credentials in production
+        if (app()->environment('production')) {
+            $this->command?->warn("DatabaseSeeder contains demo fixture accounts with default credentials and cannot be executed in production.");
+            return;
+        }
+
         // -------------------------------------------------------------
         // 0. SAAS TENANT SCHOOLS & PLATFORM SUPER ADMIN
         // -------------------------------------------------------------
@@ -107,17 +113,22 @@ class DatabaseSeeder extends Seeder
             'status' => 'active',
         ]);
 
-        // Platform Super Administrator (Company Level)
-        $superAdmin = User::create([
-            'school_id' => null,
-            'name' => 'Platform Super Administrator',
-            'email' => 'archdevops360@gmail.com',
-            'phone' => '9999900000',
-            'password' => Hash::make('ArchIT@2013'),
-            'role' => 'super_admin',
-            'must_change_password' => false,
-            'status' => 'active',
-        ]);
+        // Platform Super Administrator (Company Level) - Skip seeding in production
+        if (!app()->environment('production') && !User::where('role', 'super_admin')->exists()) {
+            $superAdminPassword = env('SUPER_ADMIN_PASSWORD', 'change-me-local-only');
+            $superAdmin = User::create([
+                'school_id' => null,
+                'name' => 'Platform Super Administrator',
+                'email' => env('SUPER_ADMIN_EMAIL', 'archdevops360@gmail.com'),
+                'phone' => '9999900000',
+                'password' => Hash::make($superAdminPassword),
+                'role' => 'super_admin',
+                'must_change_password' => true,
+                'status' => 'active',
+            ]);
+        } else {
+            $superAdmin = User::where('role', 'super_admin')->first();
+        }
 
         // School 2 (St. Xavier) Admin
         $stXavierAdmin = User::create([
@@ -153,6 +164,28 @@ class DatabaseSeeder extends Seeder
             'phone' => '9876543210',
             'password' => Hash::make('111111'),
             'role' => 'admin',
+            'must_change_password' => false,
+            'status' => 'active',
+        ]);
+
+        $principalUser = User::create([
+            'school_id' => $school1->id,
+            'name' => 'Dr. Rajeshwari Sharma (Principal)',
+            'email' => 'principal@school.com',
+            'phone' => '9876543219',
+            'password' => Hash::make('111111'),
+            'role' => 'principal',
+            'must_change_password' => false,
+            'status' => 'active',
+        ]);
+
+        $admissionsUser = User::create([
+            'school_id' => $school1->id,
+            'name' => 'Meera Joshi (Admissions Officer)',
+            'email' => 'admissions@school.com',
+            'phone' => '9876543220',
+            'password' => Hash::make('111111'),
+            'role' => 'admission_officer',
             'must_change_password' => false,
             'status' => 'active',
         ]);
@@ -1130,6 +1163,8 @@ class DatabaseSeeder extends Seeder
 
         // Ensure platform super administrator has school_id = null
         User::where('role', 'super_admin')->update(['school_id' => null]);
+
+        $this->call(SportsSeeder::class);
     }
 }
 

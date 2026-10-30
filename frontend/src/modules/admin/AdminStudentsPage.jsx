@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/adminService';
 import CredentialsModal from '../../components/Common/CredentialsModal';
+import { useAuth } from '../../context/AuthContext';
 import {
   LuGraduationCap,
   LuSearch,
@@ -20,7 +21,6 @@ import {
   LuCheck,
   LuCircleCheck,
   LuMapPin,
-  LuRefreshCw,
 } from 'react-icons/lu';
 
 const STANDARD_CLASSES = [
@@ -75,6 +75,8 @@ const DIVISIONS = [
 ];
 
 export default function AdminStudentsPage() {
+  const { currentRole } = useAuth();
+  const isPrincipal = currentRole === 'principal';
   const [allStudents, setAllStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -382,44 +384,38 @@ export default function AdminStudentsPage() {
       )}
 
       {/* Header Banner */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
-            <LuGraduationCap className="w-6 h-6" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+            <LuGraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base sm:text-xl font-bold text-slate-800 leading-tight">Student Directory & Enrollment</h1>
-              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[10px] sm:text-[11px] border border-emerald-200">
-                Admin Management
+              <h1 className="text-base sm:text-xl font-bold text-gray-900 leading-tight">Student Directory & Enrollment</h1>
+              <span className="px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 font-bold text-[10px] sm:text-[11px] border border-primary-200/60">
+                Active Directory
               </span>
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+            <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
               Browse classes, divisions & enrolled student profiles
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          <button
-            onClick={loadData}
-            title="Refresh student list"
-            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors cursor-pointer"
-          >
-            <LuRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-600' : ''}`} />
-          </button>
-
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold">
-            <LuUsers className="w-4 h-4 text-emerald-600" />
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 text-gray-700 border border-gray-200 text-xs font-semibold">
+            <LuUsers className="w-4 h-4 text-primary-600" />
             <span>Total: <strong>{allStudents.length}</strong> Students</span>
           </div>
 
-          <button
-            onClick={() => openAddStudentModal()}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-500/20 transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <LuUserPlus className="w-4 h-4" /> Add Student
-          </button>
+          {!isPrincipal && (
+            <button
+              onClick={() => openAddStudentModal()}
+              className="px-4 py-2 sm:py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <LuUserPlus className="w-4 h-4" /> <span>Add Student</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -702,20 +698,24 @@ export default function AdminStudentsPage() {
                               >
                                 <LuEye className="w-4 h-4" />
                               </button>
-                              <button
-                                onClick={() => openEditModal(student)}
-                                className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
-                                title="Edit Student Record"
-                              >
-                                <LuPencil className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => setDeleteTargetStudent(student)}
-                                className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                                title="Delete / Deactivate Student"
-                              >
-                                <LuTrash2 className="w-4 h-4" />
-                              </button>
+                              {!isPrincipal && (
+                                <>
+                                  <button
+                                    onClick={() => openEditModal(student)}
+                                    className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
+                                    title="Edit Student Record"
+                                  >
+                                    <LuPencil className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteTargetStudent(student)}
+                                    className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                    title="Delete / Deactivate Student"
+                                  >
+                                    <LuTrash2 className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -731,21 +731,21 @@ export default function AdminStudentsPage() {
 
       {/* Add Student Modal (Admin Full Capability) */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full my-4 sm:my-8 overflow-hidden animate-scale-up">
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-5 text-white flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-2xl w-full my-4 sm:my-8 overflow-hidden animate-scale-up">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
-                  <LuUserPlus className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center shrink-0">
+                  <LuUserPlus className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">Admit / Add Student to Class</h3>
-                  <p className="text-emerald-100 text-xs">Record student identity, class division, parent details, and generate credentials</p>
+                  <h3 className="font-bold text-base text-gray-900">Admit / Add Student to Class</h3>
+                  <p className="text-gray-500 text-xs mt-0.5">Record student identity, class division, parent details, and generate credentials</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 <LuX className="w-5 h-5" />
               </button>
@@ -1017,18 +1017,18 @@ export default function AdminStudentsPage() {
                 ></textarea>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-500/20 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
                   {submitting ? 'Enrolling...' : 'Enroll Student & Generate Parent Login'}
@@ -1041,21 +1041,21 @@ export default function AdminStudentsPage() {
 
       {/* Edit Student Modal */}
       {editingStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full my-4 sm:my-8 overflow-hidden animate-scale-up">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-5 text-white flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-2xl w-full my-4 sm:my-8 overflow-hidden animate-scale-up">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
-                  <LuPencil className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center shrink-0">
+                  <LuPencil className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">Edit Student Record</h3>
-                  <p className="text-blue-100 text-xs">Update academic placement, demographics, and parent contact information</p>
+                  <h3 className="font-bold text-base text-gray-900">Edit Student Record</h3>
+                  <p className="text-gray-500 text-xs mt-0.5">Update academic placement, demographics, and parent contact information</p>
                 </div>
               </div>
               <button
                 onClick={() => setEditingStudent(null)}
-                className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 <LuX className="w-5 h-5" />
               </button>
@@ -1329,18 +1329,18 @@ export default function AdminStudentsPage() {
                 ></textarea>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setEditingStudent(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
                   {submitting ? 'Saving Changes...' : 'Save Student Changes'}

@@ -28,15 +28,12 @@ export const studentParentService = {
     });
   },
 
-  // Fees
+  // Fees & Ledger
   getFees() {
     return apiRequest('/student/fees');
   },
-  payFee(data) {
-    return apiRequest('/student/fees/pay', {
-      method: 'POST',
-      body: data,
-    });
+  getFeeLedger() {
+    return apiRequest('/student/fees/ledger');
   },
 
   // Faculty Feedback

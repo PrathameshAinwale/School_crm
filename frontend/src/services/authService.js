@@ -17,6 +17,16 @@ export const authService = {
   },
 
   /**
+   * Verify credentials without altering the current active session in localStorage
+   */
+  async verifyCredentials(identifier, password) {
+    return await apiRequest('/auth/login', {
+      method: 'POST',
+      body: { identifier, password },
+    });
+  },
+
+  /**
    * Change Password (sets must_change_password to false in backend)
    */
   async changePassword(currentPassword, newPassword, newPasswordConfirmation) {

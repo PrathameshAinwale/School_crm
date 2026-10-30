@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Models\School;
+use App\Models\AcademicYear;
+use App\Services\AcademicYearContext;
 use App\Services\SchoolContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -60,6 +62,29 @@ class ResolveActiveSchool
             }
 
             $request->attributes->set('active_school_id', SchoolContext::getActiveSchoolId());
+
+            // 3. Resolve Active Academic Year
+            $activeSchoolId = SchoolContext::getActiveSchoolId();
+            if ($activeSchoolId) {
+                $requestedYearHeader = $request->header('X-Academic-Year-Id');
+                $validYearId = null;
+
+                if ($requestedYearHeader !== null && $requestedYearHeader !== '' && is_numeric($requestedYearHeader)) {
+                    $requestedYearId = (int)$requestedYearHeader;
+                    $belongs = AcademicYear::withoutGlobalScopes()
+                        ->where('school_id', $activeSchoolId)
+                        ->where('id', $requestedYearId)
+                        ->exists();
+
+                    if ($belongs) {
+                        $validYearId = $requestedYearId;
+                    }
+                }
+
+                AcademicYearContext::setActiveAcademicYearId($validYearId);
+                $activeYear = AcademicYearContext::getActiveAcademicYear($activeSchoolId);
+                $request->attributes->set('active_academic_year_id', $activeYear?->id);
+            }
         }
 
         return $next($request);

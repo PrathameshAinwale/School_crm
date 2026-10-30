@@ -5,7 +5,6 @@ import {
   LuCheck,
   LuX,
   LuCheckCheck,
-  LuRefreshCw,
   LuLoader,
   LuCalendar,
   LuUser,
@@ -90,15 +89,6 @@ export default function StaffLeavesPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={fetchLeaves}
-          disabled={loading}
-          className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer self-start sm:self-auto"
-          title="Refresh Leaves"
-        >
-          <LuRefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </button>
       </div>
 
       {/* Mobile Card View */}
