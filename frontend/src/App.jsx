@@ -39,6 +39,7 @@ import TeacherResourcesPage from './modules/teacher/TeacherResourcesPage';
 import StaffAttendancePage from './modules/hr/StaffAttendancePage';
 import StaffSalaryPage from './modules/hr/StaffSalaryPage';
 import StaffLeavesPage from './modules/hr/StaffLeavesPage';
+import LeaveTypesManager from './modules/hr/LeaveTypesManager';
 import SchoolEventsPage from './modules/hr/SchoolEventsPage';
 import HRTrainingsPage from './modules/hr/HRTrainingsPage';
 import HRProfilePage from './modules/hr/HRProfilePage';
@@ -61,9 +62,15 @@ import AdminStudentsPage from './modules/admin/AdminStudentsPage';
 import AdminAttendancePage from './modules/admin/AdminAttendancePage';
 import AdminAdmissionPage from './modules/admin/AdminAdmissionPage';
 import AdminVehiclesPage from './modules/admin/AdminVehiclesPage';
+import BusRouteBuilderPage from './modules/admin/BusRouteBuilderPage';
 import AdminResourcesPage from './modules/admin/AdminResourcesPage';
 import AdminEventsCalendarPage from './modules/admin/AdminEventsCalendarPage';
 import AdminFeeStructurePage from './modules/admin/AdminFeeStructurePage';
+import LibraryManagementPage from './modules/library/LibraryManagementPage';
+import DriverMobileTrackerPage from './modules/admin/DriverMobileTrackerPage';
+import ReportCardsPage from './modules/admin/ReportCardsPage';
+import MarksheetPage from './modules/admin/MarksheetPage';
+import UdisePlusPage from './modules/admin/UdisePlusPage';
 
 // Protected route wrapper
 function ProtectedRoute({ children }) {
@@ -91,6 +98,7 @@ function DashboardRouter() {
     student_parent: <StudentParentDashboard />,
     hr: <HRDashboard />,
     accountant: <AccountsDashboard />,
+    librarian: <LibraryManagementPage />,
   };
 
   return dashboardMap[currentRole] || <AdminDashboard />;
@@ -127,13 +135,10 @@ function StudentsRouter() {
 function ProfileRouter() {
   const { currentRole, user } = useAuth();
   const role = (user?.role || currentRole || '').toLowerCase();
-  if (role === 'admin') {
-    return <HRProfilePage />;
-  }
-  if (role === 'teacher') {
+  if (role === 'librarian' || role === 'teacher') {
     return <TeacherProfilePage />;
   }
-  if (role === 'hr' || role === 'staff') {
+  if (role === 'admin' || role === 'hr' || role === 'staff') {
     return <HRProfilePage />;
   }
   if (role === 'accountant') {
@@ -142,7 +147,7 @@ function ProfileRouter() {
   if (role === 'student_parent') {
     return <ProfilePage />;
   }
-  return <Navigate to="/dashboard" replace />;
+  return <TeacherProfilePage />;
 }
 
 // Role-aware Trainings Router
@@ -159,6 +164,11 @@ function AppRoutes() {
     <Routes>
       {/* Public School Login */}
       <Route path="/login" element={<Login />} />
+
+      {/* Driver Mobile Phone GPS App (Uber-Style Driver Mobile App) */}
+      <Route path="/driver-tracker" element={<DriverMobileTrackerPage />} />
+      <Route path="/driver-trip" element={<DriverMobileTrackerPage />} />
+      <Route path="/driver" element={<DriverMobileTrackerPage />} />
 
       {/* Dedicated Super Admin Company Platform Login (Direct URL Access Only) */}
       <Route path="/superadmin" element={<SuperAdminLogin />} />
@@ -221,12 +231,14 @@ function AppRoutes() {
         <Route path="salary" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Salaries"><StaffSalaryPage /></RoleRoute>} />
         <Route path="salaries" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Salaries"><StaffSalaryPage /></RoleRoute>} />
         <Route path="payroll" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Payroll"><StaffSalaryPage /></RoleRoute>} />
-        <Route path="hr/attendance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'admin']} moduleName="Staff Attendance"><TeacherAttendancePage /></RoleRoute>} />
-        <Route path="hr/leave-balance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'admin']} moduleName="Leave Balance"><TeacherLeaveBalancePage /></RoleRoute>} />
-        <Route path="hr/apply-leave" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'admin']} moduleName="Apply for Leave"><TeacherApplyLeavePage /></RoleRoute>} />
+        <Route path="hr/attendance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'librarian', 'admin', 'staff']} moduleName="Staff Attendance"><TeacherAttendancePage /></RoleRoute>} />
+        <Route path="hr/leave-balance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'librarian', 'admin', 'staff']} moduleName="Leave Balance"><TeacherLeaveBalancePage /></RoleRoute>} />
+        <Route path="hr/apply-leave" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'librarian', 'admin', 'staff']} moduleName="Apply for Leave"><TeacherApplyLeavePage /></RoleRoute>} />
         <Route path="hr/staff-attendance" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Attendance"><StaffAttendancePage /></RoleRoute>} />
         <Route path="hr/staff-leaves" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Leaves"><StaffLeavesPage /></RoleRoute>} />
         <Route path="hr/leaves" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Staff Leaves"><StaffLeavesPage /></RoleRoute>} />
+        <Route path="hr/leave-types" element={<RoleRoute allowedRoles={['hr', 'admin', 'super_admin']} moduleName="Leave Types & Quotas"><div className="space-y-6"><LeaveTypesManager /></div></RoleRoute>} />
+        <Route path="admin/leave-types" element={<RoleRoute allowedRoles={['hr', 'admin', 'super_admin']} moduleName="Leave Types & Quotas"><div className="space-y-6"><LeaveTypesManager /></div></RoleRoute>} />
         <Route path="school-events" element={<SchoolEventsPage />} />
         <Route path="hr/school-events" element={<SchoolEventsPage />} />
         <Route path="recruitment" element={<RoleRoute allowedRoles={['hr', 'admin']} moduleName="Recruitment"><Placeholder /></RoleRoute>} />
@@ -240,10 +252,19 @@ function AppRoutes() {
         <Route path="admission" element={<RoleRoute allowedRoles={['admin']} moduleName="Admissions"><AdminAdmissionPage /></RoleRoute>} />
         <Route path="admissions" element={<RoleRoute allowedRoles={['admin']} moduleName="Admissions"><AdminAdmissionPage /></RoleRoute>} />
         <Route path="school-vehicles" element={<RoleRoute allowedRoles={['admin']} moduleName="School Vehicles"><AdminVehiclesPage /></RoleRoute>} />
-        <Route path="school-resources" element={<RoleRoute allowedRoles={['admin']} moduleName="School Resources"><AdminResourcesPage /></RoleRoute>} />
+        <Route path="bus-route-builder" element={<RoleRoute allowedRoles={['admin']} moduleName="Bus Route Builder"><BusRouteBuilderPage /></RoleRoute>} />
+        <Route path="school-resources" element={<RoleRoute allowedRoles={['admin', 'librarian']} moduleName="School Resources"><AdminResourcesPage /></RoleRoute>} />
         <Route path="admin/calendar" element={<RoleRoute allowedRoles={['admin']} moduleName="Calendar & Events"><AdminEventsCalendarPage /></RoleRoute>} />
         <Route path="admin/events" element={<RoleRoute allowedRoles={['admin']} moduleName="Calendar & Events"><AdminEventsCalendarPage /></RoleRoute>} />
         <Route path="subjects" element={<Placeholder />} />
+
+        {/* Central Library Management Routes */}
+        <Route path="library" element={<RoleRoute allowedRoles={['librarian', 'admin', 'teacher']} moduleName="Central Library"><LibraryManagementPage /></RoleRoute>} />
+        <Route path="library/books" element={<RoleRoute allowedRoles={['librarian', 'admin', 'teacher']} moduleName="Central Library"><LibraryManagementPage /></RoleRoute>} />
+        <Route path="library/circulation" element={<RoleRoute allowedRoles={['librarian', 'admin', 'teacher']} moduleName="Central Library"><LibraryManagementPage /></RoleRoute>} />
+        <Route path="library/issues" element={<RoleRoute allowedRoles={['librarian', 'admin', 'teacher']} moduleName="Central Library"><LibraryManagementPage /></RoleRoute>} />
+        <Route path="library/overdue" element={<RoleRoute allowedRoles={['librarian', 'admin', 'teacher']} moduleName="Central Library"><LibraryManagementPage /></RoleRoute>} />
+        <Route path="library/elibrary" element={<RoleRoute allowedRoles={['librarian', 'admin', 'teacher']} moduleName="Central Library"><LibraryManagementPage /></RoleRoute>} />
 
         {/* Teacher & Staff Academic & Self Routes */}
         <Route path="teacher/resources" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="School Resources"><TeacherResourcesPage /></RoleRoute>} />
@@ -251,18 +272,25 @@ function AppRoutes() {
         <Route path="teacher/timetable" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Create Timetable"><CreateTimetablePage /></RoleRoute>} />
         <Route path="teacher/student-attendance" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Student Attendance"><ClassAttendancePage /></RoleRoute>} />
         <Route path="class-attendance" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Class Attendance"><ClassAttendancePage /></RoleRoute>} />
-        <Route path="teacher/attendance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Staff Attendance"><TeacherAttendancePage /></RoleRoute>} />
-        <Route path="teacher/leave-balance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Leave Balance"><TeacherLeaveBalancePage /></RoleRoute>} />
-        <Route path="teacher/apply-leave" element={<RoleRoute allowedRoles={['hr', 'teacher', 'admin']} moduleName="Apply Leave"><TeacherApplyLeavePage /></RoleRoute>} />
+        <Route path="teacher/attendance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'librarian', 'admin', 'staff']} moduleName="Staff Attendance"><TeacherAttendancePage /></RoleRoute>} />
+        <Route path="teacher/leave-balance" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'librarian', 'admin', 'staff']} moduleName="Leave Balance"><TeacherLeaveBalancePage /></RoleRoute>} />
+        <Route path="teacher/apply-leave" element={<RoleRoute allowedRoles={['hr', 'teacher', 'accountant', 'librarian', 'admin', 'staff']} moduleName="Apply Leave"><TeacherApplyLeavePage /></RoleRoute>} />
         <Route path="student-records" element={<RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Student Records"><StudentRecordsPage /></RoleRoute>} />
         <Route path="scoresheet" element={<Placeholder />} />
         <Route path="my-hr" element={<Placeholder />} />
         <Route path="classes" element={<RoleRoute allowedRoles={['admin', 'teacher']} moduleName="Classes"><AdminStudentsPage /></RoleRoute>} />
+        <Route path="report-cards" element={<RoleRoute allowedRoles={['admin', 'teacher', 'student_parent', 'super_admin']} moduleName="Student Report Cards"><ReportCardsPage /></RoleRoute>} />
+        <Route path="reportcards" element={<RoleRoute allowedRoles={['admin', 'teacher', 'student_parent', 'super_admin']} moduleName="Student Report Cards"><ReportCardsPage /></RoleRoute>} />
+        <Route path="marksheets" element={<RoleRoute allowedRoles={['admin', 'teacher', 'student_parent', 'super_admin']} moduleName="Student Marksheets"><MarksheetPage /></RoleRoute>} />
+        <Route path="marksheet" element={<RoleRoute allowedRoles={['admin', 'teacher', 'student_parent', 'super_admin']} moduleName="Student Marksheets"><MarksheetPage /></RoleRoute>} />
+        <Route path="udise" element={<RoleRoute allowedRoles={['admin', 'super_admin']} moduleName="UDISE+ Management"><UdisePlusPage /></RoleRoute>} />
+        <Route path="udise-plus" element={<RoleRoute allowedRoles={['admin', 'super_admin']} moduleName="UDISE+ Management"><UdisePlusPage /></RoleRoute>} />
+        <Route path="udiseplus" element={<RoleRoute allowedRoles={['admin', 'super_admin']} moduleName="UDISE+ Management"><UdisePlusPage /></RoleRoute>} />
         <Route path="academics" element={<Placeholder />} />
-        <Route path="examinations" element={<Placeholder />} />
+        <Route path="examinations" element={<RoleRoute allowedRoles={['admin', 'teacher', 'student_parent', 'super_admin']} moduleName="Examinations & Report Cards"><ReportCardsPage /></RoleRoute>} />
         <Route path="messages" element={<Placeholder />} />
         <Route path="leave" element={<Placeholder />} />
-        <Route path="results" element={<Placeholder />} />
+        <Route path="results" element={<RoleRoute allowedRoles={['admin', 'teacher', 'student_parent', 'super_admin']} moduleName="Results & Report Cards"><ReportCardsPage /></RoleRoute>} />
         <Route path="transport" element={<RoleRoute allowedRoles={['admin']} moduleName="Transport"><AdminVehiclesPage /></RoleRoute>} />
         <Route path="health" element={<Placeholder />} />
         <Route path="settings" element={<Placeholder />} />

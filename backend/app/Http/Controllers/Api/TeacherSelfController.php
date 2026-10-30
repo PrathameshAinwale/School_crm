@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
 use App\Models\LeaveApplication;
+use App\Models\LeaveType;
 use App\Models\SchoolClass;
 use App\Models\SchoolNotice;
 use App\Models\StaffAttendance;
@@ -30,11 +31,37 @@ class TeacherSelfController extends Controller
             ->orWhere('email', $user->email)
             ->first();
 
-        if (!$teacher && in_array($user->role, ['hr', 'teacher', 'admin'])) {
-            $nameParts = explode(' ', $user->name ?: ($user->role === 'hr' ? 'HR Staff' : 'Faculty Staff'));
-            $firstName = $nameParts[0] ?? 'Staff';
+        if (!$teacher && in_array($user->role, ['hr', 'teacher', 'admin', 'librarian', 'accountant', 'staff'])) {
+            $prefixMap = [
+                'hr' => 'HR-',
+                'librarian' => 'LIB-',
+                'accountant' => 'ACC-',
+                'teacher' => 'TCH-',
+                'admin' => 'ADM-',
+                'staff' => 'STF-',
+            ];
+            $deptMap = [
+                'hr' => 'Human Resources',
+                'librarian' => 'Library & Information Services',
+                'accountant' => 'Accounts & Finance',
+                'teacher' => 'Faculty & Academics',
+                'admin' => 'School Administration',
+                'staff' => 'General Operations',
+            ];
+            $qualMap = [
+                'librarian' => 'M.Lib.Sc (Library & Information Science)',
+                'accountant' => 'M.Com / Certified School Accountant',
+                'hr' => 'MBA in Human Resource Management',
+                'teacher' => 'M.Sc, B.Ed',
+                'admin' => 'M.Ed / School Administration',
+            ];
+
+            $prefix = $prefixMap[$user->role] ?? 'EMP-';
+            $cleanedName = preg_replace('/\s*\(.*?\)\s*/', '', $user->name ?: 'School Employee');
+            $nameParts = explode(' ', trim($cleanedName));
+            $firstName = $nameParts[0] ?? 'Employee';
             $lastName = count($nameParts) > 1 ? implode(' ', array_slice($nameParts, 1)) : '';
-            $teacherId = ($user->role === 'hr' ? 'HR-' : 'TCH-') . str_pad($user->id, 3, '0', STR_PAD_LEFT);
+            $teacherId = $prefix . str_pad($user->id, 3, '0', STR_PAD_LEFT);
 
             $teacher = Teacher::create([
                 'user_id' => $user->id,
@@ -43,9 +70,11 @@ class TeacherSelfController extends Controller
                 'last_name' => $lastName,
                 'email' => strtolower($user->email),
                 'phone' => $user->phone ?? '+91 98765 00000',
-                'department' => $user->role === 'hr' ? 'Human Resources' : 'General',
+                'department' => $deptMap[$user->role] ?? 'General',
+                'qualification' => $qualMap[$user->role] ?? 'Graduate',
+                'experience' => '5+ Years in Education',
                 'status' => 'Active',
-                'salary' => $user->role === 'hr' ? 55000 : 50000,
+                'salary' => 50000,
                 'allowance' => 10000,
             ]);
         }
@@ -105,7 +134,7 @@ class TeacherSelfController extends Controller
             ->orderBy('date', 'desc')
             ->take(15)
             ->get()
-            ->map(function ($att) {
+            ->map(function ($att) use ($today) {
                 $checkIn = $att->check_in_time ? Carbon::parse($att->check_in_time)->format('h:i A') : '-';
                 $checkOut = $att->check_out_time ? Carbon::parse($att->check_out_time)->format('h:i A') : '-';
                 $attDateStr = is_string($att->date) ? $att->date : $att->date->toDateString();
@@ -119,7 +148,10 @@ class TeacherSelfController extends Controller
                 }
 
                 return [
+                    'id' => $att->id,
                     'date' => Carbon::parse($attDateStr)->format('d M Y'),
+                    'raw_date' => $attDateStr,
+                    'is_today' => $attDateStr === $today,
                     'status' => $att->status ?: 'Present',
                     'checkIn' => $checkIn,
                     'checkOut' => $checkOut,
@@ -306,11 +338,38 @@ class TeacherSelfController extends Controller
         $user = $request->user();
         $teacher = $this->getTeacher($request);
 
-        $quotas = [
-            'CL' => ['name' => 'Casual Leave (CL)', 'total' => 12, 'color' => 'text-amber-600', 'bg' => 'bg-amber-50', 'bar' => 'bg-amber-500'],
-            'SL' => ['name' => 'Sick Leave (SL)', 'total' => 10, 'color' => 'text-rose-600', 'bg' => 'bg-rose-50', 'bar' => 'bg-rose-500'],
-            'ML' => ['name' => 'Maternity/Paternity', 'total' => 90, 'color' => 'text-purple-600', 'bg' => 'bg-purple-50', 'bar' => 'bg-purple-500'],
-        ];
+        // Fetch dynamic leave types and quotas from database
+        $dbLeaveTypes = LeaveType::where('is_active', true)->orderBy('id')->get();
+        if ($dbLeaveTypes->isEmpty()) {
+            $dbLeaveTypes = LeaveType::orderBy('id')->get();
+        }
+
+        $quotas = [];
+        foreach ($dbLeaveTypes as $lt) {
+            $code = strtoupper(trim($lt->code));
+            $style = $lt->style;
+            $quotas[$code] = [
+                'id' => $lt->id,
+                'name' => $lt->name,
+                'code' => $code,
+                'total' => (int) $lt->total_days,
+                'description' => $lt->description,
+                'color' => $style['color'],
+                'bg' => $style['bg'],
+                'bar' => $style['bar'],
+                'border' => $style['border'] ?? 'border-gray-200',
+                'requires_attachment' => (bool) $lt->requires_attachment,
+            ];
+        }
+
+        // Fallback safety if no types in DB
+        if (empty($quotas)) {
+            $quotas = [
+                'CL' => ['id' => 1, 'name' => 'Casual Leave (CL)', 'code' => 'CL', 'total' => 12, 'color' => 'text-amber-600', 'bg' => 'bg-amber-50', 'bar' => 'bg-amber-500', 'border' => 'border-amber-200', 'requires_attachment' => false],
+                'SL' => ['id' => 2, 'name' => 'Sick Leave (SL)', 'code' => 'SL', 'total' => 10, 'color' => 'text-rose-600', 'bg' => 'bg-rose-50', 'bar' => 'bg-rose-500', 'border' => 'border-rose-200', 'requires_attachment' => true],
+                'ML' => ['id' => 3, 'name' => 'Maternity/Paternity (ML)', 'code' => 'ML', 'total' => 90, 'color' => 'text-purple-600', 'bg' => 'bg-purple-50', 'bar' => 'bg-purple-500', 'border' => 'border-purple-200', 'requires_attachment' => false],
+            ];
+        }
 
         $leaveQuery = LeaveApplication::query();
         if ($user) {
@@ -326,16 +385,19 @@ class TeacherSelfController extends Controller
 
         $allApplications = $leaveQuery->orderBy('created_at', 'desc')->get();
 
-        // Sum approved days by leave type
-        $usedByCode = [
-            'CL' => 0,
-            'SL' => 0,
-            'ML' => 0,
-        ];
+        // Dynamically sum approved days by leave type code
+        $usedByCode = [];
+        foreach ($quotas as $code => $meta) {
+            $usedByCode[$code] = 0;
+        }
 
         foreach ($allApplications as $app) {
-            if ($app->status === 'Approved' && isset($usedByCode[$app->type])) {
-                $usedByCode[$app->type] += (int) $app->days;
+            $appCode = strtoupper(trim($app->type));
+            if ($app->status === 'Approved') {
+                if (!isset($usedByCode[$appCode])) {
+                    $usedByCode[$appCode] = 0;
+                }
+                $usedByCode[$appCode] += (int) $app->days;
             }
         }
 
@@ -346,28 +408,35 @@ class TeacherSelfController extends Controller
             $remaining = max(0, $total - $used);
 
             $leaveTypes[] = [
+                'id' => $meta['id'],
                 'code' => $code,
                 'type' => $meta['name'],
                 'total' => $total,
                 'used' => $used,
                 'remaining' => $remaining,
+                'description' => $meta['description'] ?? null,
                 'color' => $meta['color'],
                 'bg' => $meta['bg'],
                 'bar' => $meta['bar'],
+                'border' => $meta['border'] ?? 'border-gray-200',
+                'requires_attachment' => $meta['requires_attachment'] ?? false,
             ];
         }
 
         $history = $allApplications->map(function ($app) use ($quotas) {
-            $typeName = $quotas[$app->type]['name'] ?? $app->type;
+            $appCode = strtoupper(trim($app->type));
+            $typeName = $quotas[$appCode]['name'] ?? $app->type;
             return [
                 'id' => $app->id,
                 'type' => $typeName,
-                'code' => $app->type,
+                'code' => $appCode,
                 'from' => $app->from_date ? Carbon::parse($app->from_date)->format('d M Y') : '-',
                 'to' => $app->to_date ? Carbon::parse($app->to_date)->format('d M Y') : '-',
                 'days' => $app->days,
                 'reason' => $app->reason,
                 'status' => $app->status ?: 'Pending',
+                'photo_proof' => $app->photo_proof,
+                'photo_name' => $app->photo_name,
                 'created_at' => $app->created_at ? $app->created_at->format('d M Y') : '-',
             ];
         });
@@ -384,8 +453,17 @@ class TeacherSelfController extends Controller
      */
     public function applyLeave(Request $request)
     {
+        $validCodes = LeaveType::where('is_active', true)->pluck('code')->map(fn($c) => strtoupper(trim($c)))->toArray();
+        if (empty($validCodes)) {
+            $validCodes = ['CL', 'SL', 'ML', 'EL'];
+        }
+
         $request->validate([
-            'type' => 'required|in:CL,SL,ML',
+            'type' => ['required', 'string', function ($attribute, $value, $fail) use ($validCodes) {
+                if (!in_array(strtoupper(trim($value)), $validCodes)) {
+                    $fail('The selected leave type is invalid or inactive.');
+                }
+            }],
             'from_date' => 'required|date',
             'to_date' => 'required|date|after_or_equal:from_date',
             'reason' => 'required|string|max:1000',
@@ -398,10 +476,13 @@ class TeacherSelfController extends Controller
         $to = Carbon::parse($request->to_date);
         $days = max(1, $from->diffInDays($to) + 1);
 
+        $schoolId = ($user && $user->school_id) ? $user->school_id : ($teacher ? $teacher->school_id : null);
+
         $application = LeaveApplication::create([
+            'school_id' => $schoolId,
             'user_id' => $user ? $user->id : null,
             'teacher_id' => $teacher ? $teacher->id : null,
-            'type' => $request->type,
+            'type' => strtoupper(trim($request->type)),
             'from_date' => $from->toDateString(),
             'to_date' => $to->toDateString(),
             'days' => $days,

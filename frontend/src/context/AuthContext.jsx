@@ -10,6 +10,7 @@ const ROLES = {
   STUDENT_PARENT: 'student_parent',
   HR: 'hr',
   ACCOUNTANT: 'accountant',
+  LIBRARIAN: 'librarian',
 };
 
 const ROLE_LABELS = {
@@ -19,6 +20,7 @@ const ROLE_LABELS = {
   [ROLES.STUDENT_PARENT]: 'Student / Parent',
   [ROLES.HR]: 'HR Manager',
   [ROLES.ACCOUNTANT]: 'Accounts & Finance Lead',
+  [ROLES.LIBRARIAN]: 'Chief Librarian / Library Head',
 };
 
 export function AuthProvider({ children }) {

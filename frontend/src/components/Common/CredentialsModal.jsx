@@ -61,6 +61,8 @@ export default function CredentialsModal({ isOpen, onClose, credentials, title =
                     ? 'Accounts & Finance Portal'
                     : credentials.role === 'hr'
                     ? 'HR Portal'
+                    : credentials.role === 'librarian'
+                    ? 'Central Library Portal'
                     : 'Teacher Portal'}
                 </span>
               </div>

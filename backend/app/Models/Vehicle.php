@@ -28,6 +28,13 @@ class Vehicle extends Model
         'insurance_expiry',
         'fitness_expiry',
         'gps_device_id',
+        'current_latitude',
+        'current_longitude',
+        'current_heading',
+        'current_speed',
+        'is_online',
+        'last_ping_at',
+        'tracking_token',
         'status',
     ];
 
@@ -35,5 +42,11 @@ class Vehicle extends Model
         'route_stops' => 'array',
         'insurance_expiry' => 'date',
         'fitness_expiry' => 'date',
+        'current_latitude' => 'float',
+        'current_longitude' => 'float',
+        'current_heading' => 'float',
+        'current_speed' => 'float',
+        'is_online' => 'boolean',
+        'last_ping_at' => 'datetime',
     ];
 }

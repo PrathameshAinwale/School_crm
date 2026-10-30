@@ -59,6 +59,29 @@ export const hrService = {
     });
   },
 
+  // Leave Types & Quotas Configuration
+  getLeaveTypes: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/hr/leave-types${qs ? `?${qs}` : ''}`);
+  },
+  createLeaveType: (data) => {
+    return apiRequest('/hr/leave-types', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  updateLeaveType: (id, data) => {
+    return apiRequest(`/hr/leave-types/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  deleteLeaveType: (id) => {
+    return apiRequest(`/hr/leave-types/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   // 5. Faculty Trainings
   getTrainings: (params = {}) => {
     const qs = new URLSearchParams(params).toString();

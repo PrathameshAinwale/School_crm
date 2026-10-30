@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LuGraduationCap, LuUser, LuLock, LuArrowRight, LuShieldAlert, LuEye, LuEyeOff, LuLoader, LuShieldCheck } from 'react-icons/lu';
+import { LuGraduationCap, LuUser, LuLock, LuArrowRight, LuShieldAlert, LuEye, LuEyeOff, LuLoader, LuShieldCheck, LuBookOpen } from 'react-icons/lu';
 
 export default function Login() {
   const { login } = useAuth();
@@ -199,13 +199,24 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => fillCredentials('rajesh@school.com', '111111')}
-                className="p-2.5 bg-slate-50 hover:bg-purple-50 hover:border-purple-200 border border-slate-200 rounded-xl text-left transition-all group sm:col-span-2"
+                className="p-2.5 bg-slate-50 hover:bg-purple-50 hover:border-purple-200 border border-slate-200 rounded-xl text-left transition-all group"
               >
                 <div className="text-xs font-semibold text-slate-700 group-hover:text-purple-700 flex items-center gap-1.5">
                   <LuShieldCheck className="w-3.5 h-3.5 text-purple-500" />
                   Parent (Rajesh Patel)
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">rajesh@school.com</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => fillCredentials('library@school.com', '111111')}
+                className="p-2.5 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 border border-slate-200 rounded-xl text-left transition-all group"
+              >
+                <div className="text-xs font-semibold text-slate-700 group-hover:text-indigo-700 flex items-center gap-1.5">
+                  <LuBookOpen className="w-3.5 h-3.5 text-indigo-500" />
+                  Library (Meena)
+                </div>
+                <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">library@school.com</div>
               </button>
             </div>
           </div>

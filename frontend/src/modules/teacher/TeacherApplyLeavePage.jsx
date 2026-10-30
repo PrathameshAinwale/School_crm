@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { adminService } from '../../services/adminService';
 import {
@@ -17,11 +17,13 @@ import {
 
 export default function TeacherApplyLeavePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentRole, user } = useAuth();
   const role = (user?.role || currentRole || '').toLowerCase();
-  const leaveBalancePath = role === 'hr' ? '/hr/leave-balance' : '/teacher/leave-balance';
+  const leaveBalancePath = location.pathname.startsWith('/teacher') ? '/teacher/leave-balance' : '/hr/leave-balance';
 
   const [leaveType, setLeaveType] = useState('CL');
+  const [availableLeaveTypes, setAvailableLeaveTypes] = useState([]);
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [reason, setReason] = useState('');
@@ -29,6 +31,24 @@ export default function TeacherApplyLeavePage() {
   const [photoName, setPhotoName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+
+  useEffect(() => {
+    const fetchTypes = async () => {
+      try {
+        const res = await adminService.getLeaveTypes();
+        if (res.success && res.leave_types && res.leave_types.length > 0) {
+          setAvailableLeaveTypes(res.leave_types);
+          setLeaveType(res.leave_types[0].code);
+        }
+      } catch (err) {
+        console.error('Failed to load dynamic leave types:', err);
+      }
+    };
+    fetchTypes();
+  }, []);
+
+  const selectedTypeObj = availableLeaveTypes.find((lt) => lt.code === leaveType);
+  const requiresProof = selectedTypeObj ? selectedTypeObj.requires_attachment : leaveType === 'SL';
 
   const calculateDays = () => {
     if (!fromDate || !toDate) return 1;
@@ -97,7 +117,7 @@ export default function TeacherApplyLeavePage() {
         }, 1200);
       }
     } catch (err) {
-      showToast(err.data?.message || 'Failed to submit leave application.');
+      showToast(err.response?.data?.message || err.data?.message || err.message || 'Failed to submit leave application.');
     } finally {
       setSubmitting(false);
     }
@@ -142,9 +162,19 @@ export default function TeacherApplyLeavePage() {
               onChange={(e) => setLeaveType(e.target.value)}
               className="w-full h-11 px-3.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-800 bg-gray-50 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all cursor-pointer"
             >
-              <option value="CL">Casual Leave (CL) - Standard</option>
-              <option value="SL">Sick Leave (SL) - Medical</option>
-              <option value="ML">Maternity / Paternity Leave</option>
+              {availableLeaveTypes.length > 0 ? (
+                availableLeaveTypes.map((lt) => (
+                  <option key={lt.id || lt.code} value={lt.code}>
+                    {lt.name} ({lt.code}) — {lt.total_days} Days Quota
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="CL">Casual Leave (CL) - Standard</option>
+                  <option value="SL">Sick Leave (SL) - Medical</option>
+                  <option value="ML">Maternity / Paternity Leave</option>
+                </>
+              )}
             </select>
           </div>
 
@@ -192,19 +222,19 @@ export default function TeacherApplyLeavePage() {
             </span>
           </div>
 
-          {/* Photo Proof Field (Active for Sick Leave) */}
-          {leaveType === 'SL' && (
+          {/* Photo Proof Field (Active when leave type requires attachment) */}
+          {requiresProof && (
             <div className="p-4 bg-rose-50/60 border border-rose-200/80 rounded-2xl space-y-3 animate-fade-in">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-rose-900 flex items-center gap-1.5">
-                  <LuImage className="w-4 h-4 text-rose-600" /> Medical Certificate / Photo Proof
+                  <LuImage className="w-4 h-4 text-rose-600" /> Medical / Document Photo Proof
                 </label>
                 <span className="text-[10px] font-semibold text-rose-600 bg-rose-100/80 px-2 py-0.5 rounded-md">
-                  Sick Leave Attachment
+                  Required for {selectedTypeObj?.name || 'Selected Leave'}
                 </span>
               </div>
               <p className="text-[11px] text-rose-700 leading-relaxed">
-                Attach a doctor's prescription, clinic slip, or medical report photo for verification.
+                Attach a doctor's prescription, clinic slip, or supporting document photo for verification.
               </p>
 
               {photoProof ? (

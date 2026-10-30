@@ -99,8 +99,8 @@ export default function TeacherProfilePage() {
     return (
       <div className="bg-white rounded-3xl border border-slate-200/80 p-16 text-center shadow-xs max-w-5xl mx-auto my-8">
         <LuLoader className="w-10 h-10 animate-spin text-primary-600 mx-auto mb-4" />
-        <h3 className="text-base font-bold text-slate-800">Loading Faculty Profile...</h3>
-        <p className="text-xs text-slate-400 mt-1">Retrieving official teacher records from database</p>
+        <h3 className="text-base font-bold text-slate-800">Loading Employee Profile...</h3>
+        <p className="text-xs text-slate-400 mt-1">Retrieving official employee records from database</p>
       </div>
     );
   }
@@ -111,9 +111,9 @@ export default function TeacherProfilePage() {
         <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">
           <LuUser className="w-7 h-7" />
         </div>
-        <h3 className="text-base font-bold text-slate-800">Faculty Profile Not Found</h3>
+        <h3 className="text-base font-bold text-slate-800">Employee Profile Not Found</h3>
         <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-          We could not resolve an active teacher profile record for your account.
+          We could not resolve an active employee profile record for your account.
         </p>
       </div>
     );
@@ -306,7 +306,7 @@ export default function TeacherProfilePage() {
               </div>
 
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Teaching Experience</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Professional Experience</span>
                 <span className="font-bold text-slate-800">{profile.experience || '—'}</span>
               </div>
 
@@ -379,7 +379,7 @@ export default function TeacherProfilePage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-base">Edit Faculty Profile</h3>
+                    <h3 className="font-bold text-base">Edit Employee Profile</h3>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-400 text-emerald-950">
                       Direct Self-Edit Enabled
                     </span>

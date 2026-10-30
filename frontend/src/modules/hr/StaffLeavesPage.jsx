@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { hrService } from '../../services/hrService';
+import LeaveTypesManager from './LeaveTypesManager';
 import {
   LuClipboardList,
   LuCheck,
@@ -13,9 +14,11 @@ import {
   LuFileText,
   LuImage,
   LuEye,
+  LuSettings,
 } from 'react-icons/lu';
 
 export default function StaffLeavesPage() {
+  const [activeTab, setActiveTab] = useState('applications'); // 'applications' | 'settings'
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
@@ -90,16 +93,51 @@ export default function StaffLeavesPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={fetchLeaves}
-          disabled={loading}
-          className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer self-start sm:self-auto"
-          title="Refresh Leaves"
-        >
-          <LuRefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </button>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          {/* View Mode Tabs */}
+          <div className="flex items-center p-1 bg-gray-100 rounded-xl text-xs font-bold border border-gray-200/60 shadow-2xs">
+            <button
+              onClick={() => setActiveTab('applications')}
+              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+                activeTab === 'applications'
+                  ? 'bg-white text-gray-900 shadow-xs font-bold'
+                  : 'text-gray-500 hover:text-gray-800 font-semibold'
+              }`}
+            >
+              Leave Applications ({leaveRequests.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'settings'
+                  ? 'bg-white text-gray-900 shadow-xs font-bold text-primary-600'
+                  : 'text-gray-500 hover:text-gray-800 font-semibold'
+              }`}
+            >
+              <LuSettings className="w-3.5 h-3.5" />
+              <span>Leave Types & Quotas</span>
+            </button>
+          </div>
+
+          {activeTab === 'applications' && (
+            <button
+              onClick={fetchLeaves}
+              disabled={loading}
+              className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer"
+              title="Refresh Leaves"
+            >
+              <LuRefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      {activeTab === 'settings' ? (
+        <LeaveTypesManager onUpdated={fetchLeaves} />
+      ) : (
+        <>
 
       {/* Mobile Card View */}
       <div className="sm:hidden space-y-2.5">
@@ -337,6 +375,8 @@ export default function StaffLeavesPage() {
           </table>
         </div>
       </div>
+      </>
+      )}
 
       {/* Medical Proof Lightbox Modal */}
       {previewPhoto && (

@@ -11,6 +11,7 @@ class LeaveApplication extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'school_id',
         'user_id',
         'teacher_id',
         'type',

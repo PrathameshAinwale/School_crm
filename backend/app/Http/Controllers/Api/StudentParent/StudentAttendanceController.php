@@ -244,15 +244,18 @@ class StudentAttendanceController extends Controller
         $toDate = Carbon::parse($request->to_date);
         $daysCount = $fromDate->diffInDays($toDate) + 1;
 
+        $schoolId = ($user && $user->school_id) ? $user->school_id : ($student ? $student->school_id : null);
+
         $leave = LeaveApplication::create([
+            'school_id' => $schoolId,
             'user_id' => $user ? $user->id : 1,
-            'name' => $student ? $student->full_name : ($user ? $user->name : 'Aarav Patel'),
-            'role' => 'student',
-            'leave_type' => $request->leave_type,
+            'type' => $request->leave_type ?: 'General Leave',
             'from_date' => $request->from_date,
             'to_date' => $request->to_date,
             'days' => $daysCount,
             'reason' => $request->reason,
+            'photo_proof' => $request->photo_proof ?: $request->medical_cert,
+            'photo_name' => $request->medical_cert_name,
             'status' => 'Pending',
         ]);
 

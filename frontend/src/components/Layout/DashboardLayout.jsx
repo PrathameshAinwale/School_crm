@@ -35,7 +35,7 @@ export default function DashboardLayout() {
       {/* Main Content Area */}
       <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
-          collapsed ? 'lg:ml-[72px]' : 'lg:ml-[256px]'
+          collapsed ? 'lg:ml-[72px]' : 'lg:ml-[264px]'
         }`}
       >
         <Topbar

@@ -24,6 +24,8 @@ export default function TeacherAttendancePage() {
   const [loading, setLoading] = useState(true);
   const [punching, setPunching] = useState(false);
   const [history, setHistory] = useState([]);
+  const [todayData, setTodayData] = useState(null);
+  const [attendanceView, setAttendanceView] = useState('current'); // 'current' | 'all'
   const [teacherInfo, setTeacherInfo] = useState(null);
   const [summary, setSummary] = useState({ present_days: 0, absent_days: 0, late_days: 0 });
   const [toastMessage, setToastMessage] = useState(null);
@@ -47,6 +49,7 @@ export default function TeacherAttendancePage() {
       const res = await adminService.getTeacherMyAttendance({ month, year });
       if (res.success) {
         setTeacherInfo(res.teacher);
+        setTodayData(res.today || null);
         setIsPunchedIn(Boolean(res.today?.is_punched_in));
         setIsCompletedToday(Boolean(res.today?.is_completed_today));
         setPunchInTime(res.today?.punch_in_time);
@@ -146,6 +149,12 @@ export default function TeacherAttendancePage() {
     month: 'short',
     year: 'numeric',
   });
+
+  const todayDateStr = todayData?.date;
+  const currentRecords = history.filter(
+    (record) => record.is_today || (todayDateStr && record.date === todayDateStr)
+  );
+  const displayedRecords = attendanceView === 'current' ? currentRecords : history;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12 animate-fade-in">
@@ -308,20 +317,83 @@ export default function TeacherAttendancePage() {
         </div>
       </div>
 
-      {/* Past Attendance Register */}
+      {/* Attendance Register */}
       <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+        <div className="p-4 sm:p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <h2 className="text-base font-bold text-gray-900">Attendance Log History</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Recent daily attendance records & check-in timestamps</p>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-gray-900">
+                {attendanceView === 'current' ? 'Current Attendance' : 'Attendance Log History'}
+              </h2>
+              {attendanceView === 'current' && (
+                <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider border border-emerald-200/50">
+                  Today
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {attendanceView === 'current'
+                ? "Today's daily attendance record & check-in timestamps"
+                : 'Recent daily attendance records & check-in timestamps'}
+            </p>
           </div>
-          <div className="flex items-center gap-2 text-xs font-bold">
-            <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700">
-              {summary.present_days} Present
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700">
-              {summary.absent_days} Absent
-            </span>
+
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* View Selector Switch */}
+            <div className="flex items-center p-1 bg-gray-100/90 rounded-xl text-xs font-bold border border-gray-200/60 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setAttendanceView('current')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  attendanceView === 'current'
+                    ? 'bg-white text-gray-900 shadow-xs font-bold'
+                    : 'text-gray-500 hover:text-gray-800 font-semibold'
+                }`}
+              >
+                Current Attendance
+              </button>
+              <button
+                type="button"
+                onClick={() => setAttendanceView('all')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  attendanceView === 'all'
+                    ? 'bg-white text-gray-900 shadow-xs font-bold'
+                    : 'text-gray-500 hover:text-gray-800 font-semibold'
+                }`}
+              >
+                All History
+              </button>
+            </div>
+
+            {/* Badges */}
+            {attendanceView === 'current' ? (
+              <div className="flex items-center gap-1.5 text-xs font-bold">
+                {isCompletedToday ? (
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200/60 flex items-center gap-1.5">
+                    <LuCheck className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                    Completed Today
+                  </span>
+                ) : isPunchedIn ? (
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200/60 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Present (Clocked In)
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200/60">
+                    Not Clocked In Today
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700">
+                  {summary.present_days} Present
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700">
+                  {summary.absent_days} Absent
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -337,14 +409,25 @@ export default function TeacherAttendancePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs font-medium text-gray-700">
-              {history.length === 0 ? (
+              {displayedRecords.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-gray-400">
-                    No past attendance records found.
+                  <td colSpan="5" className="py-10 text-center text-gray-400">
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <span className="font-semibold text-gray-700 text-xs sm:text-sm">
+                        {attendanceView === 'current'
+                          ? 'No attendance record found for today.'
+                          : 'No past attendance records found.'}
+                      </span>
+                      <span className="text-[11px] text-gray-400">
+                        {attendanceView === 'current'
+                          ? 'Click the "Clock In Now" button above to record your attendance for today.'
+                          : 'Attendance history will appear here once recorded.'}
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                history.map((record) => (
+                displayedRecords.map((record) => (
                   <tr key={record.id || record.date} className="hover:bg-gray-50/50 transition-colors">
                     <td className="py-3.5 px-6 font-bold text-gray-900">{record.date}</td>
                     <td className="py-3.5 px-6">
@@ -369,7 +452,11 @@ export default function TeacherAttendancePage() {
                       {record.checkOut || '—'}
                     </td>
                     <td className="py-3.5 px-6 text-gray-400">
-                      {record.actual !== '-' ? `Duration: ${record.actual}` : 'Standard Shift'}
+                      {record.actual !== '-'
+                        ? `Duration: ${record.actual}`
+                        : isPunchedIn && (record.is_today || record.date === todayDateStr)
+                        ? 'Active Shift'
+                        : 'Standard Shift'}
                     </td>
                   </tr>
                 ))

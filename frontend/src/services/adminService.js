@@ -146,6 +146,12 @@ export const adminService = {
       body: data,
     });
   },
+  updateVehicleRoute(id, data) {
+    return apiRequest(`/admin/vehicles/${id}/route`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
   deleteVehicle(id) {
     return apiRequest(`/admin/vehicles/${id}`, {
       method: 'DELETE',
@@ -296,6 +302,27 @@ export const adminService = {
     return apiRequest('/teacher/leaves/apply', {
       method: 'POST',
       body: data,
+    });
+  },
+  getLeaveTypes(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/leave-types${qs ? `?${qs}` : ''}`);
+  },
+  createLeaveType(data) {
+    return apiRequest('/hr/leave-types', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  updateLeaveType(id, data) {
+    return apiRequest(`/hr/leave-types/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  deleteLeaveType(id) {
+    return apiRequest(`/hr/leave-types/${id}`, {
+      method: 'DELETE',
     });
   },
 

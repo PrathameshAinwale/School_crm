@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\HR;
 use App\Http\Controllers\Controller;
 use App\Models\FacultyTraining;
 use App\Models\LeaveApplication;
+use App\Models\LeaveType;
 use App\Models\Notification;
 use App\Models\SalaryDisbursementRequest;
 use App\Models\SchoolCalendarEvent;
@@ -187,16 +188,14 @@ class HRController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $typeMap = [
+        $dbTypes = LeaveType::pluck('name', 'code')->toArray();
+        $typeMap = array_merge([
             'CL' => 'Casual Leave',
             'SL' => 'Medical Leave',
             'ML' => 'Maternity/Paternity',
             'DL' => 'Duty Leave',
-            'Casual Leave' => 'Casual Leave',
-            'Medical Leave' => 'Medical Leave',
-            'Duty Leave' => 'Duty Leave',
-            'Maternity Leave' => 'Maternity Leave',
-        ];
+            'EL' => 'Earned Leave',
+        ], $dbTypes);
 
         $mappedLeaves = $leaves->map(function ($leave) use ($typeMap) {
             $staffName = $leave->teacher ? $leave->teacher->full_name : ($leave->user ? $leave->user->name : 'Staff Member');

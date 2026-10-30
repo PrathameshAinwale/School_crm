@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/adminService';
 import CredentialsModal from '../../components/Common/CredentialsModal';
+import StudentIdCardsModal from '../../components/Students/StudentIdCardsModal';
 import {
   LuGraduationCap,
   LuSearch,
@@ -21,6 +22,8 @@ import {
   LuCircleCheck,
   LuMapPin,
   LuRefreshCw,
+  LuIdCard,
+  LuPrinter,
 } from 'react-icons/lu';
 
 const STANDARD_CLASSES = [
@@ -88,6 +91,17 @@ export default function AdminStudentsPage() {
   // Search & Profile Modal
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
+
+  // Student ID Cards Modal State
+  const [idCardsModalOpen, setIdCardsModalOpen] = useState(false);
+  const [idCardsData, setIdCardsData] = useState([]);
+  const [idCardsTitle, setIdCardsTitle] = useState('Student Identity Cards');
+
+  const openIdCardsModal = (studentsToPrint, title = 'Student Identity Cards') => {
+    setIdCardsData(Array.isArray(studentsToPrint) ? studentsToPrint : [studentsToPrint]);
+    setIdCardsTitle(title);
+    setIdCardsModalOpen(true);
+  };
 
   // Add Student State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -400,7 +414,7 @@ export default function AdminStudentsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
           <button
             onClick={loadData}
             title="Refresh student list"
@@ -413,6 +427,16 @@ export default function AdminStudentsPage() {
             <LuUsers className="w-4 h-4 text-emerald-600" />
             <span>Total: <strong>{allStudents.length}</strong> Students</span>
           </div>
+
+          <button
+            onClick={() => openIdCardsModal(allStudents, 'All Enrolled Students (School-wide)')}
+            disabled={allStudents.length === 0}
+            className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-900 active:bg-slate-950 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            title="Generate I-Cards for all students across the school"
+          >
+            <LuIdCard className="w-4 h-4 text-emerald-400" />
+            <span>All Students I-Cards</span>
+          </button>
 
           <button
             onClick={() => openAddStudentModal()}
@@ -601,12 +625,25 @@ export default function AdminStudentsPage() {
               />
             </div>
 
-            <button
-              onClick={() => openAddStudentModal(activeClass, activeDivision)}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 justify-center cursor-pointer shrink-0"
-            >
-              <LuUserPlus className="w-4 h-4" /> Enroll Student in {activeDivision}
-            </button>
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <button
+                type="button"
+                onClick={() => openIdCardsModal(currentRoster, `${activeClass} - Division ${activeDivision} I-Cards`)}
+                disabled={currentRoster.length === 0}
+                className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-2 border-emerald-500/40 hover:border-emerald-600 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                title="Create I-Card for all students in this division in a single click"
+              >
+                <LuIdCard className="w-4 h-4 text-emerald-700" />
+                <span>Create All I-Cards ({currentRoster.length})</span>
+              </button>
+
+              <button
+                onClick={() => openAddStudentModal(activeClass, activeDivision)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 justify-center cursor-pointer shrink-0"
+              >
+                <LuUserPlus className="w-4 h-4" /> Enroll Student in {activeDivision}
+              </button>
+            </div>
           </div>
 
           {/* Roster Table */}
@@ -695,6 +732,13 @@ export default function AdminStudentsPage() {
                           </td>
                           <td className="px-5 py-3.5 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => openIdCardsModal([student], `${student.first_name} ${student.last_name || ''} - I-Card`)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer"
+                                title="Print / Generate I-Card"
+                              >
+                                <LuIdCard className="w-4 h-4 text-emerald-600" />
+                              </button>
                               <button
                                 onClick={() => setSelectedStudent(student)}
                                 className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer"
@@ -1409,6 +1453,15 @@ export default function AdminStudentsPage() {
                     <span className="px-2.5 py-0.5 rounded-md bg-white/25 text-white font-mono text-xs font-bold">
                       {selectedStudent.admission_number}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => openIdCardsModal([selectedStudent], `${selectedStudent.first_name} ${selectedStudent.last_name || ''} - I-Card`)}
+                      className="px-2.5 py-1 rounded-lg bg-white text-emerald-800 hover:bg-emerald-50 font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer ml-1"
+                      title="Print I-Card for this student"
+                    >
+                      <LuIdCard className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Print I-Card</span>
+                    </button>
                   </div>
                   <p className="text-emerald-100 text-xs">
                     {selectedStudent.school_class?.name || 'Class ' + (selectedStudent.school_class_id || '')}
@@ -1511,17 +1564,27 @@ export default function AdminStudentsPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-              <button
-                onClick={() => {
-                  const s = selectedStudent;
-                  setSelectedStudent(null);
-                  openEditModal(s);
-                }}
-                className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl transition-colors inline-flex items-center gap-1.5 cursor-pointer border border-blue-200"
-              >
-                <LuPencil className="w-3.5 h-3.5" /> Edit Student Record
-              </button>
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => {
+                    const s = selectedStudent;
+                    setSelectedStudent(null);
+                    openEditModal(s);
+                  }}
+                  className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl transition-colors inline-flex items-center gap-1.5 cursor-pointer border border-blue-200"
+                >
+                  <LuPencil className="w-3.5 h-3.5" /> Edit Student Record
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openIdCardsModal([selectedStudent], `${selectedStudent.first_name} ${selectedStudent.last_name || ''} - I-Card`)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-600/20"
+                >
+                  <LuIdCard className="w-4 h-4" /> Generate I-Card
+                </button>
+              </div>
 
               <button
                 onClick={() => setSelectedStudent(null)}
@@ -1533,6 +1596,14 @@ export default function AdminStudentsPage() {
           </div>
         </div>
       )}
+
+      {/* Student ID Cards Generation & Print Modal */}
+      <StudentIdCardsModal
+        isOpen={idCardsModalOpen}
+        onClose={() => setIdCardsModalOpen(false)}
+        students={idCardsData}
+        title={idCardsTitle}
+      />
 
       {/* Credentials Modal (Displays auto-generated Parent Login Mobile & Password) */}
       <CredentialsModal

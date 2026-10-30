@@ -27,6 +27,11 @@ use App\Http\Controllers\Api\Accounts\AccountsController;
 use App\Http\Controllers\Api\SuperAdmin\SuperAdminController;
 use App\Http\Controllers\Api\TeacherSelfController;
 use App\Http\Controllers\Api\BranchController;
+use App\Http\Controllers\Api\LibraryController;
+use App\Http\Controllers\Api\LeaveTypeController;
+use App\Http\Controllers\Api\ReportCardController;
+use App\Http\Controllers\Api\MarksheetController;
+use App\Http\Controllers\Api\UdisePlusController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,6 +43,14 @@ use Illuminate\Support\Facades\Route;
 // Public Authentication
 Route::prefix('v1/auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
+});
+
+// Driver Mobile Phone GPS Broadcast (Uber-Style Driver Mobile App)
+Route::prefix('v1/driver')->group(function () {
+    Route::get('/vehicles', [VehicleController::class, 'driverVehiclesList']);
+    Route::get('/vehicle/{id}', [VehicleController::class, 'liveTelemetry']);
+    Route::post('/gps-ping', [VehicleController::class, 'driverPing']);
+    Route::post('/toggle-trip', [VehicleController::class, 'toggleDriverTrip']);
 });
 
 // Protected Routes (Sanctum)
@@ -65,8 +78,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
     Route::get('/admin/academic/subjects', [AcademicController::class, 'subjects']);
 
     // Students Directory
-    Route::get('admin/students', [StudentController::class, 'index'])->middleware('role:admin,teacher');
-    Route::get('admin/students/{student}', [StudentController::class, 'show'])->middleware('role:admin,teacher');
+    Route::get('admin/students', [StudentController::class, 'index'])->middleware('role:admin,teacher,librarian');
+    Route::get('admin/students/{student}', [StudentController::class, 'show'])->middleware('role:admin,teacher,librarian');
 
     // Teachers Directory (Accessible to Admin, Teacher, HR)
     Route::get('admin/teachers', [TeacherController::class, 'index'])->middleware('role:admin,teacher,hr');
@@ -74,6 +87,15 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
     // Attendance (Accessible to Admin, Teacher)
     Route::get('/admin/attendance', [AttendanceController::class, 'index'])->middleware('role:admin,teacher');
     Route::post('/admin/attendance', [AttendanceController::class, 'store'])->middleware('role:admin,teacher');
+
+    // Student Report Cards & Academic Evaluations (Admin & Teacher)
+    Route::prefix('report-cards')->middleware('role:admin,teacher')->group(function () {
+        Route::get('/filters', [ReportCardController::class, 'filters']);
+        Route::get('/generate', [ReportCardController::class, 'generate']);
+        Route::get('/pdf/{studentId}', [ReportCardController::class, 'pdf']);
+        Route::get('/bulk-zip', [ReportCardController::class, 'bulkZip']);
+        Route::post('/save-marks', [ReportCardController::class, 'saveMarks']);
+    });
 
     // Admin Module
     Route::prefix('admin')->middleware('role:admin')->group(function () {
@@ -96,7 +118,11 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
         Route::patch('admissions/{admission}/status', [AdmissionController::class, 'updateStatus']);
         Route::post('admissions/{admission}/enroll', [AdmissionController::class, 'enroll']);
 
-        // School Transport / Vehicles
+        // School Transport / Vehicles & Real-Time GPS Telemetry
+        Route::get('vehicles/{id}/live-telemetry', [VehicleController::class, 'liveTelemetry']);
+        Route::post('vehicles/{id}/driver-ping', [VehicleController::class, 'driverPing']);
+        Route::post('vehicles/toggle-trip', [VehicleController::class, 'toggleDriverTrip']);
+        Route::put('vehicles/{id}/route', [VehicleController::class, 'updateRoute']);
         Route::apiResource('vehicles', VehicleController::class);
 
         // School Resources & Assets & Maintenance Requests
@@ -118,8 +144,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
         Route::delete('fee-structures/{id}', [FeeStructureController::class, 'destroy']);
     });
 
-    // Teacher & Staff Self Operations (Accessible to Teacher, HR, Admin)
-    Route::prefix('teacher')->middleware('role:teacher,admin,hr')->group(function () {
+    // Teacher & Staff Self Operations (Accessible to Teacher, HR, Admin, Librarian, Accountant, Staff)
+    Route::prefix('teacher')->middleware('role:teacher,admin,hr,librarian,accountant,staff')->group(function () {
         // Teacher Realtime Dashboard
         Route::get('/dashboard', [TeacherSelfController::class, 'dashboard']);
 
@@ -152,6 +178,16 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
         Route::get('/students/{student}', [StudentController::class, 'show']);
         Route::get('/teachers', [TeacherController::class, 'index']);
         Route::get('/trainings', [HRController::class, 'trainings']);
+    });
+
+    // Employee Universal Self-Service Routes (Attendance, Punch, Leaves, Profile)
+    Route::prefix('employee')->middleware('role:teacher,admin,hr,librarian,accountant,staff')->group(function () {
+        Route::get('/my-attendance', [TeacherSelfController::class, 'attendance']);
+        Route::post('/punch', [TeacherSelfController::class, 'punch']);
+        Route::get('/leaves', [TeacherSelfController::class, 'leaveBalance']);
+        Route::post('/leaves/apply', [TeacherSelfController::class, 'applyLeave']);
+        Route::get('/profile', [TeacherSelfController::class, 'profile']);
+        Route::put('/profile', [TeacherSelfController::class, 'updateProfile']);
     });
 
     // -------------------------------------------------------------
@@ -230,6 +266,10 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
         Route::post('/staff-attendance/mark', [HRController::class, 'markStaffAttendance']);
         Route::get('/leaves', [HRController::class, 'leaves']);
         Route::post('/leaves/{id}/action', [HRController::class, 'actionLeave']);
+        Route::get('/leave-types', [LeaveTypeController::class, 'index']);
+        Route::post('/leave-types', [LeaveTypeController::class, 'store']);
+        Route::put('/leave-types/{id}', [LeaveTypeController::class, 'update']);
+        Route::delete('/leave-types/{id}', [LeaveTypeController::class, 'destroy']);
         Route::get('/trainings', [HRController::class, 'trainings']);
         Route::post('/trainings', [HRController::class, 'storeTraining']);
         Route::delete('/trainings/{id}', [HRController::class, 'destroyTraining']);
@@ -238,6 +278,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
         Route::post('/events', [HRController::class, 'storeEvent']);
         Route::delete('/events/{id}', [HRController::class, 'destroyEvent']);
     });
+
+    // Universal Leave Types for all authenticated staff/teachers
+    Route::get('/leave-types', [LeaveTypeController::class, 'index']);
 
     // -------------------------------------------------------------
     // ACCOUNTS & FINANCE OPERATIONS MODULE ROUTES
@@ -268,6 +311,24 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
     });
 
     // -------------------------------------------------------------
+    // LIBRARY OPERATIONS MODULE ROUTES
+    // -------------------------------------------------------------
+    Route::prefix('library')->middleware('role:librarian,admin')->group(function () {
+        Route::get('/stats', [LibraryController::class, 'stats']);
+        Route::get('/students', [LibraryController::class, 'students']);
+        Route::get('/books', [LibraryController::class, 'index']);
+        Route::post('/books', [LibraryController::class, 'store']);
+        Route::put('/books/{id}', [LibraryController::class, 'update']);
+        Route::delete('/books/{id}', [LibraryController::class, 'destroy']);
+        Route::get('/issues', [LibraryController::class, 'issues']);
+        Route::post('/issues/issue', [LibraryController::class, 'issueBook']);
+        Route::post('/issues/{id}/return', [LibraryController::class, 'returnBook']);
+        Route::patch('/issues/{id}/fine', [LibraryController::class, 'updateFine']);
+        Route::get('/settings/fine-rules', [LibraryController::class, 'getFineRules']);
+        Route::post('/settings/fine-rules', [LibraryController::class, 'updateFineRules']);
+    });
+
+    // -------------------------------------------------------------
     // SUPER ADMIN (SAAS PLATFORM / COMPANY CONTROL) MODULE ROUTES
     // -------------------------------------------------------------
     Route::prefix('super-admin')->middleware('role:super_admin')->group(function () {
@@ -285,9 +346,68 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
     });
 
     // -------------------------------------------------------------
+    // STUDENT REPORT CARDS MODULE ROUTES
+    // -------------------------------------------------------------
+    Route::prefix('report-cards')->group(function () {
+        Route::get('/filters', [ReportCardController::class, 'filters']);
+        Route::get('/generate', [ReportCardController::class, 'generate']);
+        Route::get('/pdf/{studentId}', [ReportCardController::class, 'pdf']);
+        Route::get('/bulk-zip', [ReportCardController::class, 'bulkZip']);
+        Route::post('/save-marks', [ReportCardController::class, 'saveMarks']);
+    });
+
+    // -------------------------------------------------------------
+    // STUDENT MARKSHEET GENERATION MODULE ROUTES
+    // -------------------------------------------------------------
+    Route::prefix('marksheets')->group(function () {
+        Route::get('/filters', [MarksheetController::class, 'filters']);
+        Route::get('/generate', [MarksheetController::class, 'generate']);
+        Route::get('/pdf/{studentId}', [MarksheetController::class, 'pdf']);
+        Route::get('/bulk-zip', [MarksheetController::class, 'bulkZip']);
+        Route::post('/update-marks', [MarksheetController::class, 'updateMarks']);
+    });
+
+    // -------------------------------------------------------------
+    // UDISE+ MANAGEMENT MODULE ROUTES
+    // -------------------------------------------------------------
+    Route::prefix('udise')->group(function () {
+        Route::get('/dashboard', [UdisePlusController::class, 'dashboard']);
+        Route::get('/school-profile', [UdisePlusController::class, 'getSchoolProfile']);
+        Route::post('/school-profile', [UdisePlusController::class, 'updateSchoolProfile']);
+        Route::get('/school-facilities', [UdisePlusController::class, 'getSchoolFacilities']);
+        Route::post('/school-facilities', [UdisePlusController::class, 'updateSchoolFacilities']);
+        Route::get('/teachers', [UdisePlusController::class, 'getTeachers']);
+        Route::post('/teachers/{id}', [UdisePlusController::class, 'updateTeacher']);
+        Route::get('/students', [UdisePlusController::class, 'getStudents']);
+        Route::post('/students/{id}', [UdisePlusController::class, 'updateStudent']);
+        Route::get('/academic-enrolment', [UdisePlusController::class, 'getAcademicEnrolment']);
+        Route::get('/export/json', [UdisePlusController::class, 'exportJson']);
+        Route::get('/export/csv/{type}', [UdisePlusController::class, 'exportCsv']);
+        Route::get('/export/pdf', [UdisePlusController::class, 'exportDcfPdf']);
+        Route::post('/certify', [UdisePlusController::class, 'certifySubmission']);
+    });
+
+    // -------------------------------------------------------------
     // MULTI-SCHOOL / MULTI-BRANCH CAMPUS SWITCHER
     // -------------------------------------------------------------
     Route::get('/schools/branches', [BranchController::class, 'branches']);
     Route::post('/schools/switch-branch', [BranchController::class, 'switchBranch'])->middleware('role:admin,super_admin');
+});
+
+// Direct PDF and Bulk ZIP access routes for browser preview iframe and instant downloads
+Route::prefix('v1/report-cards')->group(function () {
+    Route::get('/pdf/{studentId}', [ReportCardController::class, 'pdf']);
+    Route::get('/bulk-zip', [ReportCardController::class, 'bulkZip']);
+});
+
+Route::prefix('v1/marksheets')->group(function () {
+    Route::get('/pdf/{studentId}', [MarksheetController::class, 'pdf']);
+    Route::get('/bulk-zip', [MarksheetController::class, 'bulkZip']);
+});
+
+Route::prefix('v1/udise')->group(function () {
+    Route::get('/export/pdf', [UdisePlusController::class, 'exportDcfPdf']);
+    Route::get('/export/json', [UdisePlusController::class, 'exportJson']);
+    Route::get('/export/csv/{type}', [UdisePlusController::class, 'exportCsv']);
 });
 

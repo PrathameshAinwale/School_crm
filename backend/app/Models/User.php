@@ -84,6 +84,11 @@ class User extends Authenticatable
         return $this->role === 'student_parent';
     }
 
+    public function isLibrarian(): bool
+    {
+        return $this->role === 'librarian';
+    }
+
     public function school()
     {
         return $this->belongsTo(School::class);

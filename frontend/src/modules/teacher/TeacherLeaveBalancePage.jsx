@@ -1,16 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { adminService } from '../../services/adminService';
-import { LuFileText, LuUmbrella, LuHeart, LuBaby, LuPlus, LuLoader, LuCalendar, LuCheck, LuClock, LuCircleX } from 'react-icons/lu';
+import LeaveTypesManager from '../hr/LeaveTypesManager';
+import {
+  LuFileText,
+  LuUmbrella,
+  LuHeart,
+  LuBaby,
+  LuPlus,
+  LuLoader,
+  LuCalendar,
+  LuCheck,
+  LuClock,
+  LuCircleX,
+  LuSettings,
+  LuX,
+  LuSparkles,
+} from 'react-icons/lu';
 
 export default function TeacherLeaveBalancePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentRole, user } = useAuth();
   const role = (user?.role || currentRole || '').toLowerCase();
-  const applyLeavePath = role === 'hr' ? '/hr/apply-leave' : '/teacher/apply-leave';
+  const isPrivileged = ['admin', 'hr', 'super_admin', 'teacher'].includes(role);
+  const applyLeavePath = location.pathname.startsWith('/teacher') ? '/teacher/apply-leave' : '/hr/apply-leave';
 
   const [loading, setLoading] = useState(true);
+  const [showManagerModal, setShowManagerModal] = useState(false);
   const [leaveTypes, setLeaveTypes] = useState([
     { code: 'CL', type: 'Casual Leave (CL)', total: 12, used: 0, remaining: 12, color: 'text-amber-600', bg: 'bg-amber-50', bar: 'bg-amber-500' },
     { code: 'SL', type: 'Sick Leave (SL)', total: 10, used: 0, remaining: 10, color: 'text-rose-600', bg: 'bg-rose-50', bar: 'bg-rose-500' },
@@ -22,6 +40,8 @@ export default function TeacherLeaveBalancePage() {
     CL: LuUmbrella,
     SL: LuHeart,
     ML: LuBaby,
+    EL: LuCalendar,
+    DL: LuFileText,
   };
 
   const loadLeaves = async () => {
@@ -58,13 +78,27 @@ export default function TeacherLeaveBalancePage() {
           </div>
         </div>
 
-        <button
-          onClick={() => navigate(applyLeavePath)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-primary-500/20 self-start sm:self-auto shrink-0 cursor-pointer"
-        >
-          <LuPlus className="w-4 h-4" />
-          Apply for Leave
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+          {/* Setting Button for Admin & HR */}
+          {isPrivileged && (
+            <button
+              onClick={() => setShowManagerModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer"
+              title="Configure Leave Types & Annual Quotas"
+            >
+              <LuSettings className="w-4 h-4 text-amber-700" />
+              <span>Leave Types & Quotas</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => navigate(applyLeavePath)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-primary-500/20 cursor-pointer"
+          >
+            <LuPlus className="w-4 h-4 stroke-[3]" />
+            Apply for Leave
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -219,6 +253,39 @@ export default function TeacherLeaveBalancePage() {
           </div>
         )}
       </div>
+
+      {/* Leave Types & Quotas Manager Modal */}
+      {showManagerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fade-in">
+          <div className="bg-slate-50 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-gray-200 animate-scale-up">
+            <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                  <LuSettings className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold">Leave Policy & Quotas Setting</h3>
+                  <p className="text-[11px] text-slate-400">Manage institutional leave categories & annual quota allowance</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowManagerModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <LuX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+              <LeaveTypesManager
+                isModal={true}
+                onClose={() => setShowManagerModal(false)}
+                onUpdated={loadLeaves}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1120,6 +1120,8 @@ class DatabaseSeeder extends Seeder
             'faculty_trainings',
             'school_expenses',
             'salary_disbursement_requests',
+            'books',
+            'book_issues',
         ];
 
         foreach ($tenantTables as $table) {
@@ -1127,6 +1129,8 @@ class DatabaseSeeder extends Seeder
                 DB::table($table)->whereNull('school_id')->update(['school_id' => $school1->id]);
             }
         }
+
+        $this->call(LibrarySeeder::class);
 
         // Ensure platform super administrator has school_id = null
         User::where('role', 'super_admin')->update(['school_id' => null]);
