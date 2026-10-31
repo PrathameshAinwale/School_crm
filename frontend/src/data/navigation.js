@@ -1,3 +1,4 @@
+
 import {
   LuLayoutDashboard,
   LuUser,
@@ -7,7 +8,6 @@ import {
   LuCalendarDays,
   LuClipboardList,
   LuSettings,
-  LuChartBar,
   LuBuilding2,
   LuUserCog,
   LuWallet,
@@ -15,13 +15,8 @@ import {
   LuBell,
   LuMessageSquare,
   LuClock,
-  LuTruck,
   LuShield,
   LuReceipt,
-  LuPhoneCall,
-  LuGlobe,
-  LuFolderLock,
-  LuHeart,
   LuAward,
   LuBus,
   LuRoute,
@@ -32,16 +27,20 @@ import {
   LuTimer,
   LuPresentation,
   LuMegaphone,
-  LuScale,
   LuFileSpreadsheet,
   LuTrendingUp,
   LuFolderDown,
   LuMessageSquareQuote,
-  LuCalendarCheck,
   LuLayers,
   LuArrowRightLeft,
   LuCircleAlert,
   LuShieldCheck,
+  LuStore,
+  LuTrophy,
+  LuSwords,
+  LuMedal,
+  LuActivity,
+  LuMapPin,
 } from 'react-icons/lu';
 
 const navigation = {
@@ -78,6 +77,11 @@ const navigation = {
       icon: LuLayoutDashboard,
     },
     {
+      label: 'Principal Executive View',
+      path: '/principal/dashboard',
+      icon: LuTrendingUp,
+    },
+    {
       label: 'Academic Management',
       type: 'group',
       icon: LuGraduationCap,
@@ -90,6 +94,8 @@ const navigation = {
         { label: 'Student Marksheets', path: '/marksheets', icon: LuAward },
         { label: 'UDISE+ Portal & DCF', path: '/udise', icon: LuShieldCheck },
         { label: 'School Timetable', path: '/timetable', icon: LuClock },
+        { label: 'Examinations', path: '/examinations', icon: LuGraduationCap },
+        { label: 'Academic Results', path: '/results', icon: LuAward },
         { label: 'Notice Board', path: '/notices', icon: LuBell },
       ],
     },
@@ -140,11 +146,61 @@ const navigation = {
       ],
     },
     {
+      label: 'Additional Features',
+      type: 'group',
+      icon: LuSettings,
+      children: [
+        { label: 'Sports & Athletics', path: '/sports/activities', icon: LuTrophy },
+        { label: 'Communication', path: '/admin/communication', icon: LuMessageSquare },
+        { label: 'School Settings', path: '/settings', icon: LuSettings },
+      ],
+    },
+    {
       label: 'My Account',
       type: 'group',
       icon: LuUser,
       children: [
         { label: 'Admin Profile', path: '/profile', icon: LuUser },
+      ],
+    },
+  ],
+
+  principal: [
+    { label: 'Executive Dashboard', path: '/dashboard', icon: LuLayoutDashboard },
+    { label: 'Manage Teachers', path: '/manage-teachers', icon: LuUsers },
+    { label: 'Students Roster', path: '/students', icon: LuGraduationCap },
+    { label: 'Attendance Health', path: '/attendance', icon: LuClipboardList },
+    { label: 'Student Admissions', path: '/admission', icon: LuUserPlus },
+    { label: 'Examinations', path: '/examinations', icon: LuGraduationCap },
+    { label: 'Academic Results', path: '/results', icon: LuAward },
+    { label: 'Fee Structures', path: '/admin/fee-structure', icon: LuReceipt },
+    { label: 'School Vehicles', path: '/school-vehicles', icon: LuBus },
+    { label: 'School Resources', path: '/school-resources', icon: LuBoxes },
+    { label: 'Calendar & Events', path: '/admin/calendar', icon: LuCalendarDays },
+    { label: 'School Settings', path: '/settings', icon: LuSettings },
+    { label: 'My Profile', path: '/profile', icon: LuUser },
+  ],
+
+  admission_officer: [
+    {
+      label: 'Admissions Desk',
+      type: 'group',
+      icon: LuUserPlus,
+      children: [
+        { label: 'Student Admissions', path: '/admission', icon: LuUserPlus },
+        { label: 'Class Fees & Structure', path: '/admin/fee-structure', icon: LuBoxes },
+        { label: 'Interview Calendar', path: '/admission/calendar', icon: LuCalendarDays },
+      ],
+    },
+    {
+      label: 'Employee (Self)',
+      type: 'group',
+      icon: LuUserCog,
+      children: [
+        { label: 'My Attendance', path: '/hr/attendance', icon: LuTimer },
+        { label: 'Leave Balance', path: '/hr/leave-balance', icon: LuFileText },
+        { label: 'Apply for Leave', path: '/hr/apply-leave', icon: LuClipboardList },
+        { label: 'My Profile', path: '/profile', icon: LuUser },
       ],
     },
   ],
@@ -173,6 +229,8 @@ const navigation = {
         { label: 'Digital E-Library', path: '/library/elibrary', icon: LuLayers },
         { label: 'School Calendar', path: '/calendar', icon: LuCalendarDays },
         { label: 'Notice Board', path: '/notices', icon: LuBell },
+        { label: 'Scoresheet Entry', path: '/scoresheet', icon: LuFileSpreadsheet },
+        { label: 'Class Results', path: '/results', icon: LuAward },
       ],
     },
     {
@@ -203,6 +261,7 @@ const navigation = {
         { label: 'Attendance', path: '/attendance', icon: LuClipboardList },
         { label: 'Report Cards', path: '/report-cards', icon: LuFileSpreadsheet },
         { label: 'Student Marksheets', path: '/marksheets', icon: LuAward },
+        { label: 'Exam Results', path: '/results', icon: LuAward },
         { label: 'Class Timetable', path: '/timetable', icon: LuClock },
         { label: 'Assignments & Homework', path: '/assignment', icon: LuClipboardList },
         { label: 'Syllabus Progress', path: '/syllabus', icon: LuBookOpen },
@@ -279,6 +338,7 @@ const navigation = {
         { label: 'Student Fees', path: '/accounts/fees', icon: LuReceipt },
         { label: 'School Expenses', path: '/accounts/expenses', icon: LuFileSpreadsheet },
         { label: 'Salary Disbursements', path: '/accounts/salary-disbursements', icon: LuBanknote },
+        { label: 'Vendors & Purchases', path: '/accounts/vendors', icon: LuStore },
       ],
     },
     {
@@ -339,6 +399,35 @@ const navigation = {
         { label: 'Leave Balance', path: '/hr/leave-balance', icon: LuFileText },
         { label: 'Apply for Leave', path: '/hr/apply-leave', icon: LuClipboardList },
         { label: 'My Profile', path: '/profile', icon: LuUser },
+      ],
+    },
+  ],
+
+  sports_incharge: [
+    {
+      label: 'Sports Operations',
+      type: 'group',
+      icon: LuTrophy,
+      children: [
+        { label: 'Dashboard', path: '/dashboard', icon: LuLayoutDashboard },
+        { label: 'Sports & Competitions', path: '/sports/activities', icon: LuSwords },
+        { label: 'Student Attendees & Roster', path: '/sports/participants', icon: LuUsers },
+        { label: 'Practice & Schedules', path: '/sports/schedules', icon: LuClock },
+        { label: 'Grounds & Facilities', path: '/sports/facilities', icon: LuMapPin },
+        { label: 'Equipment & Inventory', path: '/sports/inventory', icon: LuBoxes },
+        { label: 'Fitness & Assessments', path: '/sports/fitness', icon: LuActivity },
+        { label: 'Hall of Fame & Medals', path: '/sports/achievements', icon: LuMedal },
+      ],
+    },
+    {
+      label: 'Employee (Self)',
+      type: 'group',
+      icon: LuUserCog,
+      children: [
+        { label: 'My Attendance', path: '/hr/attendance', icon: LuTimer },
+        { label: 'Leave Balance', path: '/hr/leave-balance', icon: LuFileText },
+        { label: 'Apply for Leave', path: '/hr/apply-leave', icon: LuClipboardList },
+        { label: 'My Profile', path: '/sports/profile', icon: LuUser },
       ],
     },
   ],

@@ -21,7 +21,6 @@ import {
   LuEye,
   LuLoader,
   LuPencil,
-  LuRefreshCw,
   LuCalendarDays,
   LuCircleCheck,
   LuCircleAlert,
@@ -238,7 +237,7 @@ export default function StaffAttendancePage() {
             </div>
           </div>
 
-          {/* Controls: Date Picker & Refresh */}
+          {/* Controls: Date Picker */}
           <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
             {/* Calendar Navigator */}
             <div className="relative flex items-center" ref={calendarRef}>
@@ -338,14 +337,6 @@ export default function StaffAttendancePage() {
                 </div>
               )}
             </div>
-
-            <button
-              onClick={loadAttendance}
-              title="Refresh attendance data"
-              className="p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 hover:text-emerald-700 transition-colors cursor-pointer"
-            >
-              <LuRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
           </div>
         </div>
       </div>
@@ -713,7 +704,7 @@ export default function StaffAttendancePage() {
                 </div>
                 <div>
                   <p className="text-gray-400 font-bold uppercase text-[10px]">Monthly Turnout</p>
-                  <p className="text-sm font-bold text-gray-900 mt-0.5">{selectedStaffDetail.rate || 96}%</p>
+                  <p className="text-sm font-bold text-gray-900 mt-0.5">{selectedStaffDetail.rate != null ? `${selectedStaffDetail.rate}%` : 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-gray-400 font-bold uppercase text-[10px]">Clock In</p>

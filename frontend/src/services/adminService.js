@@ -116,16 +116,28 @@ export const adminService = {
       body: data,
     });
   },
-  updateAdmissionStatus(id, status, remarks = null) {
+  updateAdmission(id, data) {
+    return apiRequest(`/admin/admissions/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  updateAdmissionStatus(id, payload, remarks = null) {
+    const body = typeof payload === 'string' ? { status: payload, remarks } : payload;
     return apiRequest(`/admin/admissions/${id}/status`, {
       method: 'PATCH',
-      body: { status, remarks },
+      body,
     });
   },
   enrollAdmission(id, data = {}) {
     return apiRequest(`/admin/admissions/${id}/enroll`, {
       method: 'POST',
       body: data,
+    });
+  },
+  deleteAdmission(id) {
+    return apiRequest(`/admin/admissions/${id}`, {
+      method: 'DELETE',
     });
   },
 

@@ -125,10 +125,6 @@ export default function HRTrainingsPage() {
     fetchTrainings();
   }, []);
 
-  const refreshTrainings = () => {
-    fetchTrainings();
-  };
-
   const filteredTrainings = trainings.filter((t) => {
     const matchesSearch =
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

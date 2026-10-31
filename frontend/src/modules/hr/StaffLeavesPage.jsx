@@ -6,7 +6,6 @@ import {
   LuCheck,
   LuX,
   LuCheckCheck,
-  LuRefreshCw,
   LuLoader,
   LuCalendar,
   LuUser,
@@ -15,6 +14,7 @@ import {
   LuImage,
   LuEye,
   LuSettings,
+  LuRefreshCw,
 } from 'react-icons/lu';
 
 export default function StaffLeavesPage() {
@@ -93,27 +93,25 @@ export default function StaffLeavesPage() {
             </p>
           </div>
         </div>
-
         <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
           {/* View Mode Tabs */}
           <div className="flex items-center p-1 bg-gray-100 rounded-xl text-xs font-bold border border-gray-200/60 shadow-2xs">
             <button
               onClick={() => setActiveTab('applications')}
-              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                activeTab === 'applications'
-                  ? 'bg-white text-gray-900 shadow-xs font-bold'
-                  : 'text-gray-500 hover:text-gray-800 font-semibold'
-              }`}
+              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${activeTab === 'applications'
+                ? 'bg-white text-gray-900 shadow-xs font-bold'
+                : 'text-gray-500 hover:text-gray-800 font-semibold'
+                }`}
             >
               Leave Applications ({leaveRequests.length})
             </button>
+
             <button
               onClick={() => setActiveTab('settings')}
-              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeTab === 'settings'
-                  ? 'bg-white text-gray-900 shadow-xs font-bold text-primary-600'
-                  : 'text-gray-500 hover:text-gray-800 font-semibold'
-              }`}
+              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${activeTab === 'settings'
+                ? 'bg-white text-gray-900 shadow-xs font-bold text-primary-600'
+                : 'text-gray-500 hover:text-gray-800 font-semibold'
+                }`}
             >
               <LuSettings className="w-3.5 h-3.5" />
               <span>Leave Types & Quotas</span>
@@ -139,243 +137,238 @@ export default function StaffLeavesPage() {
       ) : (
         <>
 
-      {/* Mobile Card View */}
-      <div className="sm:hidden space-y-2.5">
-        {loading ? (
-          <div className="bg-white rounded-xl border border-gray-200/80 p-8 text-center text-gray-400">
-            <LuLoader className="w-6 h-6 animate-spin mx-auto mb-2 text-primary-600" />
-            <span className="text-xs font-semibold">Loading leave applications...</span>
-          </div>
-        ) : leaveRequests.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200/80 p-8 text-center text-gray-400">
-            <LuFileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-            <p className="text-sm font-bold text-gray-700">No Leaves Found</p>
-            <p className="text-xs text-gray-400 mt-0.5">No leave records registered.</p>
-          </div>
-        ) : (
-          leaveRequests.map((req) => (
-            <div key={req.id || req.db_id} className="bg-white rounded-xl p-3.5 border border-gray-200/80 shadow-xs space-y-2.5">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-sm font-bold text-gray-900">{req.name}</p>
-                  <p className="text-[11px] text-gray-400 font-medium">{req.role}</p>
-                </div>
-                <span className="text-xs font-bold text-gray-800 px-2 py-0.5 rounded-lg bg-gray-100">
-                  {req.type}
-                </span>
+          {/* Mobile Card View */}
+          <div className="sm:hidden space-y-2.5">
+            {loading ? (
+              <div className="bg-white rounded-xl border border-gray-200/80 p-8 text-center text-gray-400">
+                <LuLoader className="w-6 h-6 animate-spin mx-auto mb-2 text-primary-600" />
+                <span className="text-xs font-semibold">Loading leave applications...</span>
               </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs py-1.5 px-2 bg-gray-50 rounded-lg border border-gray-100">
-                <div>
-                  <span className="text-[10px] text-gray-400 font-medium block">From</span>
-                  <span className="font-semibold text-gray-700 text-xs">{req.startDate}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-gray-400 font-medium block">To</span>
-                  <span className="font-semibold text-gray-700 text-xs">{req.endDate}</span>
-                </div>
+            ) : leaveRequests.length === 0 ? (
+              <div className="bg-white rounded-xl border border-gray-200/80 p-8 text-center text-gray-400">
+                <LuFileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm font-bold text-gray-700">No Leaves Found</p>
+                <p className="text-xs text-gray-400 mt-0.5">No leave records registered.</p>
               </div>
-
-              {req.reason && (
-                <p className="text-xs text-gray-600 bg-amber-50/50 p-2 rounded-lg border border-amber-100/50">
-                  <span className="font-semibold text-amber-900 text-[10px] block">Reason:</span>
-                  {req.reason}
-                </p>
-              )}
-
-              {/* Photo Proof Attachment */}
-              {req.photo_proof && (
-                <div className="flex items-center gap-2 p-2 bg-rose-50/70 border border-rose-200 rounded-lg">
-                  <img
-                    src={req.photo_proof}
-                    alt="Proof Preview"
-                    className="w-8 h-8 rounded object-cover border border-rose-200"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[10px] font-bold text-rose-800 block truncate">Medical Certificate</span>
-                    <span className="text-[9px] text-rose-600 truncate block">{req.photo_name || 'Proof.png'}</span>
+            ) : (
+              leaveRequests.map((req) => (
+                <div key={req.id || req.db_id} className="bg-white rounded-xl p-3.5 border border-gray-200/80 shadow-xs space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">{req.name}</p>
+                      <p className="text-[11px] text-gray-400 font-medium">{req.role}</p>
+                    </div>
+                    <span className="text-xs font-bold text-gray-800 px-2 py-0.5 rounded-lg bg-gray-100">
+                      {req.type}
+                    </span>
                   </div>
-                  <button
-                    onClick={() => setPreviewPhoto({
-                      url: req.photo_proof,
-                      name: req.photo_name || 'Medical Proof',
-                      staffName: req.name,
-                      type: req.type,
-                      reason: req.reason,
-                    })}
-                    className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
-                  >
-                    View
-                  </button>
-                </div>
-              )}
 
-              <div className="flex items-center justify-between pt-1 border-t border-gray-100">
-                {req.status === 'Pending' ? (
-                  <div className="flex items-center gap-2 w-full justify-end">
-                    <button
-                      onClick={() => handleUpdateStatus(req.id, req.name, 'Approved', req.db_id)}
-                      disabled={processingId === (req.db_id || req.id)}
-                      className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
-                    >
-                      <LuCheck className="w-3.5 h-3.5" /> Approve
-                    </button>
-                    <button
-                      onClick={() => handleUpdateStatus(req.id, req.name, 'Rejected', req.db_id)}
-                      disabled={processingId === (req.db_id || req.id)}
-                      className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-700 rounded-xl text-xs font-bold border border-gray-200 cursor-pointer"
-                    >
-                      <LuX className="w-3.5 h-3.5" /> Reject
-                    </button>
+                  <div className="grid grid-cols-2 gap-2 text-xs py-1.5 px-2 bg-gray-50 rounded-lg border border-gray-100">
+                    <div>
+                      <span className="text-[10px] text-gray-400 font-medium block">From</span>
+                      <span className="font-semibold text-gray-700 text-xs">{req.startDate}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-400 font-medium block">To</span>
+                      <span className="font-semibold text-gray-700 text-xs">{req.endDate}</span>
+                    </div>
                   </div>
-                ) : (
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ml-auto ${
-                      req.status === 'Approved'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-red-50 text-red-700 border border-red-200'
-                    }`}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        req.status === 'Approved' ? 'bg-emerald-500' : 'bg-red-500'
-                      }`}
-                    />
-                    {req.status}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
 
-      {/* Desktop Table View */}
-      <div className="hidden sm:block bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[850px]">
-            <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                <th className="py-4 px-6">Staff Member</th>
-                <th className="py-4 px-5">Leave Type</th>
-                <th className="py-4 px-5">Duration</th>
-                <th className="py-4 px-5">Reason & Proof</th>
-                <th className="py-4 px-6 text-right">Actions / Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {loading ? (
-                <tr>
-                  <td colSpan="5" className="py-16 text-center text-gray-400">
-                    <LuLoader className="w-6 h-6 animate-spin mx-auto mb-2 text-primary-600" />
-                    <span className="text-xs font-semibold">Loading leave applications from database...</span>
-                  </td>
-                </tr>
-              ) : leaveRequests.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="py-16 text-center text-gray-400">
-                    <LuFileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                    <p className="text-sm font-bold text-gray-700">No Leave Applications Found</p>
-                    <p className="text-xs text-gray-400 mt-0.5">There are currently no pending or past leave records.</p>
-                  </td>
-                </tr>
-              ) : (
-                leaveRequests.map((req) => (
-                  <tr key={req.id || req.db_id} className="hover:bg-gray-50/60 transition-colors">
-                    {/* Name & Role */}
-                    <td className="py-4 px-6">
-                      <p className="text-xs font-bold text-gray-900">{req.name}</p>
-                      <p className="text-[11px] text-gray-400 font-medium mt-0.5">{req.role}</p>
-                    </td>
+                  {req.reason && (
+                    <p className="text-xs text-gray-600 bg-amber-50/50 p-2 rounded-lg border border-amber-100/50">
+                      <span className="font-semibold text-amber-900 text-[10px] block">Reason:</span>
+                      {req.reason}
+                    </p>
+                  )}
 
-                    {/* Leave Type */}
-                    <td className="py-4 px-5">
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
-                        req.raw_type === 'SL' || req.type?.includes('Medical') || req.type?.includes('Sick')
-                          ? 'bg-rose-50 text-rose-700 border-rose-200'
-                          : 'bg-gray-100 text-gray-800 border-gray-200'
-                      }`}>
-                        {req.type}
-                      </span>
-                    </td>
-
-                    {/* Starting & Ending Date */}
-                    <td className="py-4 px-5">
-                      <div className="text-xs text-gray-800 font-semibold">
-                        <span>{req.startDate}</span>
-                        {req.endDate && req.endDate !== req.startDate && (
-                          <span className="text-gray-500 block text-[11px]">to {req.endDate}</span>
-                        )}
+                  {/* Photo Proof Attachment */}
+                  {req.photo_proof && (
+                    <div className="flex items-center gap-2 p-2 bg-rose-50/70 border border-rose-200 rounded-lg">
+                      <img
+                        src={req.photo_proof}
+                        alt="Proof Preview"
+                        className="w-8 h-8 rounded object-cover border border-rose-200"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] font-bold text-rose-800 block truncate">Medical Certificate</span>
+                        <span className="text-[9px] text-rose-600 truncate block">{req.photo_name || 'Proof.png'}</span>
                       </div>
-                      <span className="text-[10px] text-gray-400 font-medium">{req.days} day(s)</span>
-                    </td>
+                      <button
+                        onClick={() => setPreviewPhoto({
+                          url: req.photo_proof,
+                          name: req.photo_name || 'Medical Proof',
+                          staffName: req.name,
+                          type: req.type,
+                          reason: req.reason,
+                        })}
+                        className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
+                      >
+                        View
+                      </button>
+                    </div>
+                  )}
 
-                    {/* Reason & Photo Proof */}
-                    <td className="py-4 px-5 max-w-[280px]">
-                      <p className="text-xs text-gray-600 line-clamp-2" title={req.reason}>
-                        {req.reason}
-                      </p>
-                      {req.photo_proof && (
+                  <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                    {req.status === 'Pending' ? (
+                      <div className="flex items-center gap-2 w-full justify-end">
                         <button
-                          onClick={() => setPreviewPhoto({
-                            url: req.photo_proof,
-                            name: req.photo_name || 'Medical Proof',
-                            staffName: req.name,
-                            type: req.type,
-                            reason: req.reason,
-                          })}
-                          className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+                          onClick={() => handleUpdateStatus(req.id, req.name, 'Approved', req.db_id)}
+                          disabled={processingId === (req.db_id || req.id)}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
                         >
-                          <LuImage className="w-3.5 h-3.5 text-rose-600" />
-                          <span>View Medical Proof</span>
+                          <LuCheck className="w-3.5 h-3.5" /> Approve
                         </button>
-                      )}
-                    </td>
-
-                    {/* Actions / Status */}
-                    <td className="py-4 px-6 text-right">
-                      {req.status === 'Pending' ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleUpdateStatus(req.id, req.name, 'Approved', req.db_id)}
-                            disabled={processingId === (req.db_id || req.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
-                          >
-                            <LuCheck className="w-3.5 h-3.5" /> Approve
-                          </button>
-                          <button
-                            onClick={() => handleUpdateStatus(req.id, req.name, 'Rejected', req.db_id)}
-                            disabled={processingId === (req.db_id || req.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-700 rounded-xl text-xs font-bold transition-all border border-gray-200 disabled:opacity-50 cursor-pointer"
-                          >
-                            <LuX className="w-3.5 h-3.5" /> Reject
-                          </button>
-                        </div>
-                      ) : (
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ${
-                            req.status === 'Approved'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-red-50 text-red-700 border border-red-200'
-                          }`}
+                        <button
+                          onClick={() => handleUpdateStatus(req.id, req.name, 'Rejected', req.db_id)}
+                          disabled={processingId === (req.db_id || req.id)}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-700 rounded-xl text-xs font-bold border border-gray-200 cursor-pointer"
                         >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              req.status === 'Approved' ? 'bg-emerald-500' : 'bg-red-500'
+                          <LuX className="w-3.5 h-3.5" /> Reject
+                        </button>
+                      </div>
+                    ) : (
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ml-auto ${req.status === 'Approved'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-red-50 text-red-700 border border-red-200'
+                          }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${req.status === 'Approved' ? 'bg-emerald-500' : 'bg-red-500'
                             }`}
-                          />
-                          {req.status}
-                        </span>
-                      )}
-                    </td>
+                        />
+                        {req.status}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden sm:block bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[850px]">
+                <thead>
+                  <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                    <th className="py-4 px-6">Staff Member</th>
+                    <th className="py-4 px-5">Leave Type</th>
+                    <th className="py-4 px-5">Duration</th>
+                    <th className="py-4 px-5">Reason & Proof</th>
+                    <th className="py-4 px-6 text-right">Actions / Status</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      </>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan="5" className="py-16 text-center text-gray-400">
+                        <LuLoader className="w-6 h-6 animate-spin mx-auto mb-2 text-primary-600" />
+                        <span className="text-xs font-semibold">Loading leave applications from database...</span>
+                      </td>
+                    </tr>
+                  ) : leaveRequests.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="py-16 text-center text-gray-400">
+                        <LuFileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm font-bold text-gray-700">No Leave Applications Found</p>
+                        <p className="text-xs text-gray-400 mt-0.5">There are currently no pending or past leave records.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    leaveRequests.map((req) => (
+                      <tr key={req.id || req.db_id} className="hover:bg-gray-50/60 transition-colors">
+                        {/* Name & Role */}
+                        <td className="py-4 px-6">
+                          <p className="text-xs font-bold text-gray-900">{req.name}</p>
+                          <p className="text-[11px] text-gray-400 font-medium mt-0.5">{req.role}</p>
+                        </td>
+
+                        {/* Leave Type */}
+                        <td className="py-4 px-5">
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${req.raw_type === 'SL' || req.type?.includes('Medical') || req.type?.includes('Sick')
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-gray-100 text-gray-800 border-gray-200'
+                            }`}>
+                            {req.type}
+                          </span>
+                        </td>
+
+                        {/* Starting & Ending Date */}
+                        <td className="py-4 px-5">
+                          <div className="text-xs text-gray-800 font-semibold">
+                            <span>{req.startDate}</span>
+                            {req.endDate && req.endDate !== req.startDate && (
+                              <span className="text-gray-500 block text-[11px]">to {req.endDate}</span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-medium">{req.days} day(s)</span>
+                        </td>
+
+                        {/* Reason & Photo Proof */}
+                        <td className="py-4 px-5 max-w-[280px]">
+                          <p className="text-xs text-gray-600 line-clamp-2" title={req.reason}>
+                            {req.reason}
+                          </p>
+                          {req.photo_proof && (
+                            <button
+                              onClick={() => setPreviewPhoto({
+                                url: req.photo_proof,
+                                name: req.photo_name || 'Medical Proof',
+                                staffName: req.name,
+                                type: req.type,
+                                reason: req.reason,
+                              })}
+                              className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+                            >
+                              <LuImage className="w-3.5 h-3.5 text-rose-600" />
+                              <span>View Medical Proof</span>
+                            </button>
+                          )}
+                        </td>
+
+                        {/* Actions / Status */}
+                        <td className="py-4 px-6 text-right">
+                          {req.status === 'Pending' ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleUpdateStatus(req.id, req.name, 'Approved', req.db_id)}
+                                disabled={processingId === (req.db_id || req.id)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+                              >
+                                <LuCheck className="w-3.5 h-3.5" /> Approve
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(req.id, req.name, 'Rejected', req.db_id)}
+                                disabled={processingId === (req.db_id || req.id)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-700 rounded-xl text-xs font-bold transition-all border border-gray-200 disabled:opacity-50 cursor-pointer"
+                              >
+                                <LuX className="w-3.5 h-3.5" /> Reject
+                              </button>
+                            </div>
+                          ) : (
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ${req.status === 'Approved'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-red-50 text-red-700 border border-red-200'
+                                }`}
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${req.status === 'Approved' ? 'bg-emerald-500' : 'bg-red-500'
+                                  }`}
+                              />
+                              {req.status}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Medical Proof Lightbox Modal */}

@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToSchool;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class SchoolExpense extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToSchool;
 
     protected $fillable = [
+        'school_id',
         'expense_code',
         'title',
         'category',
@@ -28,6 +30,11 @@ class SchoolExpense extends Model
         'amount' => 'decimal:2',
         'expense_date' => 'date',
     ];
+
+    public function school()
+    {
+        return $this->belongsTo(School::class, 'school_id');
+    }
 
     public function recordedBy()
     {

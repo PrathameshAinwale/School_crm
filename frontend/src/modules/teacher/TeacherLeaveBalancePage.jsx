@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -16,7 +17,6 @@ import {
   LuCircleX,
   LuSettings,
   LuX,
-  LuSparkles,
 } from 'react-icons/lu';
 
 export default function TeacherLeaveBalancePage() {
@@ -24,16 +24,51 @@ export default function TeacherLeaveBalancePage() {
   const location = useLocation();
   const { currentRole, user } = useAuth();
   const role = (user?.role || currentRole || '').toLowerCase();
+
+  // Preserve privileged role access from Ajay's version.
   const isPrivileged = ['admin', 'hr', 'super_admin', 'teacher'].includes(role);
-  const applyLeavePath = location.pathname.startsWith('/teacher') ? '/teacher/apply-leave' : '/hr/apply-leave';
+
+  // Keep navigation within the current teacher or HR section.
+  const applyLeavePath = location.pathname.startsWith('/teacher')
+    ? '/teacher/apply-leave'
+    : '/hr/apply-leave';
 
   const [loading, setLoading] = useState(true);
   const [showManagerModal, setShowManagerModal] = useState(false);
+
   const [leaveTypes, setLeaveTypes] = useState([
-    { code: 'CL', type: 'Casual Leave (CL)', total: 12, used: 0, remaining: 12, color: 'text-amber-600', bg: 'bg-amber-50', bar: 'bg-amber-500' },
-    { code: 'SL', type: 'Sick Leave (SL)', total: 10, used: 0, remaining: 10, color: 'text-rose-600', bg: 'bg-rose-50', bar: 'bg-rose-500' },
-    { code: 'ML', type: 'Maternity/Paternity', total: 90, used: 0, remaining: 90, color: 'text-purple-600', bg: 'bg-purple-50', bar: 'bg-purple-500' },
+    {
+      code: 'CL',
+      type: 'Casual Leave (CL)',
+      total: 12,
+      used: 0,
+      remaining: 12,
+      color: 'text-amber-600',
+      bg: 'bg-amber-50',
+      bar: 'bg-amber-500',
+    },
+    {
+      code: 'SL',
+      type: 'Sick Leave (SL)',
+      total: 10,
+      used: 0,
+      remaining: 10,
+      color: 'text-rose-600',
+      bg: 'bg-rose-50',
+      bar: 'bg-rose-500',
+    },
+    {
+      code: 'ML',
+      type: 'Maternity/Paternity',
+      total: 90,
+      used: 0,
+      remaining: 90,
+      color: 'text-purple-600',
+      bg: 'bg-purple-50',
+      bar: 'bg-purple-500',
+    },
   ]);
+
   const [leaveHistory, setLeaveHistory] = useState([]);
 
   const iconMap = {
@@ -46,12 +81,15 @@ export default function TeacherLeaveBalancePage() {
 
   const loadLeaves = async () => {
     setLoading(true);
+
     try {
       const res = await adminService.getTeacherLeaves();
+
       if (res.success) {
         if (res.leave_types && res.leave_types.length > 0) {
           setLeaveTypes(res.leave_types);
         }
+
         setLeaveHistory(res.leave_history || []);
       }
     } catch (err) {
@@ -67,19 +105,25 @@ export default function TeacherLeaveBalancePage() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12 animate-fade-in">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-gray-200/80 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
             <LuFileText className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
+
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Staff Leave Balance & Quotas</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Overview of annual available, approved and pending leaves</p>
+            <h1 className="text-xl font-bold text-gray-900">
+              Staff Leave Balance & Quotas
+            </h1>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Overview of annual available, approved and pending leaves
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
-          {/* Setting Button for Admin & HR */}
+          {/* Leave Settings for Privileged Roles */}
           {isPrivileged && (
             <button
               onClick={() => setShowManagerModal(true)}
@@ -101,36 +145,66 @@ export default function TeacherLeaveBalancePage() {
         </div>
       </div>
 
+      {/* Leave Balance Cards */}
       {loading ? (
         <div className="p-12 text-center bg-white rounded-3xl border border-gray-200/80">
           <LuLoader className="w-6 h-6 animate-spin text-primary-600 mx-auto mb-2" />
-          <p className="text-xs text-gray-500 font-medium">Fetching live leave balance...</p>
+          <p className="text-xs text-gray-500 font-medium">
+            Fetching live leave balance...
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
           {leaveTypes.map((leave, i) => {
             const Icon = iconMap[leave.code] || LuFileText;
-            const percentUsed = leave.total > 0 ? Math.round((leave.used / leave.total) * 100) : 0;
+
+            const percentUsed =
+              leave.total > 0
+                ? Math.round((leave.used / leave.total) * 100)
+                : 0;
+
             return (
-              <div key={i} className="bg-white p-6 rounded-3xl border border-gray-200/80 shadow-xs hover:border-gray-300 transition-all">
+              <div
+                key={i}
+                className="bg-white p-6 rounded-3xl border border-gray-200/80 shadow-xs hover:border-gray-300 transition-all"
+              >
                 <div className="flex items-start justify-between mb-4">
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${leave.bg} ${leave.color} shadow-xs`}>
+                  <div
+                    className={`w-11 h-11 rounded-2xl flex items-center justify-center ${leave.bg} ${leave.color} shadow-xs`}
+                  >
                     <Icon className="w-5 h-5" />
                   </div>
+
                   <div className="text-right">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Remaining Balance</p>
-                    <p className="text-xl sm:text-2xl font-black text-gray-900">{leave.remaining} Days</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      Remaining Balance
+                    </p>
+                    <p className="text-xl sm:text-2xl font-black text-gray-900">
+                      {leave.remaining} Days
+                    </p>
                   </div>
                 </div>
-                <h3 className="text-sm font-bold text-gray-800 mb-3">{leave.type}</h3>
+
+                <h3 className="text-sm font-bold text-gray-800 mb-3">
+                  {leave.type}
+                </h3>
 
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs text-gray-500 font-medium">
-                    <span>Used: <strong className="text-gray-800">{leave.used}</strong></span>
-                    <span>Total Quota: <strong className="text-gray-800">{leave.total}</strong></span>
+                    <span>
+                      Used: <strong className="text-gray-800">{leave.used}</strong>
+                    </span>
+                    <span>
+                      Total Quota:{' '}
+                      <strong className="text-gray-800">{leave.total}</strong>
+                    </span>
                   </div>
+
                   <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                    <div className={`h-full ${leave.bar} rounded-full transition-all duration-1000`} style={{ width: `${percentUsed}%` }} />
+                    <div
+                      className={`h-full ${leave.bar} rounded-full transition-all duration-1000`}
+                      style={{ width: `${percentUsed}%` }}
+                    />
                   </div>
                 </div>
               </div>
@@ -143,9 +217,14 @@ export default function TeacherLeaveBalancePage() {
       <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-gray-900">Leave Applications & History</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Status of your submitted leave applications</p>
+            <h2 className="text-base font-bold text-gray-900">
+              Leave Applications & History
+            </h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Status of your submitted leave applications
+            </p>
           </div>
+
           <span className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-lg">
             {leaveHistory.length} Total Applications
           </span>
@@ -154,46 +233,59 @@ export default function TeacherLeaveBalancePage() {
         {loading ? (
           <div className="p-12 text-center">
             <LuLoader className="w-6 h-6 animate-spin text-primary-600 mx-auto mb-2" />
-            <p className="text-xs text-gray-500 font-medium">Loading history...</p>
+            <p className="text-xs text-gray-500 font-medium">
+              Loading history...
+            </p>
           </div>
         ) : leaveHistory.length > 0 ? (
           <>
             {/* Mobile History Cards */}
             <div className="sm:hidden p-3 space-y-2.5">
               {leaveHistory.map((leave, i) => (
-                <div key={i} className="bg-slate-50/70 rounded-xl p-3 border border-slate-200/80 space-y-2">
+                <div
+                  key={i}
+                  className="bg-slate-50/70 rounded-xl p-3 border border-slate-200/80 space-y-2"
+                >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-gray-900 text-xs">{leave.type}</span>
+                    <span className="font-bold text-gray-900 text-xs">
+                      {leave.type}
+                    </span>
+
                     <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        leave.status === 'Approved'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : leave.status === 'Pending'
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${leave.status === 'Approved'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : leave.status === 'Pending'
                           ? 'bg-amber-50 text-amber-700 border border-amber-200'
                           : 'bg-red-50 text-red-700 border border-red-200'
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          leave.status === 'Approved'
-                            ? 'bg-emerald-500'
-                            : leave.status === 'Pending'
+                        className={`w-1.5 h-1.5 rounded-full ${leave.status === 'Approved'
+                          ? 'bg-emerald-500'
+                          : leave.status === 'Pending'
                             ? 'bg-amber-500'
                             : 'bg-red-500'
-                        }`}
+                          }`}
                       />
                       {leave.status}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-gray-600 bg-white p-2 rounded-lg border border-gray-100">
-                    <span className="font-medium">{leave.from} → {leave.to}</span>
-                    <span className="font-bold text-gray-800">{leave.days} {leave.days === 1 ? 'Day' : 'Days'}</span>
+                    <span className="font-medium">
+                      {leave.from} → {leave.to}
+                    </span>
+                    <span className="font-bold text-gray-800">
+                      {leave.days} {leave.days === 1 ? 'Day' : 'Days'}
+                    </span>
                   </div>
 
                   {leave.reason && (
                     <p className="text-[11px] text-gray-500 truncate">
-                      <span className="font-semibold text-gray-700">Reason:</span> {leave.reason}
+                      <span className="font-semibold text-gray-700">
+                        Reason:
+                      </span>{' '}
+                      {leave.reason}
                     </p>
                   )}
                 </div>
@@ -212,31 +304,45 @@ export default function TeacherLeaveBalancePage() {
                     <th className="p-4">Application Status</th>
                   </tr>
                 </thead>
+
                 <tbody className="divide-y divide-gray-100 text-xs">
                   {leaveHistory.map((leave, i) => (
-                    <tr key={i} className="hover:bg-gray-50/60 transition-colors">
-                      <td className="p-4 pl-6 font-bold text-gray-900 whitespace-nowrap">{leave.type}</td>
-                      <td className="p-4 text-gray-600 font-medium whitespace-nowrap">{leave.from} - {leave.to}</td>
-                      <td className="p-4 text-gray-700 font-bold">{leave.days} Days</td>
-                      <td className="p-4 text-gray-500 max-w-xs truncate">{leave.reason}</td>
+                    <tr
+                      key={i}
+                      className="hover:bg-gray-50/60 transition-colors"
+                    >
+                      <td className="p-4 pl-6 font-bold text-gray-900 whitespace-nowrap">
+                        {leave.type}
+                      </td>
+
+                      <td className="p-4 text-gray-600 font-medium whitespace-nowrap">
+                        {leave.from} - {leave.to}
+                      </td>
+
+                      <td className="p-4 text-gray-700 font-bold">
+                        {leave.days} Days
+                      </td>
+
+                      <td className="p-4 text-gray-500 max-w-xs truncate">
+                        {leave.reason}
+                      </td>
+
                       <td className="p-4">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                            leave.status === 'Approved'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : leave.status === 'Pending'
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${leave.status === 'Approved'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : leave.status === 'Pending'
                               ? 'bg-amber-50 text-amber-700 border border-amber-200'
                               : 'bg-red-50 text-red-700 border border-red-200'
-                          }`}
+                            }`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              leave.status === 'Approved'
-                                ? 'bg-emerald-500'
-                                : leave.status === 'Pending'
+                            className={`w-1.5 h-1.5 rounded-full ${leave.status === 'Approved'
+                              ? 'bg-emerald-500'
+                              : leave.status === 'Pending'
                                 ? 'bg-amber-500'
                                 : 'bg-red-500'
-                            }`}
+                              }`}
                           />
                           {leave.status}
                         </span>
@@ -263,11 +369,17 @@ export default function TeacherLeaveBalancePage() {
                 <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
                   <LuSettings className="w-4 h-4" />
                 </div>
+
                 <div>
-                  <h3 className="text-sm font-bold">Leave Policy & Quotas Setting</h3>
-                  <p className="text-[11px] text-slate-400">Manage institutional leave categories & annual quota allowance</p>
+                  <h3 className="text-sm font-bold">
+                    Leave Policy & Quotas Setting
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Manage institutional leave categories & annual quota allowance
+                  </p>
                 </div>
               </div>
+
               <button
                 onClick={() => setShowManagerModal(false)}
                 className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"

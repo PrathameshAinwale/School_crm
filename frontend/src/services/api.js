@@ -8,6 +8,7 @@ const API_BASE_URL = (typeof window !== 'undefined' && (window.location.hostname
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('auth_token');
   const activeSchoolId = localStorage.getItem('active_school_id');
+  const activeAcademicYearId = localStorage.getItem('active_academic_year_id');
   const activeLang = localStorage.getItem('app_language') || 'en';
 
   const headers = {
@@ -15,6 +16,7 @@ export async function apiRequest(endpoint, options = {}) {
     'Bypass-Tunnel-Reminder': 'true',
     'Accept-Language': activeLang,
     ...(activeSchoolId ? { 'X-School-Id': activeSchoolId } : {}),
+    ...(activeAcademicYearId ? { 'X-Academic-Year-Id': activeAcademicYearId } : {}),
     ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...options.headers,
@@ -51,7 +53,28 @@ export async function apiRequest(endpoint, options = {}) {
     throw error;
   }
 
+  // Dispatch action event on successful state-changing operations to update notifications
+  if (typeof window !== 'undefined') {
+    const method = (config.method || 'GET').toUpperCase();
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !endpoint.includes('/notifications')) {
+      window.dispatchEvent(
+        new CustomEvent('app:action-performed', {
+          detail: { endpoint, method, timestamp: Date.now() },
+        })
+      );
+    }
+  }
+
   return data;
+}
+
+/**
+ * Manually trigger a notification refresh across the application
+ */
+export function triggerNotificationRefresh() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('app:notification-refresh'));
+  }
 }
 
 // Convenience helpers

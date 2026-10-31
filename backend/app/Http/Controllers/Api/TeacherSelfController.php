@@ -22,65 +22,91 @@ class TeacherSelfController extends Controller
     /**
      * Get or resolve current teacher model from logged in user.
      */
-    private function getTeacher(Request $request)
-    {
-        $user = $request->user();
-        if (!$user) return null;
+  private function getTeacher(Request $request)
+{
+    $user = $request->user();
 
-        $teacher = Teacher::where('user_id', $user->id)
-            ->orWhere('email', $user->email)
-            ->first();
-
-        if (!$teacher && in_array($user->role, ['hr', 'teacher', 'admin', 'librarian', 'accountant', 'staff'])) {
-            $prefixMap = [
-                'hr' => 'HR-',
-                'librarian' => 'LIB-',
-                'accountant' => 'ACC-',
-                'teacher' => 'TCH-',
-                'admin' => 'ADM-',
-                'staff' => 'STF-',
-            ];
-            $deptMap = [
-                'hr' => 'Human Resources',
-                'librarian' => 'Library & Information Services',
-                'accountant' => 'Accounts & Finance',
-                'teacher' => 'Faculty & Academics',
-                'admin' => 'School Administration',
-                'staff' => 'General Operations',
-            ];
-            $qualMap = [
-                'librarian' => 'M.Lib.Sc (Library & Information Science)',
-                'accountant' => 'M.Com / Certified School Accountant',
-                'hr' => 'MBA in Human Resource Management',
-                'teacher' => 'M.Sc, B.Ed',
-                'admin' => 'M.Ed / School Administration',
-            ];
-
-            $prefix = $prefixMap[$user->role] ?? 'EMP-';
-            $cleanedName = preg_replace('/\s*\(.*?\)\s*/', '', $user->name ?: 'School Employee');
-            $nameParts = explode(' ', trim($cleanedName));
-            $firstName = $nameParts[0] ?? 'Employee';
-            $lastName = count($nameParts) > 1 ? implode(' ', array_slice($nameParts, 1)) : '';
-            $teacherId = $prefix . str_pad($user->id, 3, '0', STR_PAD_LEFT);
-
-            $teacher = Teacher::create([
-                'user_id' => $user->id,
-                'teacher_id' => $teacherId,
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'email' => strtolower($user->email),
-                'phone' => $user->phone ?? '+91 98765 00000',
-                'department' => $deptMap[$user->role] ?? 'General',
-                'qualification' => $qualMap[$user->role] ?? 'Graduate',
-                'experience' => '5+ Years in Education',
-                'status' => 'Active',
-                'salary' => 50000,
-                'allowance' => 10000,
-            ]);
-        }
-
-        return $teacher;
+    if (!$user) {
+        return null;
     }
+
+    $teacher = Teacher::where('user_id', $user->id)
+        ->orWhere('email', $user->email)
+        ->first();
+
+    $supportedRoles = [
+        'hr',
+        'teacher',
+        'admin',
+        'librarian',
+        'accountant',
+        'staff',
+        'sports_incharge',
+        'admission_officer',
+    ];
+
+    if (!$teacher && in_array($user->role, $supportedRoles)) {
+        $role = $user->role;
+
+        $prefixMap = [
+            'hr' => 'HR-',
+            'librarian' => 'LIB-',
+            'accountant' => 'ACC-',
+            'teacher' => 'TCH-',
+            'admin' => 'ADM-',
+            'staff' => 'STF-',
+            'sports_incharge' => 'SPT-',
+            'admission_officer' => 'ADM-',
+        ];
+
+        $deptMap = [
+            'hr' => 'Human Resources',
+            'librarian' => 'Library & Information Services',
+            'accountant' => 'Accounts & Finance',
+            'teacher' => 'Faculty & Academics',
+            'admin' => 'School Administration',
+            'staff' => 'General Operations',
+            'sports_incharge' => 'Physical Education & Sports',
+            'admission_officer' => 'Admissions & Student Intake',
+        ];
+
+        $qualMap = [
+            'librarian' => 'M.Lib.Sc (Library & Information Science)',
+            'accountant' => 'M.Com / Certified School Accountant',
+            'hr' => 'MBA in Human Resource Management',
+            'teacher' => 'M.Sc, B.Ed',
+            'admin' => 'M.Ed / School Administration',
+        ];
+
+        $cleanedName = preg_replace(
+            '/\s*\(.*?\)\s*/',
+            '',
+            $user->name ?: 'School Employee'
+        );
+
+        $nameParts = explode(' ', trim($cleanedName));
+
+        $teacher = Teacher::create([
+            'user_id' => $user->id,
+            'teacher_id' => ($prefixMap[$role] ?? 'EMP-')
+                . str_pad($user->id, 3, '0', STR_PAD_LEFT),
+            'first_name' => $nameParts[0] ?? 'Employee',
+            'last_name' => count($nameParts) > 1
+                ? implode(' ', array_slice($nameParts, 1))
+                : '',
+            'email' => strtolower($user->email),
+            'phone' => $user->phone ?? '-',
+            'department' => $deptMap[$role] ?? 'General',
+            'qualification' => $qualMap[$role] ?? 'Graduate',
+            'experience' => '5+ Years in Education',
+            'status' => 'Active',
+            'salary' => 50000,
+            'allowance' => 10000,
+        ]);
+    }
+
+    return $teacher;
+}
 
     /**
      * Get teacher's own attendance stats & today's status from staff_attendances.
@@ -871,7 +897,7 @@ class TeacherSelfController extends Controller
                         'badge' => "{$assignmentsCount} Active Sets",
                         'pendingEvaluations' => $pendingSubmissions,
                         'highlight' => "{$pendingSubmissions} Pending Evaluations",
-                        'time' => $nearestDueAssignment ? "Due " . $nearestDueAssignment->due_date->format('M d') : "Due Tomorrow: Set 4.2",
+                        'time' => $nearestDueAssignment ? "Due " . $nearestDueAssignment->due_date->format('M d') : "No upcoming assignments",
                         'room' => $homeroomClass,
                         'subtext' => "{$pendingSubmissions} submissions received awaiting review",
                     ],

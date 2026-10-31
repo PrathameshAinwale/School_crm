@@ -295,12 +295,12 @@ export default function AttendancePage() {
 
   // Summary Metrics
   const summary = useMemo(() => {
-    const totalDays = apiSummary?.totalDays || 88;
-    const presentDays = apiSummary?.presentDays || 83;
-    const absentDays = apiSummary?.absentDays || 3;
-    const lateDays = apiSummary?.lateDays || 2;
-    const overallPercentage = apiSummary?.overallPercentage || 96.6;
-    const onTimeStreak = apiSummary?.onTimeStreak || '16 Days';
+    const totalDays = apiSummary?.totalDays || 0;
+    const presentDays = apiSummary?.presentDays || 0;
+    const absentDays = apiSummary?.absentDays || 0;
+    const lateDays = apiSummary?.lateDays || 0;
+    const overallPercentage = apiSummary?.overallPercentage ?? (totalDays > 0 ? Math.round((presentDays / totalDays) * 1000) / 10 : 0);
+    const onTimeStreak = apiSummary?.onTimeStreak || '0 Days';
 
     return {
       totalDays,
@@ -315,28 +315,7 @@ export default function AttendancePage() {
   // Absence History items
   const absenceHistory = useMemo(() => {
     if (apiAbsences && apiAbsences.length > 0) return apiAbsences;
-    return [
-      {
-        id: 'ABS-01',
-        date: 'Thursday, Aug 06, 2026',
-        reason: 'Viral Fever & Doctor Prescribed Bed Rest',
-        leaveType: 'Medical Leave',
-        approvalStatus: 'Approved by Class Teacher',
-        approvedBy: 'Dr. Ananya Sen',
-        medicalCert: 'Submitted (Medical Certificate.pdf)',
-        teacherRemarks: 'Medical certificate verified. Full attendance concession granted.',
-      },
-      {
-        id: 'ABS-02',
-        date: 'Monday, Jul 20, 2026',
-        reason: 'Transit Disruption / Severe Monsoon Inundation',
-        leaveType: 'Transit Advisory',
-        approvalStatus: 'Approved by Principal',
-        approvedBy: 'Dr. Rajeshwari Sharma',
-        medicalCert: 'Not Applicable',
-        teacherRemarks: 'Excused absence due to Pune Municipal transit weather warning.',
-      },
-    ];
+    return [];
   }, [apiAbsences]);
 
   const handleApplyLeave = async (e) => {
@@ -837,44 +816,50 @@ export default function AttendancePage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {absenceHistory.map((rec) => (
-              <div
-                key={rec.id}
-                className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:border-gray-300 transition-colors flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-                        {rec.leaveType}
-                      </span>
-                      <h3 className="text-sm font-bold text-gray-800 mt-1.5">{rec.date}</h3>
+          {absenceHistory.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {absenceHistory.map((rec) => (
+                <div
+                  key={rec.id}
+                  className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:border-gray-300 transition-colors flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                          {rec.leaveType}
+                        </span>
+                        <h3 className="text-sm font-bold text-gray-800 mt-1.5">{rec.date}</h3>
+                      </div>
+                      <span className="text-[10px] font-mono text-gray-400">{rec.id}</span>
                     </div>
-                    <span className="text-[10px] font-mono text-gray-400">{rec.id}</span>
+
+                    <div className="space-y-1.5 my-3 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                      <p className="text-gray-700">
+                        <strong>Reason for Absence:</strong> {rec.reason}
+                      </p>
+                      <p className="text-gray-600">
+                        <strong>Supporting Document:</strong> {rec.medicalCert}
+                      </p>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-[11px] text-emerald-800">
+                      <p><strong>Teacher Note:</strong> "{rec.teacherRemarks}"</p>
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5 my-3 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                    <p className="text-gray-700">
-                      <strong>Reason for Absence:</strong> {rec.reason}
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Supporting Document:</strong> {rec.medicalCert}
-                    </p>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-[11px] text-emerald-800">
-                    <p><strong>Teacher Note:</strong> "{rec.teacherRemarks}"</p>
+                  <div className="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+                    <span>Status: <strong className="text-emerald-700">{rec.approvalStatus}</strong></span>
+                    <span>Reviewer: <strong>{rec.approvedBy}</strong></span>
                   </div>
                 </div>
-
-                <div className="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
-                  <span>Status: <strong className="text-emerald-700">{rec.approvalStatus}</strong></span>
-                  <span>Reviewer: <strong>{rec.approvedBy}</strong></span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-xs text-gray-400 bg-white rounded-2xl border border-gray-200/80">
+              No leave or absence records found for this academic session.
+            </div>
+          )}
         </div>
       )}
 
@@ -885,7 +870,7 @@ export default function AttendancePage() {
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
               <div>
                 <h3 className="text-base font-bold text-gray-800">Submit Online Leave Application</h3>
-                <p className="text-xs text-gray-400">Class 10-A • Homeroom Teacher: Dr. Ananya Sen</p>
+                <p className="text-xs text-gray-400">Class Homeroom • Official Leave Request</p>
               </div>
               <button
                 onClick={() => setShowLeaveModal(false)}

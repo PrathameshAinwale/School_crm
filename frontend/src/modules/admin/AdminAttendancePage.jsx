@@ -78,30 +78,30 @@ export default function AdminAttendancePage() {
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12">
       {/* Header Banner */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-indigo-600 to-primary-600 text-white flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
             <LuClipboardList className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base sm:text-xl font-bold text-slate-800 leading-tight">Staff Attendance</h1>
-              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold text-[10px] sm:text-[11px] border border-slate-200">
+              <h1 className="text-base sm:text-xl font-bold text-gray-900 leading-tight">Staff Attendance</h1>
+              <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 font-bold text-[10px] sm:text-[11px] border border-gray-200">
                 View Only
               </span>
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+            <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
               Daily check-ins, leave records & attendance overview
             </p>
           </div>
         </div>
 
         {/* Date Selector */}
-        <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-50 p-1 sm:p-1.5 rounded-xl border border-slate-200 self-start sm:self-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2 bg-gray-50 p-1 sm:p-1.5 rounded-xl border border-gray-200 self-start sm:self-auto">
           <button
             onClick={() => shiftDate(-1)}
             title="Previous Day"
-            className="p-1.5 hover:bg-white rounded-lg text-slate-600 hover:text-slate-900 transition-colors shadow-xs cursor-pointer"
+            className="p-1.5 hover:bg-white rounded-lg text-gray-600 hover:text-gray-900 transition-colors shadow-xs cursor-pointer"
           >
             <LuChevronLeft className="w-4 h-4" />
           </button>
@@ -111,13 +111,13 @@ export default function AdminAttendancePage() {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+              className="bg-transparent text-xs font-bold text-gray-800 focus:outline-none cursor-pointer"
             />
           </div>
           <button
             onClick={() => shiftDate(1)}
             title="Next Day"
-            className="p-1.5 hover:bg-white rounded-lg text-slate-600 hover:text-slate-900 transition-colors shadow-xs cursor-pointer"
+            className="p-1.5 hover:bg-white rounded-lg text-gray-600 hover:text-gray-900 transition-colors shadow-xs cursor-pointer"
           >
             <LuChevronRight className="w-4 h-4" />
           </button>
@@ -173,28 +173,28 @@ export default function AdminAttendancePage() {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between">
+      <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-xs flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           {/* Search bar */}
           <div className="relative flex-1 sm:w-64">
-            <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <input
               type="text"
               placeholder="Search faculty name, ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium"
+              className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium"
             />
           </div>
 
           <div className="grid grid-cols-2 sm:flex gap-2">
             {/* Department Filter */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 sm:py-1">
-              <LuBuilding2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 sm:py-1">
+              <LuBuilding2 className="w-3.5 h-3.5 text-gray-400 shrink-0" />
               <select
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-slate-700 py-0.5 pr-1 focus:outline-none cursor-pointer w-full"
+                className="bg-transparent text-xs font-semibold text-gray-700 py-0.5 pr-1 focus:outline-none cursor-pointer w-full"
               >
                 <option value="ALL">All Depts</option>
                 {departments.filter((d) => d !== 'ALL').map((dept) => (
@@ -206,12 +206,12 @@ export default function AdminAttendancePage() {
             </div>
 
             {/* Status Filter */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 sm:py-1">
-              <LuFilter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 sm:py-1">
+              <LuFilter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-slate-700 py-0.5 pr-1 focus:outline-none cursor-pointer w-full"
+                className="bg-transparent text-xs font-semibold text-gray-700 py-0.5 pr-1 focus:outline-none cursor-pointer w-full"
               >
                 <option value="ALL">All Status</option>
                 <option value="Present">Present</option>

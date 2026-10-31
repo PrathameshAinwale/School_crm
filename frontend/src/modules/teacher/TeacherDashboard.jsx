@@ -14,7 +14,6 @@ import {
   LuMapPin,
   LuBell,
   LuChevronRight,
-  LuRefreshCw,
   LuAward,
 } from 'react-icons/lu';
 
@@ -23,7 +22,6 @@ export default function TeacherDashboard() {
 
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
@@ -35,18 +33,12 @@ export default function TeacherDashboard() {
       console.error('Failed to fetch teacher dashboard data:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchDashboardData();
-  };
 
   const scheduleCard = dashboardData?.cards?.schedule;
   const attendanceCard = dashboardData?.cards?.attendance;
@@ -64,9 +56,9 @@ export default function TeacherDashboard() {
       badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
       icon: LuCalendarClock,
       iconBg: 'bg-blue-50 text-blue-600',
-      highlight: scheduleCard?.highlight || "Today's Timetable Synced",
-      time: scheduleCard?.time || '08:00 AM - 01:00 PM',
-      room: scheduleCard?.room || 'Room 301',
+      highlight: scheduleCard?.highlight || 'No classes scheduled today',
+      time: scheduleCard?.time || 'No active period',
+      room: scheduleCard?.room || 'Staff Room',
       subtext: scheduleCard?.subtext || 'Daily schedule synced with Timetable',
       actionText: 'View Full Schedule',
       path: '/teacher/schedule',
@@ -74,13 +66,13 @@ export default function TeacherDashboard() {
     {
       id: 'attendance',
       title: 'Class Attendance',
-      badge: attendanceCard?.badge || `${teacher?.classTeacherFor || 'Class 10'} Homeroom`,
+      badge: attendanceCard?.badge || (teacher?.classTeacherFor ? `${teacher.classTeacherFor} Homeroom` : 'Homeroom'),
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       icon: LuClipboardCheck,
       iconBg: 'bg-emerald-50 text-emerald-600',
-      highlight: attendanceCard?.highlight || '30 / 32 Students Present',
+      highlight: attendanceCard?.highlight || (attendanceCard?.isMarked ? 'Attendance Recorded' : 'Attendance Pending'),
       time: attendanceCard?.isMarked ? 'Marked for Today' : 'Today (Pending)',
-      room: attendanceCard?.turnoutRate || '93.8% Turnout',
+      room: attendanceCard?.turnoutRate || (attendanceCard?.isMarked ? '100% Turnout' : 'Awaiting Mark'),
       subtext: attendanceCard?.subtext || 'Live attendance status for homeroom',
       actionText: 'Mark / Review Attendance',
       path: '/teacher/student-attendance',
@@ -88,13 +80,13 @@ export default function TeacherDashboard() {
     {
       id: 'assignments',
       title: 'Active Assignments',
-      badge: assignmentsCard?.badge || '3 Active Sets',
+      badge: assignmentsCard?.badge || `${assignmentsCard?.activeSets || 0} Active Sets`,
       badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
       icon: LuClipboardList,
       iconBg: 'bg-amber-50 text-amber-600',
-      highlight: assignmentsCard?.highlight || '12 Pending Evaluations',
-      time: assignmentsCard?.time || 'Due Soon: Set 4',
-      room: `${teacher?.classTeacherFor || 'Class 10'} & Grade 9`,
+      highlight: assignmentsCard?.highlight || `${assignmentsCard?.pendingEvaluations || 0} Pending Evaluations`,
+      time: assignmentsCard?.time || 'No upcoming deadlines',
+      room: assignmentsCard?.room || (teacher?.classTeacherFor ? teacher.classTeacherFor : 'Assigned Classes'),
       subtext: assignmentsCard?.subtext || 'Student submissions awaiting grading',
       actionText: 'Review Submissions',
       path: '/assignments',
@@ -103,7 +95,7 @@ export default function TeacherDashboard() {
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in pb-12 max-w-7xl mx-auto">
-      {/* Welcome Banner with Refresh Action */}
+      {/* Welcome Banner */}
       <div className="relative">
         <WelcomeCard />
       </div>

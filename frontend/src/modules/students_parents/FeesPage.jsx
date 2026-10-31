@@ -5,30 +5,23 @@ import {
   LuReceipt,
   LuWallet,
   LuArrowLeft,
-  LuCreditCard,
   LuDownload,
   LuCircleCheck,
   LuClock,
-  LuShieldAlert,
   LuShieldCheck,
   LuX,
-  LuCheck,
   LuLoader,
   LuPrinter,
   LuBellRing,
-  LuRefreshCw,
-  LuCalendar,
-  LuTag,
   LuFileText,
-  LuChevronRight,
   LuInfo,
-  LuBus,
+  LuHistory,
+  LuBuilding2,
 } from 'react-icons/lu';
 
 export default function FeesPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' | 'paid'
 
   // Dynamic live states from database
@@ -36,7 +29,6 @@ export default function FeesPage() {
     name: 'Student',
     admissionNo: '—',
     classSection: 'Class 10-A',
-    withTransport: false,
   });
   const [summary, setSummary] = useState({
     totalAnnual: '₹0',
@@ -50,7 +42,6 @@ export default function FeesPage() {
     overdueCount: 0,
     clearancePercentage: 0,
     isGoodStanding: true,
-    withTransport: false,
     session: 'Academic Session 2026-27',
   });
   const [installments, setInstallments] = useState([]);
@@ -58,17 +49,17 @@ export default function FeesPage() {
   const [upcomingInstallments, setUpcomingInstallments] = useState([]);
   const [financeNotifs, setFinanceNotifs] = useState([]);
   const [classFeeStructure, setClassFeeStructure] = useState(null);
-
-  // Payment Modal
-  const [selectedFeeToPay, setSelectedFeeToPay] = useState(null);
-  const [showPayModal, setShowPayModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('upi');
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [paymentSuccessData, setPaymentSuccessData] = useState(null);
-  const [paying, setPaying] = useState(false);
+  const [counterNotice, setCounterNotice] = useState(
+    'Please pay your fee dues at the school fee counter.'
+  );
 
   // View Receipt Modal
   const [receiptModal, setReceiptModal] = useState(null);
+
+  // Student Running Ledger Modal
+  const [showLedgerModal, setShowLedgerModal] = useState(false);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [ledgerData, setLedgerData] = useState(null);
 
   const fetchFeesData = async () => {
     try {
@@ -78,6 +69,7 @@ export default function FeesPage() {
         if (res.data.summary) setSummary(res.data.summary);
         if (res.data.classFeeStructure) setClassFeeStructure(res.data.classFeeStructure);
         if (res.data.installments) setInstallments(res.data.installments);
+        if (res.data.counterNotice) setCounterNotice(res.data.counterNotice);
         if (res.data.paidInstallments) {
           setPaidInstallments(res.data.paidInstallments);
         } else if (res.data.installments) {
@@ -96,7 +88,21 @@ export default function FeesPage() {
       console.error('Error fetching fee ledger:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
+    }
+  };
+
+  const fetchLedger = async () => {
+    setShowLedgerModal(true);
+    setLedgerLoading(true);
+    try {
+      const res = await studentParentService.getFeeLedger();
+      if (res?.success && res.data) {
+        setLedgerData(res.data);
+      }
+    } catch (err) {
+      console.error('Error fetching student fee ledger:', err);
+    } finally {
+      setLedgerLoading(false);
     }
   };
 
@@ -106,114 +112,77 @@ export default function FeesPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchFeesData();
-  };
-
-  const openPaymentModal = (fee = null) => {
-    setSelectedFeeToPay(fee);
-    setPaymentSuccess(false);
-    setPaymentSuccessData(null);
-    setShowPayModal(true);
-  };
-
-  const handlePay = async (e) => {
-    e.preventDefault();
-    setPaying(true);
-    try {
-      const payload = {
-        payment_mode: paymentMethod,
-      };
-      if (selectedFeeToPay && selectedFeeToPay.id) {
-        payload.fee_id = selectedFeeToPay.id;
-      }
-      const res = await studentParentService.payFee(payload);
-      if (res?.success) {
-        setPaymentSuccess(true);
-        setPaymentSuccessData(res.data || null);
-        setTimeout(() => {
-          setShowPayModal(false);
-          setPaymentSuccess(false);
-          fetchFeesData();
-        }, 2200);
-      }
-    } catch (err) {
-      console.error('Payment error:', err);
-      // Fallback
-      setPaymentSuccess(true);
-      setTimeout(() => {
-        setShowPayModal(false);
-        setPaymentSuccess(false);
-        fetchFeesData();
-      }, 2000);
-    } finally {
-      setPaying(false);
-    }
-  };
-
   const handleMarkNotifRead = async (id) => {
     try {
       await studentParentService.markNotificationRead(id);
       setFinanceNotifs((prev) =>
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
-    } catch (e) {}
+    } catch (err) {
+      console.error('Failed to mark read', err);
+    }
   };
 
   return (
-    <div className="space-y-5 pb-12 animate-fade-in">
-      {/* Header & Quick Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fade-in">
+      {/* Header & Quick Navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/dashboard')}
-            className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
-            title="Return to Dashboard"
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors text-slate-600 cursor-pointer"
+            title="Go back"
           >
             <LuArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-800 tracking-tight">Student Fees & Ledger</h1>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-100">
-                {summary?.session || 'Academic Session 2026-27'}
+            <h1 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+              Fee Ledger & Receipts
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200">
+                {summary?.session || 'Session 2026-27'}
               </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
-              <span>Student: <strong className="text-slate-700">{studentInfo?.name || 'Student'}</strong> • ID: <strong className="text-slate-700 font-mono">{studentInfo?.admissionNo || '—'}</strong> ({studentInfo?.classSection || 'Class 10-A'})</span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${studentInfo?.withTransport ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
-                <LuBus className="w-3 h-3" />
-                {studentInfo?.withTransport ? 'School Transport Opted' : 'Without Transport'}
-              </span>
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+              Student: <strong className="text-slate-700">{studentInfo?.name || 'Aarav Patel'}</strong> • Roll #{' '}
+              {studentInfo?.admissionNo || 'STU-101'} • {studentInfo?.classSection || 'Class 10-A'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        {/* Action Button: View Complete Running Ledger */}
+        <div className="flex items-center gap-2">
           <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
+            onClick={fetchLedger}
+            className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold inline-flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
           >
-            <LuRefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            Sync Ledger
+            <LuHistory className="w-4 h-4 text-primary-600" /> View Account Statement & Ledger
           </button>
-
-          {(summary?.rawOutstanding ?? 0) > 0 && (
-            <button
-              onClick={() => openPaymentModal(upcomingInstallments[0] || null)}
-              className="px-3.5 py-1.5 rounded-xl bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <LuCreditCard className="w-3.5 h-3.5" />
-              Pay Outstanding Dues ({summary?.outstandingAmount || '₹0'})
-            </button>
-          )}
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      {/* Prominent Counter Payment Notice (Online Gateways Disabled) */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50/50 rounded-2xl p-4 sm:p-5 border border-blue-200/70 shadow-xs flex items-start gap-3.5">
+        <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+          <LuBuilding2 className="w-5 h-5" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-sm font-bold text-blue-900 flex items-center gap-2">
+            School Fee Counter Payment Notice
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+              Offline Desk Active
+            </span>
+          </h2>
+          <p className="text-xs text-blue-800/90 leading-relaxed font-medium">
+            {counterNotice}
+          </p>
+          <p className="text-[11px] text-blue-700/80 font-normal">
+            Accepted modes: <strong>Cash, Cheque, Bank Transfer (NEFT/RTGS), or Counter UPI</strong>. Official computer-generated receipts are issued immediately upon payment.
+          </p>
+        </div>
+      </div>
+
+      {/* KPI Metric Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
             <div className="text-xs font-medium text-slate-500">Total Annual Fees</div>
@@ -310,14 +279,6 @@ export default function FeesPage() {
                       Dismiss
                     </button>
                   )}
-                  {(summary?.rawOutstanding ?? 0) > 0 && (
-                    <button
-                      onClick={() => openPaymentModal(upcomingInstallments[0] || null)}
-                      className="px-3 py-1 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-semibold transition-colors cursor-pointer shadow-xs"
-                    >
-                      Clear Dues
-                    </button>
-                  )}
                 </div>
               </div>
             ))}
@@ -325,7 +286,7 @@ export default function FeesPage() {
         </div>
       )}
 
-      {/* Standard Fee Structure Breakdown (Configured by School Admin) */}
+      {/* Standard Fee Structure Breakdown */}
       {classFeeStructure && (
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-3">
           <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
@@ -347,14 +308,10 @@ export default function FeesPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
               <div className="text-[11px] font-medium text-slate-500">Core Tuition & Academic</div>
               <div className="text-sm font-bold text-slate-800 font-mono mt-0.5">{classFeeStructure.tuitionFee}</div>
-            </div>
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-              <div className="text-[11px] font-medium text-slate-500">School Vehicle & Transit</div>
-              <div className="text-sm font-bold text-slate-800 font-mono mt-0.5">{classFeeStructure.transportFee}</div>
             </div>
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
               <div className="text-[11px] font-medium text-slate-500">Science Lab & Library</div>
@@ -397,7 +354,7 @@ export default function FeesPage() {
           </div>
 
           <div className="text-xs text-slate-400 font-medium">
-            Showing official fee ledger recorded in school database
+            Official fee installment schedule recorded in school database
           </div>
         </div>
 
@@ -430,12 +387,9 @@ export default function FeesPage() {
 
                       <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
                         <span className="text-sm font-black font-mono text-slate-900">{item.amount}</span>
-                        <button
-                          onClick={() => openPaymentModal(item)}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs cursor-pointer"
-                        >
-                          <LuCreditCard className="w-3 h-3" /> Pay Now
-                        </button>
+                        <span className="px-2.5 py-1 rounded-lg bg-slate-200/80 text-slate-700 text-[10px] font-semibold">
+                          Pay at Fee Counter
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -450,7 +404,7 @@ export default function FeesPage() {
                         <th className="py-3.5 px-4">Payable Amount</th>
                         <th className="py-3.5 px-4">Due Date</th>
                         <th className="py-3.5 px-4">Status</th>
-                        <th className="py-3.5 px-4 text-right">Online Payment</th>
+                        <th className="py-3.5 px-4 text-right">Payment Method</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
@@ -458,7 +412,7 @@ export default function FeesPage() {
                         <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
                           <td className="py-3.5 px-4">
                             <div className="font-bold text-slate-800">{item.term}</div>
-                            <div className="text-[10px] text-slate-400">Tuition & Academic Facilities</div>
+                            <div className="text-[10px] text-slate-400">Tuition & School Amenities</div>
                           </td>
                           <td className="py-3.5 px-4 font-extrabold text-slate-900 text-sm">
                             {item.amount}
@@ -467,23 +421,18 @@ export default function FeesPage() {
                             {item.dueDate}
                           </td>
                           <td className="py-3.5 px-4">
-                            {item.status === 'Overdue' ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 animate-pulse">
-                                <LuShieldAlert className="w-3 h-3" /> Overdue
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                <LuClock className="w-3 h-3" /> Pending
-                              </span>
-                            )}
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              item.status === 'Overdue'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                              {item.status}
+                            </span>
                           </td>
                           <td className="py-3.5 px-4 text-right">
-                            <button
-                              onClick={() => openPaymentModal(item)}
-                              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-all cursor-pointer"
-                            >
-                              <LuCreditCard className="w-3.5 h-3.5" /> Pay {item.amount}
-                            </button>
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold">
+                              <LuBuilding2 className="w-3.5 h-3.5 text-blue-600" /> Pay at Fee Counter
+                            </span>
                           </td>
                         </tr>
                       ))}
@@ -500,9 +449,9 @@ export default function FeesPage() {
           <div>
             {paidInstallments.length === 0 ? (
               <div className="py-8 sm:py-12 text-center text-slate-400 space-y-2">
-                <LuReceipt className="w-8 h-8 sm:w-10 sm:h-10 text-slate-300 mx-auto" />
-                <h3 className="text-sm font-bold text-slate-800">No Payment Receipts Found</h3>
-                <p className="text-xs text-slate-400">Completed payments will appear here with downloadable receipts.</p>
+                <LuInfo className="w-8 h-8 sm:w-10 sm:h-10 text-slate-300 mx-auto" />
+                <h3 className="text-sm font-bold text-slate-800">No Receipts Found</h3>
+                <p className="text-xs text-slate-400">Payment receipts will appear here once cleared by Accounts desk.</p>
               </div>
             ) : (
               <>
@@ -513,7 +462,7 @@ export default function FeesPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <h4 className="text-xs font-bold text-slate-800 leading-tight">{item.term}</h4>
-                          <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
+                          <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
                             <LuCircleCheck className="w-2.5 h-2.5" /> Paid on {item.paidDate}
                           </p>
                         </div>
@@ -589,124 +538,18 @@ export default function FeesPage() {
         )}
       </div>
 
-      {/* Online Payment Modal */}
-      {showPayModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 animate-scale-up">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-base font-bold text-slate-800">Online Fee Payment Gateway</h3>
-                <p className="text-xs text-slate-400">
-                  {selectedFeeToPay ? selectedFeeToPay.term : 'Outstanding Installment'}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowPayModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <LuX className="w-5 h-5" />
-              </button>
-            </div>
-
-            {paymentSuccess ? (
-              <div className="py-6 text-center space-y-2">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-                  <LuCheck className="w-6 h-6" />
-                </div>
-                <h4 className="text-base font-bold text-slate-800">Payment Successful!</h4>
-                <p className="text-xs text-slate-500">
-                  Transaction Reference: {paymentSuccessData?.txnId || 'TXN-SUCCESS'} • Receipt #{paymentSuccessData?.receiptNumber || 'REC-2026'}
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handlePay} className="space-y-4">
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-                  <span className="text-xs text-slate-600 font-medium">Payable Amount:</span>
-                  <span className="text-lg font-extrabold text-slate-900">
-                    {selectedFeeToPay ? selectedFeeToPay.amount : summary.outstandingAmount}
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-slate-700">Choose Payment Method</label>
-
-                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'upi' ? 'border-primary-500 bg-primary-50/20' : 'border-slate-200'}`}>
-                    <input
-                      type="radio"
-                      name="payMethod"
-                      value="upi"
-                      checked={paymentMethod === 'upi'}
-                      onChange={() => setPaymentMethod('upi')}
-                      className="text-primary-600 focus:ring-0 cursor-pointer"
-                    />
-                    <span className="text-xs font-bold text-slate-800">UPI (Google Pay / PhonePe / Paytm / QR)</span>
-                  </label>
-
-                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'netbanking' ? 'border-primary-500 bg-primary-50/20' : 'border-slate-200'}`}>
-                    <input
-                      type="radio"
-                      name="payMethod"
-                      value="netbanking"
-                      checked={paymentMethod === 'netbanking'}
-                      onChange={() => setPaymentMethod('netbanking')}
-                      className="text-primary-600 focus:ring-0 cursor-pointer"
-                    />
-                    <span className="text-xs font-bold text-slate-800">Net Banking (HDFC, ICICI, SBI, Axis)</span>
-                  </label>
-
-                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'card' ? 'border-primary-500 bg-primary-50/20' : 'border-slate-200'}`}>
-                    <input
-                      type="radio"
-                      name="payMethod"
-                      value="card"
-                      checked={paymentMethod === 'card'}
-                      onChange={() => setPaymentMethod('card')}
-                      className="text-primary-600 focus:ring-0 cursor-pointer"
-                    />
-                    <span className="text-xs font-bold text-slate-800">Debit / Credit Card</span>
-                  </label>
-                </div>
-
-                <div className="p-3 rounded-xl bg-emerald-50 text-[11px] text-emerald-800 flex items-center gap-2">
-                  <LuShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>256-bit SSL encrypted secure payment gateway</span>
-                </div>
-
-                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setShowPayModal(false)}
-                    className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={paying}
-                    className="px-5 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
-                  >
-                    {paying ? <LuLoader className="w-3.5 h-3.5 animate-spin" /> : <LuCreditCard className="w-3.5 h-3.5" />}
-                    Confirm & Pay
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Official Printable Fee Receipt Modal */}
       {receiptModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-7 shadow-2xl border border-slate-200 animate-scale-up">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 animate-scale-up">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-extrabold text-sm shadow-xs">
                   AC
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-slate-800">Arch Campus International School</h3>
-                  <p className="text-[10px] text-slate-400">Official Student Fee Payment Receipt</p>
+                  <h3 className="text-sm font-extrabold text-slate-800">Official Student Fee Receipt</h3>
+                  <p className="text-[10px] text-slate-400">Validated computer-generated voucher</p>
                 </div>
               </div>
               <button
@@ -718,6 +561,11 @@ export default function FeesPage() {
             </div>
 
             <div className="py-4 space-y-3 text-xs">
+              {receiptModal.receiptNumber?.includes('LEGACY') && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px] leading-relaxed">
+                  <strong>Notice:</strong> No receipt on record (legacy entry). Historical payments prior to system migration do not have downloadable PDF vouchers.
+                </div>
+              )}
               <div className="flex justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                 <span className="text-slate-500">Receipt Number:</span>
                 <span className="font-mono font-bold text-slate-800">{receiptModal.receiptNumber || '—'}</span>
@@ -727,11 +575,11 @@ export default function FeesPage() {
                 <span className="font-bold text-slate-800">{studentInfo.name} ({studentInfo.admissionNo})</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Class & Section:</span>
+                <span className="text-slate-500">Class & Division:</span>
                 <span className="font-semibold text-slate-700">{studentInfo.classSection}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Fee Particular / Term:</span>
+                <span className="text-slate-500">Fee Particular / Head:</span>
                 <span className="font-semibold text-slate-800">{receiptModal.term}</span>
               </div>
               <div className="flex justify-between">
@@ -739,7 +587,7 @@ export default function FeesPage() {
                 <span className="font-semibold text-slate-700">{receiptModal.mode}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Transaction ID / UTR:</span>
+                <span className="text-slate-500">Reference / Txn ID:</span>
                 <span className="font-mono text-slate-700">{receiptModal.txnId}</span>
               </div>
               <div className="flex justify-between">
@@ -747,7 +595,7 @@ export default function FeesPage() {
                 <span className="text-slate-700">{receiptModal.paidDate}</span>
               </div>
               <div className="flex justify-between pt-3 border-t border-slate-200">
-                <span className="text-sm font-bold text-slate-800">Total Paid Amount:</span>
+                <span className="text-sm font-bold text-slate-800">Total Paid:</span>
                 <span className="text-base font-extrabold text-emerald-600">{receiptModal.amount}</span>
               </div>
             </div>
@@ -757,7 +605,120 @@ export default function FeesPage() {
                 onClick={() => window.print()}
                 className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-sm"
               >
-                <LuPrinter className="w-4 h-4" /> Print Official Receipt
+                <LuPrinter className="w-4 h-4" /> Print Receipt
+              </button>
+              {receiptModal.receiptNumber?.includes('LEGACY') && (
+                <button
+                  onClick={() => window.open(`/api/v1/student/fees/installments/${receiptModal.id}/legacy-receipt`, '_blank')}
+                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <LuFileText className="w-4 h-4" /> View Legacy Record
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Student Running Fee Ledger Modal */}
+      {showLedgerModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center">
+                  <LuHistory className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">Student Fee Account Statement</h3>
+                  <p className="text-xs text-slate-400">Append-only chronological audit ledger</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowLedgerModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+              >
+                <LuX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto py-4 space-y-4 grow">
+              {ledgerLoading ? (
+                <div className="py-12 text-center text-slate-400 flex flex-col items-center gap-2">
+                  <LuLoader className="w-6 h-6 animate-spin text-primary-600" />
+                  <span className="text-xs">Loading ledger entries...</span>
+                </div>
+              ) : !ledgerData || ledgerData.entries?.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-xs">
+                  No ledger transactions recorded yet.
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+                    <div>
+                      <div className="text-slate-400 text-[11px]">Total Debits (Fees Billed)</div>
+                      <div className="text-sm font-bold text-slate-800 mt-0.5">
+                        ₹{Number(ledgerData.summary?.total_debits || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-slate-400 text-[11px]">Total Credits (Paid / Relieved)</div>
+                      <div className="text-sm font-bold text-emerald-600 mt-0.5">
+                        ₹{Number(ledgerData.summary?.total_credits || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-slate-400 text-[11px]">Net Outstanding Due</div>
+                      <div className="text-sm font-bold text-rose-600 mt-0.5">
+                        ₹{Number(ledgerData.summary?.net_balance_due || 0).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                        <th className="py-2.5 px-3">Date</th>
+                        <th className="py-2.5 px-3">Type</th>
+                        <th className="py-2.5 px-3">Description</th>
+                        <th className="py-2.5 px-3 text-right">Debit (₹)</th>
+                        <th className="py-2.5 px-3 text-right">Credit (₹)</th>
+                        <th className="py-2.5 px-3 text-right">Balance (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {ledgerData.entries.map((entry) => (
+                        <tr key={entry.id} className="hover:bg-slate-50/50">
+                          <td className="py-2.5 px-3 font-medium text-slate-600 whitespace-nowrap">{entry.formatted_date}</td>
+                          <td className="py-2.5 px-3">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-700">
+                              {entry.entry_type}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-800">{entry.description}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-800">
+                            {entry.debit > 0 ? Number(entry.debit).toFixed(2) : '—'}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-emerald-600">
+                            {entry.credit > 0 ? Number(entry.credit).toFixed(2) : '—'}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                            {Number(entry.running_balance).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex justify-end shrink-0">
+              <button
+                onClick={() => setShowLedgerModal(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+              >
+                Close Statement
               </button>
             </div>
           </div>

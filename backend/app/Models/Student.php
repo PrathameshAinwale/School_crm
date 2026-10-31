@@ -70,6 +70,33 @@ class Student extends Model
         return $this->hasMany(StudentFee::class, 'student_id');
     }
 
+    public function feePayments()
+    {
+        return $this->hasMany(FeePayment::class, 'student_id');
+    }
+
+    public function feeLedgers()
+    {
+        return $this->hasMany(FeeLedger::class, 'student_id');
+    }
+
+    public function feeConcessions()
+    {
+        return $this->hasMany(StudentFeeConcession::class, 'student_id');
+    }
+
+    public function feeRefunds()
+    {
+        return $this->hasMany(FeeRefund::class, 'student_id');
+    }
+
+    public function getLedgerBalance(): float
+    {
+        $debits = (float) $this->feeLedgers()->sum('debit');
+        $credits = (float) $this->feeLedgers()->sum('credit');
+        return round($debits - $credits, 2);
+    }
+
     protected $appends = [
         'full_name',
         'class_name',

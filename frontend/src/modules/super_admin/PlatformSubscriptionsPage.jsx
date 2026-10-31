@@ -9,7 +9,6 @@ import {
   LuSparkles,
   LuShieldCheck,
   LuWallet,
-  LuRefreshCw,
   LuArrowRight,
 } from 'react-icons/lu';
 

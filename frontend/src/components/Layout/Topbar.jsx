@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import { adminService } from '../../services/adminService';
-import BranchSwitcher from './BranchSwitcher';
 import {
   LuSearch,
   LuBell,
@@ -56,7 +55,7 @@ export default function Topbar({ onToggleMobileMenu }) {
   const [notificationsList, setNotificationsList] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
       const res = await adminService.getNotifications();
       if (res && res.success) {
@@ -66,13 +65,30 @@ export default function Topbar({ onToggleMobileMenu }) {
     } catch (e) {
       // quiet fail
     }
-  };
+  }, []);
 
   useEffect(() => {
+    // Initial load once on mount
     loadNotifications();
-    const interval = setInterval(loadNotifications, 15000); // poll every 15s for new notifications
-    return () => clearInterval(interval);
-  }, []);
+
+    // Refresh notifications when any action is performed in the app (POST, PUT, PATCH, DELETE)
+    let debounceTimer = null;
+    const handleAction = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        loadNotifications();
+      }, 600);
+    };
+
+    window.addEventListener('app:action-performed', handleAction);
+    window.addEventListener('app:notification-refresh', handleAction);
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      window.removeEventListener('app:action-performed', handleAction);
+      window.removeEventListener('app:notification-refresh', handleAction);
+    };
+  }, [loadNotifications]);
 
   /**
    * Resolves the target page URL for any notification based on type, keywords, and role
@@ -406,9 +422,6 @@ export default function Topbar({ onToggleMobileMenu }) {
 
       {/* Right Actions */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        {/* Branch / Multi-Campus Switcher */}
-        <BranchSwitcher />
-
         {/* Notifications */}
         <div ref={notifRef} className="relative">
           <button

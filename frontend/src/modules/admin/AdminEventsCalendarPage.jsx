@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/adminService';
+import { useAuth } from '../../context/AuthContext';
+import AdmissionInterviewCalendarPage from '../admission/AdmissionInterviewCalendarPage';
 import {
   LuCalendarDays,
   LuPlus,
@@ -52,6 +54,11 @@ const categoryBadgeStyles = {
 };
 
 export default function AdminEventsCalendarPage() {
+  const { currentRole } = useAuth();
+  if (currentRole === 'admission_officer') {
+    return <AdmissionInterviewCalendarPage />;
+  }
+  const isPrincipal = currentRole === 'principal';
   const [events, setEvents] = useState([]);
   const [classList, setClassList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -280,44 +287,46 @@ export default function AdminEventsCalendarPage() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-primary-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20">
-            <LuCalendarDays className="w-6 h-6" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+            <LuCalendarDays className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-800 leading-tight">Admin School Calendar & Events</h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <h1 className="text-base sm:text-xl font-bold text-gray-900 leading-tight">Admin School Calendar & Events</h1>
+            <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
               Publish holidays, sports days, board exams & PTMs with class-targeted student notifications
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          <button
-            onClick={() => {
-              setEditingEvent(null);
-              setFormData({
-                title: '',
-                event_type: 'Holiday',
-                target_type: 'all',
-                target_classes: [],
-                start_date: new Date().toISOString().split('T')[0],
-                end_date: new Date().toISOString().split('T')[0],
-                start_time: '09:00 AM',
-                end_time: '01:00 PM',
-                venue: 'School Main Campus',
-                coordinator: 'Principal Office',
-                speaker: '',
-                description: '',
-              });
-              setShowAddModal(true);
-            }}
-            className="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <LuPlus className="w-4 h-4" /> Add New Event
-          </button>
-        </div>
+        {!isPrincipal && (
+          <div className="flex items-center gap-2.5 self-start sm:self-auto">
+            <button
+              onClick={() => {
+                setEditingEvent(null);
+                setFormData({
+                  title: '',
+                  event_type: 'Holiday',
+                  target_type: 'all',
+                  target_classes: [],
+                  start_date: new Date().toISOString().split('T')[0],
+                  end_date: new Date().toISOString().split('T')[0],
+                  start_time: '09:00 AM',
+                  end_time: '01:00 PM',
+                  venue: 'School Main Campus',
+                  coordinator: 'Principal Office',
+                  speaker: '',
+                  description: '',
+                });
+                setShowAddModal(true);
+              }}
+              className="px-4 py-2 sm:py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <LuPlus className="w-4 h-4" /> <span>Add New Event</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filter & Search Bar */}
@@ -433,22 +442,24 @@ export default function AdminEventsCalendarPage() {
                       </div>
 
                       {/* Card Action Icons */}
-                      <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => openEditModal(evt)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-slate-50 transition-colors cursor-pointer"
-                          title="Edit Event"
-                        >
-                          <LuPencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTargetEvent(evt)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Delete Event"
-                        >
-                          <LuTrash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {!isPrincipal && (
+                        <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => openEditModal(evt)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                            title="Edit Event"
+                          >
+                            <LuPencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteTargetEvent(evt)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Delete Event"
+                          >
+                            <LuTrash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Title */}
@@ -508,16 +519,16 @@ export default function AdminEventsCalendarPage() {
 
       {/* Add / Edit Event Modal */}
       {(showAddModal || editingEvent) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full my-6 overflow-hidden animate-scale-up">
-            <div className="bg-gradient-to-r from-primary-600 to-indigo-600 p-5 text-white flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-2xl w-full my-6 overflow-hidden animate-scale-up">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
-                  <LuCalendarDays className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center shrink-0">
+                  <LuCalendarDays className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">{editingEvent ? 'Edit Calendar Event' : 'Publish New Calendar Event'}</h3>
-                  <p className="text-primary-100 text-xs">Configure date range, timing, target classes, and instant notifications</p>
+                  <h3 className="font-bold text-base text-gray-900">{editingEvent ? 'Edit Calendar Event' : 'Publish New Calendar Event'}</h3>
+                  <p className="text-gray-500 text-xs mt-0.5">Configure date range, timing, target classes, and instant notifications</p>
                 </div>
               </div>
               <button
@@ -525,7 +536,7 @@ export default function AdminEventsCalendarPage() {
                   setShowAddModal(false);
                   setEditingEvent(null);
                 }}
-                className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 <LuX className="w-5 h-5" />
               </button>

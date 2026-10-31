@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/adminService';
+import { useAuth } from '../../context/AuthContext';
 import {
   LuBoxes,
   LuSearch,
@@ -26,6 +27,8 @@ import {
 } from 'react-icons/lu';
 
 export default function AdminResourcesPage() {
+  const { currentRole } = useAuth();
+  const isPrincipal = currentRole === 'principal';
   const [activeTab, setActiveTab] = useState('inventory'); // 'inventory' | 'requests'
   const [resources, setResources] = useState([]);
   const [teachers, setTeachers] = useState([]);
@@ -260,56 +263,58 @@ export default function AdminResourcesPage() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-600 text-white flex items-center justify-center shadow-md shadow-cyan-500/20">
-            <LuBoxes className="w-6 h-6" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+            <LuBoxes className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-800 leading-tight">School Resources & Asset Inventory</h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <h1 className="text-base sm:text-xl font-bold text-gray-900 leading-tight">School Resources & Asset Inventory</h1>
+            <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
               Assign responsible faculty members, oversee equipment maintenance, and approve repair requests
             </p>
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            setEditingResource(null);
-            setFormData({
-              name: '',
-              category: 'Laboratory',
-              total_quantity: 1,
-              available_quantity: 1,
-              condition: 'Good',
-              location_room: '',
-              unit_cost: '',
-              status: 'Available',
-              assigned_teacher_id: '',
-              notes: '',
-            });
-            setShowAddModal(true);
-          }}
-          className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 text-white font-semibold text-xs rounded-xl shadow-md shadow-cyan-500/20 transition-all flex items-center gap-2 w-full sm:w-auto justify-center self-start sm:self-auto shrink-0 cursor-pointer"
-        >
-          <LuPlus className="w-4 h-4" /> Add Asset Item
-        </button>
+        {!isPrincipal && (
+          <button
+            onClick={() => {
+              setEditingResource(null);
+              setFormData({
+                name: '',
+                category: 'Laboratory',
+                total_quantity: 1,
+                available_quantity: 1,
+                condition: 'Good',
+                location_room: '',
+                unit_cost: '',
+                status: 'Available',
+                assigned_teacher_id: '',
+                notes: '',
+              });
+              setShowAddModal(true);
+            }}
+            className="px-4 py-2 sm:py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto self-start sm:self-auto shrink-0 cursor-pointer"
+          >
+            <LuPlus className="w-4 h-4" /> <span>Add Asset Item</span>
+          </button>
+        )}
       </div>
 
       {/* Primary Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+      <div className="flex items-center gap-1.5 border-b border-gray-200/80 pb-2 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveTab('inventory')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-3.5 py-1.5 sm:py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'inventory'
-              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-500/20'
-              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
+              ? 'bg-primary-50 text-primary-700 font-bold border border-primary-200/60 shadow-2xs'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
           }`}
         >
-          <LuBoxes className="w-4 h-4" />
+          <LuBoxes className={`w-3.5 h-3.5 ${activeTab === 'inventory' ? 'text-primary-600' : 'text-gray-400'}`} />
           <span>Asset Inventory</span>
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
-            activeTab === 'inventory' ? 'bg-cyan-700 text-white' : 'bg-slate-100 text-slate-600'
+            activeTab === 'inventory' ? 'bg-primary-100 text-primary-800' : 'bg-gray-100 text-gray-600'
           }`}>
             {resources.length}
           </span>
@@ -317,13 +322,13 @@ export default function AdminResourcesPage() {
 
         <button
           onClick={() => setActiveTab('requests')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer ${
+          className={`px-3.5 py-1.5 sm:py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'requests'
-              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-500/20'
-              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
+              ? 'bg-primary-50 text-primary-700 font-bold border border-primary-200/60 shadow-2xs'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
           }`}
         >
-          <LuWrench className="w-4 h-4" />
+          <LuWrench className={`w-3.5 h-3.5 ${activeTab === 'requests' ? 'text-primary-600' : 'text-gray-400'}`} />
           <span>Maintenance & Issue Requests</span>
           {pendingRequestsCount > 0 && (
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white animate-pulse">
@@ -459,22 +464,26 @@ export default function AdminResourcesPage() {
                             </div>
                           </td>
                           <td className="px-5 py-3.5 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                onClick={() => openEditModal(item)}
-                                title="Edit Asset & Assign Responsible Person"
-                                className="p-1.5 rounded-lg text-slate-500 hover:text-cyan-600 hover:bg-cyan-50 transition-colors cursor-pointer"
-                              >
-                                <LuPencil className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => setDeleteTargetResource(item)}
-                                title="Remove Item"
-                                className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                              >
-                                <LuTrash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                            {!isPrincipal ? (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => openEditModal(item)}
+                                  title="Edit Asset & Assign Responsible Person"
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-cyan-600 hover:bg-cyan-50 transition-colors cursor-pointer"
+                                >
+                                  <LuPencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteTargetResource(item)}
+                                  title="Remove Item"
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                >
+                                  <LuTrash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-gray-400 italic">Read Only</span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -654,6 +663,10 @@ export default function AdminResourcesPage() {
                           <span className="px-3.5 py-1.5 bg-purple-100 text-purple-800 font-bold text-xs rounded-xl border border-purple-300 inline-flex items-center gap-1.5 select-none cursor-default">
                             <LuWrench className="w-3.5 h-3.5 text-purple-600" /> In Repair
                           </span>
+                        ) : isPrincipal ? (
+                          <span className="px-3.5 py-1.5 bg-amber-50 text-amber-700 font-bold text-xs rounded-xl border border-amber-200 inline-flex items-center gap-1.5">
+                            Pending Review
+                          </span>
                         ) : (
                           <button
                             onClick={() => {
@@ -680,16 +693,16 @@ export default function AdminResourcesPage() {
 
       {/* Add / Edit Resource Modal */}
       {(showAddModal || editingResource) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-xl w-full my-4 sm:my-8 overflow-hidden animate-scale-up">
-            <div className="bg-gradient-to-r from-cyan-600 to-blue-600 p-5 text-white flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-xl w-full my-4 sm:my-8 overflow-hidden animate-scale-up">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
-                  <LuBoxes className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center shrink-0">
+                  <LuBoxes className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">{editingResource ? 'Edit Resource Asset' : 'Add Resource Asset'}</h3>
-                  <p className="text-cyan-100 text-xs">Specify equipment specs and assign a responsible faculty member</p>
+                  <h3 className="font-bold text-base text-gray-900">{editingResource ? 'Edit Resource Asset' : 'Add Resource Asset'}</h3>
+                  <p className="text-gray-500 text-xs mt-0.5">Specify equipment specs and assign a responsible faculty member</p>
                 </div>
               </div>
               <button
@@ -697,7 +710,7 @@ export default function AdminResourcesPage() {
                   setShowAddModal(false);
                   setEditingResource(null);
                 }}
-                className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 <LuX className="w-5 h-5" />
               </button>
@@ -886,7 +899,7 @@ export default function AdminResourcesPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl shadow-md shadow-cyan-500/20 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
                   {submitting ? 'Saving...' : editingResource ? 'Update Asset' : 'Add Asset'}
@@ -899,21 +912,21 @@ export default function AdminResourcesPage() {
 
       {/* Action Request Modal (Approve/Reject/Resolve) */}
       {actioningRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full my-8 overflow-hidden animate-scale-up">
-            <div className="bg-gradient-to-r from-cyan-600 to-indigo-600 p-5 text-white flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-lg w-full my-8 overflow-hidden animate-scale-up">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
-                  <LuWrench className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center shrink-0">
+                  <LuWrench className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">Review Maintenance Request</h3>
-                  <p className="text-cyan-100 text-xs">Set approval status and enter remarks for the reporter</p>
+                  <h3 className="font-bold text-base text-gray-900">Review Maintenance Request</h3>
+                  <p className="text-gray-500 text-xs mt-0.5">Set approval status and enter remarks for the reporter</p>
                 </div>
               </div>
               <button
                 onClick={() => setActioningRequest(null)}
-                className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 <LuX className="w-5 h-5" />
               </button>
@@ -972,7 +985,7 @@ export default function AdminResourcesPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl shadow-md shadow-cyan-500/20 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
                   {submitting ? 'Updating...' : 'Submit Action'}

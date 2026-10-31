@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import WelcomeCard from '../../components/Dashboard/WelcomeCard';
 import StatCard from '../../components/Dashboard/StatCard';
+import AddSchoolModal from '../../components/Layout/AddSchoolModal';
+import { useAuth } from '../../context/AuthContext';
 import { adminService } from '../../services/adminService';
 import {
   LuUsers,
@@ -14,11 +16,14 @@ import {
   LuCircleCheck,
   LuLoader,
   LuPlus,
+  LuBuilding2,
 } from 'react-icons/lu';
 
 export default function AdminDashboard() {
+  const { currentSchool, linkedSchoolAccounts } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showAddSchoolModal, setShowAddSchoolModal] = useState(false);
 
   useEffect(() => {
     adminService.getDashboardStats()
@@ -191,6 +196,13 @@ export default function AdminDashboard() {
           })}
         </div>
       </div>
+
+      {/* Add School Modal */}
+      <AddSchoolModal
+        isOpen={showAddSchoolModal}
+        onClose={() => setShowAddSchoolModal(false)}
+        onSuccess={() => setShowAddSchoolModal(false)}
+      />
     </div>
   );
 }

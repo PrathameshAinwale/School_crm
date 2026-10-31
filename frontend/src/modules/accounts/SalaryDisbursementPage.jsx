@@ -11,7 +11,6 @@ import {
   LuBuilding2,
   LuUserCheck,
   LuArrowRight,
-  LuRefreshCw,
   LuFileText,
   LuShieldCheck,
   LuSend,
@@ -31,7 +30,6 @@ export default function SalaryDisbursementPage() {
   const [staffList, setStaffList] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   // Filters for Disbursed Records Ledger
   const [searchTerm, setSearchTerm] = useState('');
@@ -89,18 +87,12 @@ export default function SalaryDisbursementPage() {
       console.error('Error fetching disbursements:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchDisbursements();
   }, []);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchDisbursements();
-  };
 
   // When staff selection changes in Add Modal, pre-populate details
   const handleStaffSelect = (e) => {
@@ -122,8 +114,8 @@ export default function SalaryDisbursementPage() {
         ...addForm,
         teacher_id: matched.id,
         staff_name: matched.name,
-        amount: matched.salary || 45000,
-        account_no: matched.phone ? `•••• ${matched.phone.slice(-4)}` : '•••• 4589',
+        amount: matched.salary ?? 0,
+        account_no: matched.phone ? `•••• ${matched.phone.slice(-4)}` : '',
         payment_reference: `NEFT-PAY-${Math.floor(100000 + Math.random() * 900000)}`,
       });
     }
@@ -243,9 +235,6 @@ export default function SalaryDisbursementPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-slate-800 tracking-tight">Staff Salary Disbursements</h1>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-              Accounts & Payroll
-            </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
             Record individual staff salary disbursements, log transaction payout receipts, and process monthly payroll batches.
@@ -253,14 +242,6 @@ export default function SalaryDisbursementPage() {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
-          >
-            <LuRefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
 
           <button
             onClick={() => {
@@ -321,7 +302,7 @@ export default function SalaryDisbursementPage() {
         <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-xs">
           <div className="text-xs font-medium text-slate-500">Active Faculty & Staff</div>
           <div className="text-xl font-bold text-slate-800 mt-1 font-mono tracking-tight">
-            {summary?.activeStaffCount || staffList.length || 24} Staff
+            {summary?.activeStaffCount ?? staffList.length} Staff
           </div>
           <div className="text-[11px] text-slate-400 mt-0.5">
             Across Academic & Admin

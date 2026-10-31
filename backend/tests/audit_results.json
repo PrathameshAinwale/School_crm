@@ -1,0 +1,230 @@
+{
+    "timestamp": "2026-10-26 12:37:50",
+    "results": {
+        "functional": {
+            "passed": 18,
+            "failed": 0,
+            "items": [
+                {
+                    "name": "Authentication: Admin login via email & password",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Admin: Dashboard KPIs and admission metrics assembly",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Admissions: Pipeline list with 6-stage stats",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Admissions: Create new inquiry application",
+                    "status": "PASS",
+                    "details": "Status: 201"
+                },
+                {
+                    "name": "Admissions: Update status and documents checklist",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Admissions: Enroll applicant and generate parent login",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Accounts: Student Fees ledger list",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Accounts: School Expenses list & summaries",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Accounts: Vendors directory list",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Sports: Activities & Disciplines directory",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Sports: Tournaments and Competitions schedule",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "HR: Staff Attendance roster retrieval",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "HR: Staff Salaries payroll calculation",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Teacher: Real-time academic dashboard",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Teacher: Today schedule & periods assembly",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Student\/Parent: Student dashboard and academic progress",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Student\/Parent: Fee installments and dues",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Super Admin: Platform Overview & Multi-School KPIs",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                }
+            ]
+        },
+        "validation": {
+            "passed": 9,
+            "failed": 0,
+            "items": [
+                {
+                    "name": "Admissions: Reject empty mandatory fields (first_name, guardian_phone)",
+                    "status": "PASS",
+                    "details": "Status: 422"
+                },
+                {
+                    "name": "Admissions: Reject whitespace-only mandatory fields",
+                    "status": "PASS",
+                    "details": "Status: 422"
+                },
+                {
+                    "name": "Admissions: Reject extreme long string (12,000 chars) exceeding max:255",
+                    "status": "PASS",
+                    "details": "Status: 422"
+                },
+                {
+                    "name": "Admissions: Reject malformed guardian email",
+                    "status": "PASS",
+                    "details": "Status: 422"
+                },
+                {
+                    "name": "Admissions: Reject phone number exceeding max length",
+                    "status": "PASS",
+                    "details": "Status: 422"
+                },
+                {
+                    "name": "Admissions: Reject invalid stage transition enum value",
+                    "status": "PASS",
+                    "details": "Status: 422"
+                },
+                {
+                    "name": "Admissions: Support clean Unicode and Emoji storage",
+                    "status": "PASS",
+                    "details": "Status: 201"
+                },
+                {
+                    "name": "Accounts: Reject negative expense amount",
+                    "status": "PASS",
+                    "details": "Status: 422"
+                },
+                {
+                    "name": "Admin: Reject duplicate teacher email registration",
+                    "status": "PASS",
+                    "details": "Status: 422"
+                }
+            ]
+        },
+        "security": {
+            "passed": 10,
+            "failed": 0,
+            "items": [
+                {
+                    "name": "SQL Injection: Parameterized ORM queries protect search & path params",
+                    "status": "PASS",
+                    "details": "Tested 5 advanced SQLi attack vectors without syntax leakage or crashes"
+                },
+                {
+                    "name": "XSS: Handled safely via JSON response encoding and input processing",
+                    "status": "PASS",
+                    "details": "Status: 201"
+                },
+                {
+                    "name": "Password Storage: Passwords hashed with secure Bcrypt\/Argon2 (no plaintext)",
+                    "status": "PASS",
+                    "details": "Algorithm: bcrypt"
+                },
+                {
+                    "name": "Authorization: Student denied access to Admin Students directory (403\/Forbidden)",
+                    "status": "PASS",
+                    "details": "Status: 403"
+                },
+                {
+                    "name": "Authorization: Teacher denied access to Super Admin schools (403\/Forbidden)",
+                    "status": "PASS",
+                    "details": "Status: 403"
+                },
+                {
+                    "name": "Authorization: Student\/Parent denied access to Staff Salary Disbursements (403\/Forbidden)",
+                    "status": "PASS",
+                    "details": "Status: 403"
+                },
+                {
+                    "name": "Multi-Tenancy: Branch isolation prevents cross-tenant data access for staff\/student",
+                    "status": "PASS",
+                    "details": "Status: 403"
+                },
+                {
+                    "name": "Session: Bearer token invalidated upon logout",
+                    "status": "PASS",
+                    "details": "Reuse status: 401"
+                },
+                {
+                    "name": "Security Headers: JSON responses carry secure content types and API headers",
+                    "status": "PASS",
+                    "details": "Status: 200"
+                },
+                {
+                    "name": "Sensitive Data: Error pages and JSON responses do not leak database passwords or APP_KEY",
+                    "status": "PASS",
+                    "details": "Status: 404"
+                }
+            ]
+        },
+        "qa": {
+            "passed": 3,
+            "failed": 0,
+            "items": [
+                {
+                    "name": "QA: App.jsx routes registered for all 7 role modules",
+                    "status": "PASS",
+                    "details": "All core module paths verified"
+                },
+                {
+                    "name": "Performance: Admissions pipeline response time under 500ms",
+                    "status": "PASS",
+                    "details": "Response time: 247.89ms"
+                },
+                {
+                    "name": "Concurrency: Transaction blocks wrap critical financial and enrollment state mutations",
+                    "status": "PASS",
+                    "details": "Database transactions active on enroll and fee writes"
+                }
+            ]
+        }
+    },
+    "issues": []
+}

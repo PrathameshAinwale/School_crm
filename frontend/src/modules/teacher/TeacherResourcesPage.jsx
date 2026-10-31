@@ -22,7 +22,6 @@ import {
   LuClock,
   LuFilter,
   LuPaperclip,
-  LuRefreshCw,
 } from 'react-icons/lu';
 
 export default function TeacherResourcesPage() {
@@ -580,12 +579,12 @@ export default function TeacherResourcesPage() {
                     <input
                       type="number"
                       min="0"
-                      max={currentSelectedResource?.total_quantity || 999}
+                      max={currentSelectedResource?.available_quantity ?? (currentSelectedResource?.total_quantity ?? 0)}
                       required
                       value={issueFormData.affected_quantity}
                       onChange={(e) => {
                         const raw = e.target.value;
-                        const maxVal = currentSelectedResource?.total_quantity || 999;
+                        const maxVal = currentSelectedResource?.available_quantity ?? (currentSelectedResource?.total_quantity ?? 0);
                         const val = raw === '' ? '' : Math.min(maxVal, Math.max(0, parseInt(raw, 10) || 0));
                         setIssueFormData({ ...issueFormData, affected_quantity: val });
                       }}
@@ -601,7 +600,7 @@ export default function TeacherResourcesPage() {
                       type="button"
                       onClick={() => {
                         const cur = parseInt(issueFormData.affected_quantity, 10);
-                        const maxVal = currentSelectedResource?.total_quantity || 999;
+                        const maxVal = currentSelectedResource?.available_quantity ?? (currentSelectedResource?.total_quantity ?? 0);
                         const next = isNaN(cur) ? 1 : Math.min(maxVal, cur + 1);
                         setIssueFormData({ ...issueFormData, affected_quantity: next });
                       }}
@@ -644,12 +643,12 @@ export default function TeacherResourcesPage() {
                     <input
                       type="number"
                       min="0"
-                      max={currentSelectedResource?.total_quantity || 999}
+                      max={currentSelectedResource?.available_quantity ?? (currentSelectedResource?.total_quantity ?? 0)}
                       required
                       value={issueFormData.affected_quantity}
                       onChange={(e) => {
                         const raw = e.target.value;
-                        const maxVal = currentSelectedResource?.total_quantity || 999;
+                        const maxVal = currentSelectedResource?.available_quantity ?? (currentSelectedResource?.total_quantity ?? 0);
                         const val = raw === '' ? '' : Math.min(maxVal, Math.max(0, parseInt(raw, 10) || 0));
                         setIssueFormData({ ...issueFormData, affected_quantity: val });
                       }}
@@ -665,7 +664,7 @@ export default function TeacherResourcesPage() {
                       type="button"
                       onClick={() => {
                         const cur = parseInt(issueFormData.affected_quantity, 10);
-                        const maxVal = currentSelectedResource?.total_quantity || 999;
+                        const maxVal = currentSelectedResource?.available_quantity ?? (currentSelectedResource?.total_quantity ?? 0);
                         const next = isNaN(cur) ? 1 : Math.min(maxVal, cur + 1);
                         setIssueFormData({ ...issueFormData, affected_quantity: next });
                       }}

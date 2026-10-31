@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services/adminService';
+import { useAuth } from '../../context/AuthContext';
 import {
   LuBus,
   LuPhone,
@@ -57,6 +58,8 @@ const VEHICLE_CARD_OPTIONS = [
 ];
 
 export default function AdminVehiclesPage() {
+  const { currentRole } = useAuth();
+  const isPrincipal = currentRole === 'principal';
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -442,21 +445,19 @@ export default function AdminVehiclesPage() {
           <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/70 w-full sm:w-auto">
             <button
               onClick={() => setViewMode('fleet')}
-              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                viewMode === 'fleet'
-                  ? 'bg-white text-slate-800 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
+              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${viewMode === 'fleet'
+                ? 'bg-white text-slate-800 shadow-xs'
+                : 'text-slate-500 hover:text-slate-700'
+                }`}
             >
               <LuBus className="w-3.5 h-3.5" /> Fleet List
             </button>
             <button
               onClick={() => setViewMode('gps')}
-              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                viewMode === 'gps'
-                  ? 'bg-orange-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-orange-600'
-              }`}
+              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${viewMode === 'gps'
+                ? 'bg-orange-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-orange-600'
+                }`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
               <LuRadio className="w-3.5 h-3.5" /> Live GPS Tracking
@@ -471,12 +472,14 @@ export default function AdminVehiclesPage() {
             <span>Add Bus Route</span>
           </button>
 
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2 w-full sm:w-auto justify-center"
-          >
-            <LuPlus className="w-4 h-4" /> Add Vehicle
-          </button>
+          {!isPrincipal && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2 w-full sm:w-auto justify-center"
+            >
+              <LuPlus className="w-4 h-4" /> Add Vehicle
+            </button>
+          )}
         </div>
       </div>
 
@@ -534,12 +537,14 @@ export default function AdminVehiclesPage() {
               <p className="text-xs text-slate-400 max-w-md mx-auto mb-6">
                 There are currently no transport vehicles registered in the database.
               </p>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs rounded-xl transition-colors inline-flex items-center gap-2 shadow-sm"
-              >
-                <LuPlus className="w-4 h-4" /> Add First Vehicle
-              </button>
+              {!isPrincipal && (
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs rounded-xl transition-colors inline-flex items-center gap-2 shadow-sm"
+                >
+                  <LuPlus className="w-4 h-4" /> Add First Vehicle
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -562,29 +567,31 @@ export default function AdminVehiclesPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
-                          v.status === 'Active'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}>
-                          <span className={`w-1 h-1 rounded-full ${
-                            v.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'
-                          }`}></span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${v.status === 'Active'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                          <span className={`w-1 h-1 rounded-full ${v.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'
+                            }`}></span>
                           {v.status}
                         </span>
-                        <button
-                          onClick={() => handleOpenEditModal(v)}
-                          title="Edit Vehicle"
-                          className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                        >
-                          <LuPencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTargetVehicle(v)}
-                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
-                        >
-                          <LuTrash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {!isPrincipal && (
+                          <>
+                            <button
+                              onClick={() => handleOpenEditModal(v)}
+                              title="Edit Vehicle"
+                              className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            >
+                              <LuPencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteTargetVehicle(v)}
+                              className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                            >
+                              <LuTrash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -687,14 +694,12 @@ export default function AdminVehiclesPage() {
                             </div>
                           </td>
                           <td className="px-5 py-4">
-                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 ${
-                              v.status === 'Active'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-amber-50 text-amber-700 border border-amber-200'
-                            }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${
-                                v.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'
-                              }`}></span>
+                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 ${v.status === 'Active'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${v.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'
+                                }`}></span>
                               {v.status}
                             </span>
                           </td>
@@ -732,21 +737,26 @@ export default function AdminVehiclesPage() {
                                 <LuSmartphone className="w-3.5 h-3.5 text-emerald-600" />
                                 Driver App
                               </button>
-                              <button
-                                onClick={() => handleOpenEditModal(v)}
-                                title="Edit Vehicle Details & Route"
-                                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold text-xs flex items-center gap-1.5 border border-slate-200/90 shadow-2xs transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                              >
-                                <LuPencil className="w-3.5 h-3.5 text-slate-600" />
-                                <span>Edit</span>
-                              </button>
-                              <button
-                                onClick={() => setDeleteTargetVehicle(v)}
-                                title="Remove Vehicle"
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                              >
-                                <LuTrash2 className="w-4 h-4" />
-                              </button>
+                              {!isPrincipal && (
+                                <>
+                                  <button
+                                    onClick={() => handleOpenEditModal(v)}
+                                    title="Edit Vehicle Details & Route"
+                                    className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold text-xs flex items-center gap-1.5 border border-slate-200/90 shadow-2xs transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                                  >
+                                    <LuPencil className="w-3.5 h-3.5 text-slate-600" />
+                                    <span>Edit</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => setDeleteTargetVehicle(v)}
+                                    title="Remove Vehicle"
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                  >
+                                    <LuTrash2 className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -795,7 +805,7 @@ export default function AdminVehiclesPage() {
 
             {/* Modal Body Form */}
             <form onSubmit={handleAddSubmit} className="p-5 sm:p-6 space-y-4 max-h-[78vh] overflow-y-auto">
-              
+
               {/* 1. VISUAL VEHICLE TYPE SELECTION CARDS */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-2 flex items-center justify-between">
@@ -821,11 +831,10 @@ export default function AdminVehiclesPage() {
                             capacity: prev.capacity === 40 || !prev.capacity ? opt.defaultCapacity : prev.capacity,
                           }));
                         }}
-                        className={`relative p-3 rounded-2xl border text-left transition-all flex flex-col justify-between group cursor-pointer ${
-                          isSelected
-                            ? 'border-orange-500 bg-orange-50/50 shadow-sm shadow-orange-500/10 ring-2 ring-orange-500/15'
-                            : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/70'
-                        }`}
+                        className={`relative p-3 rounded-2xl border text-left transition-all flex flex-col justify-between group cursor-pointer ${isSelected
+                          ? 'border-orange-500 bg-orange-50/50 shadow-sm shadow-orange-500/10 ring-2 ring-orange-500/15'
+                          : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/70'
+                          }`}
                       >
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="w-16 h-10 rounded-xl bg-white border border-slate-100 p-1 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
@@ -933,11 +942,10 @@ export default function AdminVehiclesPage() {
                         key={cap}
                         type="button"
                         onClick={() => setFormData({ ...formData, capacity: cap })}
-                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all ${
-                          formData.capacity === cap
-                            ? 'bg-orange-600 text-white border-orange-600 shadow-2xs'
-                            : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
-                        }`}
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all ${formData.capacity === cap
+                          ? 'bg-orange-600 text-white border-orange-600 shadow-2xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
+                          }`}
                       >
                         {cap}
                       </button>
@@ -1184,7 +1192,7 @@ export default function AdminVehiclesPage() {
 
             {/* Modal Body Form */}
             <form onSubmit={handleEditSubmit} className="p-5 sm:p-6 space-y-4 max-h-[78vh] overflow-y-auto">
-              
+
               {/* 1. STATUS & VEHICLE CATEGORY */}
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -1192,7 +1200,7 @@ export default function AdminVehiclesPage() {
                     <span>Vehicle Category & Fleet Status</span>
                     <span className="text-red-500">*</span>
                   </label>
-                  
+
                   {/* Status Selector */}
                   <div className="flex items-center gap-1.5">
                     <span className="text-[11px] text-slate-400 font-medium">Status:</span>
@@ -1223,11 +1231,10 @@ export default function AdminVehiclesPage() {
                             capacity: prev.capacity === 40 || !prev.capacity ? opt.defaultCapacity : prev.capacity,
                           }));
                         }}
-                        className={`relative p-3 rounded-2xl border text-left transition-all flex flex-col justify-between group cursor-pointer ${
-                          isSelected
-                            ? 'border-blue-600 bg-blue-50/50 shadow-sm shadow-blue-500/10 ring-2 ring-blue-500/15'
-                            : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/70'
-                        }`}
+                        className={`relative p-3 rounded-2xl border text-left transition-all flex flex-col justify-between group cursor-pointer ${isSelected
+                          ? 'border-blue-600 bg-blue-50/50 shadow-sm shadow-blue-500/10 ring-2 ring-blue-500/15'
+                          : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/70'
+                          }`}
                       >
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="w-16 h-10 rounded-xl bg-white border border-slate-100 p-1 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
@@ -1335,11 +1342,10 @@ export default function AdminVehiclesPage() {
                         key={cap}
                         type="button"
                         onClick={() => setEditFormData({ ...editFormData, capacity: cap })}
-                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all ${
-                          editFormData.capacity === cap
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                            : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
-                        }`}
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all ${editFormData.capacity === cap
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
+                          }`}
                       >
                         {cap}
                       </button>
