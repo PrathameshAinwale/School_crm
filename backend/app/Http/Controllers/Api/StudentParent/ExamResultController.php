@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\StudentParent;
 
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
-use App\Models\ExamMark;
+use App\Models\ExamScore;
 use App\Models\ExamTerm;
 use App\Models\Student;
 use App\Models\StudentReportSummary;
@@ -50,7 +50,7 @@ class ExamResultController extends Controller
             ->with(['examTerm', 'schoolClass', 'section'])
             ->get();
 
-        $marksByTerm = ExamMark::where('school_id', $schoolId)
+        $marksByTerm = ExamScore::where('school_id', $schoolId)
             ->where('student_id', $student->id)
             ->whereHas('exam.examTerm', function ($q) {
                 $q->where('status', 'published');

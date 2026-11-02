@@ -40,12 +40,13 @@ class AuditPruneCommand extends Command
         $generalCutoff = Carbon::now()->subDays($days);
         $examCutoff = Carbon::now()->subDays($examDays);
 
-        $examAuditableTypes = [
-            \App\Models\Exam::class,
-            \App\Models\ExamMark::class,
-            \App\Models\StudentReportSummary::class,
-            \App\Models\ExamTerm::class,
-        ];
+       $examAuditableTypes = [
+    \App\Models\Exam::class,
+    \App\Models\ExamMark::class,
+    \App\Models\ExamScore::class,
+    \App\Models\StudentReportSummary::class,
+    \App\Models\ExamTerm::class,
+];
 
         // 1. Prune general audit logs (excluding exam/marks records)
         $prunedGeneral = AuditLog::whereNotIn('auditable_type', $examAuditableTypes)

@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\CommunicationCampaign;
 use App\Models\Exam;
-use App\Models\ExamMark;
+use App\Models\ExamScore;
 use App\Models\ExamTerm;
 use App\Models\GradingScale;
 use App\Models\SchoolClass;
@@ -168,7 +168,7 @@ class ExamScheduleController extends Controller
             $scaleTiers = $term->gradingScale ? $term->gradingScale->tiers->toArray() : [];
 
             // Evaluate is_passed, grade, grade_point for all marks on lock
-            $marks = ExamMark::where('exam_id', $exam->id)->get();
+            $marks = ExamScore::where('exam_id', $exam->id)->get();
             foreach ($marks as $mark) {
                 $special = strtoupper($mark->special_status ?? '');
                 if ($special === 'AB') {
@@ -292,7 +292,7 @@ foreach ($exams as $ex) {
     $studentIds = $studentsQuery->pluck('id');
     $studentsCount = $studentIds->count();
 
-    $assessedCount = ExamMark::where('exam_id', $ex->id)
+    $assessedCount = ExamScore::where('exam_id', $ex->id)
         ->whereIn('student_id', $studentIds)
         ->where(function ($q) {
             $q->whereNotNull('marks_obtained')

@@ -36,7 +36,10 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['grading_scale_id', 'grade']);
-            $table->index(['grading_scale_id', 'min_percentage', 'max_percentage']);
+           $table->index(
+    ['grading_scale_id', 'min_percentage', 'max_percentage'],
+    'grading_tiers_pct_idx'
+);
         });
 
         // 3. Class Teacher Allocations (Designated Class Teacher per Section and Academic Year)
@@ -146,7 +149,7 @@ return new class extends Migration
         });
 
         // 8. Student Marks Entry, Stored Pass/Fail & Special Codes
-        Schema::create('exam_marks', function (Blueprint $table) {
+        Schema::create('exam_scores', function (Blueprint $table) {
             $table->id();
             $table->foreignId('school_id')->constrained('schools')->restrictOnDelete();
             $table->foreignId('academic_year_id')->constrained('academic_years')->restrictOnDelete();
@@ -195,7 +198,10 @@ return new class extends Migration
                 ['school_id', 'academic_year_id', 'student_id', 'summary_type', 'term_scope_id'],
                 'uq_student_report_summary_deterministic'
             );
-            $table->index(['school_id', 'school_class_id', 'section_id', 'class_rank']);
+           $table->index(
+    ['school_id', 'school_class_id', 'section_id', 'class_rank'],
+    'report_summary_class_rank_idx'
+);
         });
     }
 
@@ -205,7 +211,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('student_report_summaries');
-        Schema::dropIfExists('exam_marks');
+        Schema::dropIfExists('exam_scores');
         Schema::dropIfExists('exams');
         Schema::dropIfExists('exam_terms');
         Schema::dropIfExists('student_subject_enrollments');

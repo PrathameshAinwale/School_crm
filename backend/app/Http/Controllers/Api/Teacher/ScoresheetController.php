@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\ClassTeacherAllocation;
 use App\Models\Exam;
-use App\Models\ExamMark;
+use App\Models\ExamScore;
 use App\Models\ExamTerm;
 use App\Models\Student;
 use App\Models\StudentReportSummary;
@@ -99,7 +99,7 @@ class ScoresheetController extends Controller
 
         $students = $studentsQuery->orderBy('roll_number')->get();
 
-        $marks = ExamMark::where('exam_id', $exam->id)->get()->keyBy('student_id');
+        $marks = ExamScore::where('exam_id', $exam->id)->get()->keyBy('student_id');
 
         $roster = $students->map(function ($stu) use ($marks) {
             $mark = $marks->get($stu->id);
@@ -186,7 +186,7 @@ class ScoresheetController extends Controller
                     return response()->json(['success' => false, 'message' => "Student ID {$m['student_id']}: marks must be between 0 and {$exam->max_marks}."], 422);
                 }
 
-                ExamMark::updateOrCreate(
+                ExamScore::updateOrCreate(
                     [
                         'school_id' => $schoolId,
                         'academic_year_id' => $exam->academic_year_id,
@@ -240,7 +240,7 @@ class ScoresheetController extends Controller
 
             $studentsCount = $studentsQuery->count();
 
-            $evaluatedCount = ExamMark::where('exam_id', $exam->id)
+            $evaluatedCount = ExamScore::where('exam_id', $exam->id)
                 ->where(function ($q) {
                     $q->whereNotNull('marks_obtained')
                       ->orWhereNotNull('special_status');

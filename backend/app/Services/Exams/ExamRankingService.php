@@ -3,7 +3,7 @@
 namespace App\Services\Exams;
 
 use App\Models\Exam;
-use App\Models\ExamMark;
+use App\Models\ExamScore;
 use App\Models\ExamTerm;
 use App\Models\Student;
 use App\Models\StudentReportSummary;
@@ -69,7 +69,7 @@ class ExamRankingService
                 $allExemptOrMedical = true;
 
                 foreach ($studentExams as $exam) {
-                    $mark = ExamMark::where('exam_id', $exam->id)
+                    $mark = ExamScore::where('exam_id', $exam->id)
                         ->where('student_id', $student->id)
                         ->first();
 

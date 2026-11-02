@@ -50,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\ExamTerm::observe(AuditObserver::class);
         \App\Models\Exam::observe(AuditObserver::class);
         \App\Models\ExamMark::observe(AuditObserver::class);
+        \App\Models\ExamScore::observe(AuditObserver::class);
         \App\Models\StudentReportSummary::observe(AuditObserver::class);
     }
 }

@@ -90,10 +90,10 @@ class Exam extends Model
         return $this->belongsTo(User::class, 'unlocked_by_user_id');
     }
 
-    public function examMarks()
-    {
-        return $this->hasMany(ExamMark::class);
-    }
+    public function examScores()
+{
+    return $this->hasMany(ExamScore::class, 'exam_id');
+}
 
     public function isLocked(): bool
     {

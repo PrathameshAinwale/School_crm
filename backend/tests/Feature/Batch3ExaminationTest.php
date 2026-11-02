@@ -7,7 +7,7 @@ use App\Models\AuditLog;
 use App\Models\ClassTeacherAllocation;
 use App\Models\CommunicationLog;
 use App\Models\Exam;
-use App\Models\ExamMark;
+use App\Models\ExamScore;
 use App\Models\ExamTerm;
 use App\Models\GradingScale;
 use App\Models\GradingScaleTier;
@@ -598,7 +598,7 @@ class Batch3ExaminationTest extends TestCase
 
         foreach ([$paper1, $paper2] as $paper) {
             foreach ([$this->student1, $this->student2, $this->student3, $this->student4] as $student) {
-                ExamMark::create([
+                ExamScore::create([
                     'school_id' => $this->school1->id,
                     'academic_year_id' => $this->ay1->id,
                     'exam_id' => $paper->id,
@@ -639,7 +639,7 @@ class Batch3ExaminationTest extends TestCase
             [$this->student3, 80.00],
             [$this->student4, 70.00],
         ] as [$student, $marks]) {
-            ExamMark::create([
+            ExamScore::create([
                 'school_id' => $this->school1->id,
                 'academic_year_id' => $this->ay1->id,
                 'exam_id' => $exam->id,
@@ -677,7 +677,7 @@ class Batch3ExaminationTest extends TestCase
             'status' => 'locked',
         ]);
 
-        ExamMark::create([
+        ExamScore::create([
             'school_id' => $this->school1->id,
             'academic_year_id' => $this->ay1->id,
             'exam_id' => $exam->id,
@@ -726,7 +726,7 @@ class Batch3ExaminationTest extends TestCase
             'status' => 'locked',
         ]);
 
-        ExamMark::create([
+        ExamScore::create([
             'school_id' => $this->school1->id,
             'academic_year_id' => $this->ay1->id,
             'exam_id' => $paperMath->id,
@@ -734,7 +734,7 @@ class Batch3ExaminationTest extends TestCase
             'marks_obtained' => 80.00,
         ]);
 
-        $markScience = ExamMark::create([
+        $markScience = ExamScore::create([
             'school_id' => $this->school1->id,
             'academic_year_id' => $this->ay1->id,
             'exam_id' => $paperScience->id,
@@ -773,7 +773,7 @@ class Batch3ExaminationTest extends TestCase
             'status' => 'locked',
         ]);
 
-        $markPass = ExamMark::create([
+        $markPass = ExamScore::create([
             'school_id' => $this->school1->id,
             'academic_year_id' => $this->ay1->id,
             'exam_id' => $exam->id,
@@ -781,7 +781,7 @@ class Batch3ExaminationTest extends TestCase
             'marks_obtained' => 35.00,
         ]);
 
-        $markFail = ExamMark::create([
+        $markFail = ExamScore::create([
             'school_id' => $this->school1->id,
             'academic_year_id' => $this->ay1->id,
             'exam_id' => $exam->id,
@@ -923,7 +923,7 @@ class Batch3ExaminationTest extends TestCase
             [$this->student3, 75.00],
             [$this->student4, 65.00],
         ] as [$student, $marks]) {
-            ExamMark::create([
+            ExamScore::create([
                 'school_id' => $this->school1->id,
                 'academic_year_id' => $this->ay1->id,
                 'exam_id' => $exam->id,
@@ -1128,7 +1128,7 @@ class Batch3ExaminationTest extends TestCase
             [$this->student3, 70.00],
             [$this->student4, 60.00],
         ] as [$student, $marks]) {
-            ExamMark::create([
+            ExamScore::create([
                 'school_id' => $this->school1->id,
                 'academic_year_id' => $this->ay1->id,
                 'exam_id' => $exam->id,
