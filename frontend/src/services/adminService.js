@@ -110,6 +110,9 @@ export const adminService = {
     const qs = new URLSearchParams(params).toString();
     return apiRequest(`/admin/admissions${qs ? `?${qs}` : ''}`);
   },
+  getAdmission(id) {
+    return apiRequest(`/admin/admissions/${id}`);
+  },
   createAdmission(data) {
     return apiRequest('/admin/admissions', {
       method: 'POST',
