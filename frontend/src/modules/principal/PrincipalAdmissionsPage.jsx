@@ -53,12 +53,12 @@ export default function PrincipalAdmissionsPage() {
   const loadData = async (query = searchQuery) => {
     setLoading(true);
     try {
-      const admRes = await adminService.getAdmissions({
-        search: query.trim() || undefined,
-        status: selectedStatusTab !== 'ALL' && selectedStatusTab !== 'IN_PROGRESS' ? selectedStatusTab : undefined,
-        school_class_id: selectedClass !== 'ALL' ? selectedClass : undefined,
-        per_page: 200,
-      });
+      const queryParams = { per_page: 200 };
+      if (query?.trim()) queryParams.search = query.trim();
+      if (selectedStatusTab !== 'ALL' && selectedStatusTab !== 'IN_PROGRESS') queryParams.status = selectedStatusTab;
+      if (selectedClass !== 'ALL') queryParams.school_class_id = selectedClass;
+
+      const admRes = await adminService.getAdmissions(queryParams);
 
       if (admRes?.success && admRes?.data) {
         const items = Array.isArray(admRes.data.data)

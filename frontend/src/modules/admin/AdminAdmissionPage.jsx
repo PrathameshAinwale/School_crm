@@ -117,14 +117,14 @@ export default function AdminAdmissionPage() {
   const loadData = async () => {
     setLoading(true);
     try {
+      const queryParams = { per_page: 200 };
+      if (searchQuery?.trim()) queryParams.search = searchQuery.trim();
+      if (selectedStageTab !== 'ALL') queryParams.status = selectedStageTab;
+      if (selectedClass !== 'ALL') queryParams.school_class_id = selectedClass;
+      if (selectedLeadSource !== 'ALL') queryParams.lead_source = selectedLeadSource;
+
       const [admRes, clsRes] = await Promise.all([
-        adminService.getAdmissions({
-          search: searchQuery,
-          status: selectedStageTab !== 'ALL' ? selectedStageTab : undefined,
-          school_class_id: selectedClass !== 'ALL' ? selectedClass : undefined,
-          lead_source: selectedLeadSource !== 'ALL' ? selectedLeadSource : undefined,
-          per_page: 200,
-        }),
+        adminService.getAdmissions(queryParams),
         adminService.getClasses(),
       ]);
 

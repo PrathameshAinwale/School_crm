@@ -24,16 +24,18 @@ class AdmissionController extends Controller
 
         if ($request->filled('search')) {
             $search = escape_like($request->input('search'));
-            $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('application_number', 'like', "%{$search}%")
-                  ->orWhere('guardian_name', 'like', "%{$search}%")
-                  ->orWhere('guardian_phone', 'like', "%{$search}%");
-            });
+            if ($search !== '' && !in_array(strtolower($search), ['undefined', 'null'])) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('application_number', 'like', "%{$search}%")
+                      ->orWhere('guardian_name', 'like', "%{$search}%")
+                      ->orWhere('guardian_phone', 'like', "%{$search}%");
+                });
+            }
         }
 
-        if ($request->filled('status') && strtolower($request->status) !== 'all') {
+        if ($request->filled('status') && !in_array(strtolower($request->status), ['all', 'undefined', 'null'])) {
             $status = $request->status;
             if ($status === 'Inquiry') {
                 $query->whereIn('status', ['Inquiry', 'Pending']);
@@ -46,15 +48,15 @@ class AdmissionController extends Controller
             }
         }
 
-        if ($request->filled('school_class_id') && strtolower($request->school_class_id) !== 'all') {
+        if ($request->filled('school_class_id') && !in_array(strtolower($request->school_class_id), ['all', 'undefined', 'null'])) {
             $query->where('school_class_id', $request->school_class_id);
         }
 
-        if ($request->filled('academic_year') && strtolower($request->academic_year) !== 'all') {
+        if ($request->filled('academic_year') && !in_array(strtolower($request->academic_year), ['all', 'undefined', 'null'])) {
             $query->where('academic_year', $request->academic_year);
         }
 
-        if ($request->filled('lead_source') && strtolower($request->lead_source) !== 'all') {
+        if ($request->filled('lead_source') && !in_array(strtolower($request->lead_source), ['all', 'undefined', 'null'])) {
             $query->where('lead_source', $request->lead_source);
         }
 

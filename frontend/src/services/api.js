@@ -117,12 +117,28 @@ export async function apiRequest(endpoint, options = {}) {
   let finalUrl = `${API_BASE_URL}${endpoint}`;
   if (options.params && typeof options.params === 'object') {
     const cleanParams = Object.fromEntries(
-      Object.entries(options.params).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+      Object.entries(options.params).filter(
+        ([_, v]) => v !== undefined && v !== null && v !== '' && v !== 'undefined' && v !== 'null'
+      )
     );
     const qs = new URLSearchParams(cleanParams).toString();
     if (qs) {
       finalUrl += (finalUrl.includes('?') ? '&' : '?') + qs;
     }
+  }
+
+  // Clean query string from any accidental undefined/null/empty literal values in URL
+  if (finalUrl.includes('?')) {
+    const [base, rawQs] = finalUrl.split('?');
+    const sp = new URLSearchParams(rawQs);
+    const cleaned = new URLSearchParams();
+    for (const [k, v] of sp.entries()) {
+      if (v !== undefined && v !== null && v !== '' && v !== 'undefined' && v !== 'null') {
+        cleaned.append(k, v);
+      }
+    }
+    const cleanQs = cleaned.toString();
+    finalUrl = cleanQs ? `${base}?${cleanQs}` : base;
   }
 
   // Cache key incorporates method, complete URL + query params, and tenant scope context

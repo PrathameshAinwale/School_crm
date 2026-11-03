@@ -1,5 +1,13 @@
 import { apiRequest } from './api';
 
+const cleanParams = (params = {}) => {
+  return Object.fromEntries(
+    Object.entries(params).filter(
+      ([_, v]) => v !== undefined && v !== null && v !== '' && v !== 'undefined' && v !== 'null'
+    )
+  );
+};
+
 export const adminService = {
   // Dashboard
   getDashboardStats() {
@@ -40,7 +48,7 @@ export const adminService = {
 
   // Teachers (Staff)
   async getTeachers(params = {}) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(cleanParams(params)).toString();
     try {
       return await apiRequest(`/admin/teachers${qs ? `?${qs}` : ''}`);
     } catch (err) {
@@ -72,7 +80,7 @@ export const adminService = {
 
   // Students (Admin Managed)
   getStudents(params = {}) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(cleanParams(params)).toString();
     return apiRequest(`/admin/students${qs ? `?${qs}` : ''}`);
   },
   createStudent(data) {
@@ -95,7 +103,7 @@ export const adminService = {
 
   // Attendance
   getAttendance(params = {}) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(cleanParams(params)).toString();
     return apiRequest(`/admin/attendance${qs ? `?${qs}` : ''}`);
   },
   saveAttendance(data) {
@@ -107,7 +115,7 @@ export const adminService = {
 
   // Admissions
   getAdmissions(params = {}) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(cleanParams(params)).toString();
     return apiRequest(`/admin/admissions${qs ? `?${qs}` : ''}`);
   },
   getAdmission(id) {
@@ -146,7 +154,7 @@ export const adminService = {
 
   // Vehicles
   getVehicles(params = {}) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(cleanParams(params)).toString();
     return apiRequest(`/admin/vehicles${qs ? `?${qs}` : ''}`);
   },
   createVehicle(data) {
@@ -175,7 +183,7 @@ export const adminService = {
 
   // Resources
   getResources(params = {}) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(cleanParams(params)).toString();
     return apiRequest(`/admin/resources${qs ? `?${qs}` : ''}`);
   },
   createResource(data) {
@@ -196,7 +204,7 @@ export const adminService = {
     });
   },
   getResourceRequests(params = {}) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(cleanParams(params)).toString();
     return apiRequest(`/admin/resources/requests${qs ? `?${qs}` : ''}`);
   },
   actionResourceRequest(id, data) {
@@ -208,12 +216,12 @@ export const adminService = {
 
   // Teacher Resources Self Operations
   getTeacherResources(params = {}) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(cleanParams(params)).toString();
     return apiRequest(`/teacher/resources${qs ? `?${qs}` : ''}`);
   },
   getTeacherResourceRequests(params = {}) {
     const query = { my_requests: '1', ...params };
-    const qs = new URLSearchParams(query).toString();
+    const qs = new URLSearchParams(cleanParams(query)).toString();
     return apiRequest(`/teacher/resources/requests${qs ? `?${qs}` : ''}`);
   },
   submitResourceRequest(formData) {
@@ -225,7 +233,7 @@ export const adminService = {
 
   // School Calendar & Events (Admin / HR)
   getAdminEvents(params = {}) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(cleanParams(params)).toString();
     return apiRequest(`/admin/events${qs ? `?${qs}` : ''}`);
   },
   createAdminEvent(data) {
@@ -248,7 +256,7 @@ export const adminService = {
 
   // Assignments & Homework
   getAssignments(params = {}) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(cleanParams(params)).toString();
     return apiRequest(`/assignments${qs ? `?${qs}` : ''}`);
   },
   getAssignment(id) {
@@ -302,7 +310,7 @@ export const adminService = {
     });
   },
   getTeacherMyAttendance(params = {}) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(cleanParams(params)).toString();
     return apiRequest(`/teacher/my-attendance${qs ? `?${qs}` : ''}`);
   },
   teacherPunch() {
@@ -320,7 +328,7 @@ export const adminService = {
     });
   },
   getLeaveTypes(params = {}) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(cleanParams(params)).toString();
     return apiRequest(`/leave-types${qs ? `?${qs}` : ''}`);
   },
   createLeaveType(data) {
