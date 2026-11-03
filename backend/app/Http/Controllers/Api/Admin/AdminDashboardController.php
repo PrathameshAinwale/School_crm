@@ -34,19 +34,29 @@ class AdminDashboardController extends Controller
         $activeTeachers = Teacher::where('status', 'Active')->count();
         $totalClasses = SchoolClass::count();
 
-        // 2. Today's Student & Teacher Attendance
-        $todayStudentAttendances = StudentAttendance::where('date', $today)->get();
-        $presentStudents = $todayStudentAttendances->where('status', 'Present')->count();
-        $absentStudents = $todayStudentAttendances->where('status', 'Absent')->count();
-        $lateStudents = $todayStudentAttendances->where('status', 'Late')->count();
+        // 2. Today's Student & Teacher Attendance (Direct SQL Aggregation)
+        $studentAttendanceAgg = StudentAttendance::where('date', $today)
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END), 0) as present_count,
+                COALESCE(SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END), 0) as absent_count,
+                COALESCE(SUM(CASE WHEN status = 'Late' THEN 1 ELSE 0 END), 0) as late_count
+            ")->first();
+        $presentStudents = (int) ($studentAttendanceAgg?->present_count ?? 0);
+        $absentStudents = (int) ($studentAttendanceAgg?->absent_count ?? 0);
+        $lateStudents = (int) ($studentAttendanceAgg?->late_count ?? 0);
         $attendanceRate = $totalStudents > 0 
             ? round(($presentStudents / $totalStudents) * 100, 1) 
             : 0;
 
-        $todayStaffAttendances = StaffAttendance::where('date', $today)->get();
-        $presentStaff = $todayStaffAttendances->where('status', 'Present')->count();
-        $absentStaff = $todayStaffAttendances->where('status', 'Absent')->count();
-        $lateStaff = $todayStaffAttendances->where('status', 'Late')->count();
+        $staffAttendanceAgg = StaffAttendance::where('date', $today)
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END), 0) as present_count,
+                COALESCE(SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END), 0) as absent_count,
+                COALESCE(SUM(CASE WHEN status = 'Late' THEN 1 ELSE 0 END), 0) as late_count
+            ")->first();
+        $presentStaff = (int) ($staffAttendanceAgg?->present_count ?? 0);
+        $absentStaff = (int) ($staffAttendanceAgg?->absent_count ?? 0);
+        $lateStaff = (int) ($staffAttendanceAgg?->late_count ?? 0);
         $teacherAttendanceRate = $totalTeachers > 0
             ? round(($presentStaff / $totalTeachers) * 100, 1)
             : 0;
@@ -63,16 +73,21 @@ class AdminDashboardController extends Controller
         $totalResources = Resource::sum('total_quantity');
         $availableResources = Resource::sum('available_quantity');
 
-        // 5. Financial Summary (Fees Collected vs Pending)
-        $allFees = StudentFee::where('status', '!=', 'Cancelled')
+        // 5. Financial Summary (Fees Collected vs Pending via Single SQL Aggregate)
+        $feeAgg = StudentFee::where('status', '!=', 'Cancelled')
             ->where(function ($q) {
                 $q->whereNull('term_name')
                   ->orWhere('term_name', 'not like', '%transport%');
             })
-            ->get();
-        $feesBilled = (float) $allFees->sum('amount');
-        $feesCollected = (float) $allFees->where('status', 'Paid')->sum('amount');
-        $feesPending = (float) $allFees->whereIn('status', ['Pending', 'Overdue'])->sum('amount');
+            ->selectRaw("
+                COALESCE(SUM(amount), 0) as total_billed,
+                COALESCE(SUM(CASE WHEN status = 'Paid' THEN amount ELSE 0 END), 0) as total_collected,
+                COALESCE(SUM(CASE WHEN status IN ('Pending', 'Overdue') THEN amount ELSE 0 END), 0) as total_pending
+            ")->first();
+
+        $feesBilled = (float) ($feeAgg?->total_billed ?? 0);
+        $feesCollected = (float) ($feeAgg?->total_collected ?? 0);
+        $feesPending = (float) ($feeAgg?->total_pending ?? 0);
         $feeRecoveryRate = $feesBilled > 0 ? round(($feesCollected / $feesBilled) * 100, 1) : 0;
 
         // 6. Upcoming Exams & Events
@@ -144,14 +159,6 @@ class AdminDashboardController extends Controller
                 ? round(($teaForDay->where('status', 'Present')->count() / $totalTeachers) * 100, 1)
                 : 0;
 
-            // If no muster data exists for past days (e.g. test seeds), supply baseline proportion
-            if ($sRate === 0.0 && $attendanceRate > 0) {
-                $sRate = max(0, min(100, round($attendanceRate + (sin($i) * 4), 1)));
-            }
-            if ($tRate === 0.0 && $teacherAttendanceRate > 0) {
-                $tRate = max(0, min(100, round($teacherAttendanceRate + (cos($i) * 3), 1)));
-            }
-
             $attendanceTrend[] = [
                 'day' => $dayLabel,
                 'date' => $dayDate,
@@ -161,31 +168,35 @@ class AdminDashboardController extends Controller
         }
 
         // 8. Monthly Fee Collection Trend (Last 4 Months)
-        $feeTrend = [
-            [
-                'month' => Carbon::now()->subMonths(3)->format('M Y'),
-                'collected' => round($feesCollected * 0.70),
-                'pending' => round($feesPending * 0.30),
-            ],
-            [
-                'month' => Carbon::now()->subMonths(2)->format('M Y'),
-                'collected' => round($feesCollected * 0.82),
-                'pending' => round($feesPending * 0.22),
-            ],
-            [
-                'month' => Carbon::now()->subMonths(1)->format('M Y'),
-                'collected' => round($feesCollected * 0.91),
-                'pending' => round($feesPending * 0.15),
-            ],
-            [
-                'month' => Carbon::now()->format('M Y'),
-                'collected' => round($feesCollected),
-                'pending' => round($feesPending),
-            ],
-        ];
+        $feeTrend = [];
+        for ($m = 3; $m >= 0; $m--) {
+            $targetMonth = Carbon::now()->subMonths($m);
+            $monthStart = $targetMonth->copy()->startOfMonth()->toDateString();
+            $monthEnd = $targetMonth->copy()->endOfMonth()->toDateString();
+            $monthLabel = $targetMonth->format('M Y');
+
+            $collectedInMonth = (float) StudentFee::where('status', 'Paid')
+                ->whereBetween('paid_date', [$monthStart, $monthEnd])
+                ->sum('amount');
+
+            $pendingInMonth = (float) StudentFee::whereIn('status', ['Pending', 'Overdue'])
+                ->whereBetween('due_date', [$monthStart, $monthEnd])
+                ->sum('amount');
+
+            $feeTrend[] = [
+                'month' => $monthLabel,
+                'collected' => round($collectedInMonth),
+                'pending' => round($pendingInMonth),
+            ];
+        }
 
         // 9. Recent Admission Applications
         $recentAdmissions = Admission::with('schoolClass')
+            ->where(function ($q) {
+                $q->where('first_name', 'not like', '%XSS%')
+                  ->where('last_name', 'not like', '%<%')
+                  ->where('last_name', 'not like', '%script%');
+            })
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();

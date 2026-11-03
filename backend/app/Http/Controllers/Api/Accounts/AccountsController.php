@@ -28,30 +28,43 @@ class AccountsController extends Controller
     {
         $currentMonth = Carbon::now()->format('F Y');
 
-        // 1. Student Fees Metrics
-        $allFees = StudentFee::where('status', '!=', 'Cancelled')
+        // 1. Student Fees Metrics (Direct SQL Aggregation)
+        $feeAgg = StudentFee::where('status', '!=', 'Cancelled')
             ->where('id', '!=', 21)
             ->where(function ($q) {
                 $q->whereNull('term_name')
                   ->orWhere('term_name', 'not like', '%transport%');
             })
-            ->get();
-        $totalFeesBilled = (float) $allFees->sum('amount');
-        $totalFeesCollected = (float) $allFees->where('status', 'Paid')->sum('amount');
-        $totalFeesPending = (float) $allFees->where('status', 'Pending')->sum('amount');
-        $totalFeesOverdue = (float) $allFees->where('status', 'Overdue')->sum('amount');
+            ->selectRaw("
+                COALESCE(SUM(amount), 0) as total_billed,
+                COALESCE(SUM(CASE WHEN status = 'Paid' THEN amount ELSE 0 END), 0) as total_collected,
+                COALESCE(SUM(CASE WHEN status = 'Pending' THEN amount ELSE 0 END), 0) as total_pending,
+                COALESCE(SUM(CASE WHEN status = 'Overdue' THEN amount ELSE 0 END), 0) as total_overdue,
+                COALESCE(SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END), 0) as pending_count,
+                COALESCE(SUM(CASE WHEN status = 'Overdue' THEN 1 ELSE 0 END), 0) as overdue_count
+            ")->first();
+
+        $totalFeesBilled = (float) ($feeAgg?->total_billed ?? 0);
+        $totalFeesCollected = (float) ($feeAgg?->total_collected ?? 0);
+        $totalFeesPending = (float) ($feeAgg?->total_pending ?? 0);
+        $totalFeesOverdue = (float) ($feeAgg?->total_overdue ?? 0);
         $outstandingFees = $totalFeesPending + $totalFeesOverdue;
         $recoveryRate = $totalFeesBilled > 0 ? round(($totalFeesCollected / $totalFeesBilled) * 100, 1) : 0;
 
-        $overdueCount = $allFees->where('status', 'Overdue')->count();
-        $pendingCount = $allFees->where('status', 'Pending')->count();
+        $overdueCount = (int) ($feeAgg?->overdue_count ?? 0);
+        $pendingCount = (int) ($feeAgg?->pending_count ?? 0);
 
-        // 2. Staff Salaries & Payroll Metrics
-        $allSalaries = StaffSalary::all();
-        $totalSalaryDisbursed = (float) $allSalaries->where('status', 'Disbursed')->sum('net_salary');
-        $thisMonthSalaries = StaffSalary::where('month', $currentMonth)->get();
-        $disbursedPayrollThisMonth = (float) $thisMonthSalaries->where('status', 'Disbursed')->sum('net_salary');
-        $pendingPayrollThisMonth = (float) $thisMonthSalaries->where('status', '!=', 'Disbursed')->sum('net_salary');
+        // 2. Staff Salaries & Payroll Metrics (Direct SQL Aggregation)
+        $totalSalaryDisbursed = (float) StaffSalary::where('status', 'Disbursed')->sum('net_salary');
+
+        $monthPayrollAgg = StaffSalary::where('month', $currentMonth)
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN status = 'Disbursed' THEN net_salary ELSE 0 END), 0) as disbursed_payroll,
+                COALESCE(SUM(CASE WHEN status != 'Disbursed' THEN net_salary ELSE 0 END), 0) as pending_payroll
+            ")->first();
+
+        $disbursedPayrollThisMonth = (float) ($monthPayrollAgg?->disbursed_payroll ?? 0);
+        $pendingPayrollThisMonth = (float) ($monthPayrollAgg?->pending_payroll ?? 0);
 
         // Active Staff Count
         $activeStaffCount = Teacher::where('status', '!=', 'Inactive')->count();

@@ -14,8 +14,10 @@ class RequestLogger
         $response = $next($request);
         $duration = round((microtime(true) - $start) * 1000, 2);
 
-        Log::info(sprintf('%s /%s [%s] ~%sms', $request->method(), ltrim($request->path(), '/'), $response->status(), $duration));
+        $status = method_exists($response, 'getStatusCode') ? $response->getStatusCode() : (method_exists($response, 'status') ? $response->status() : 200);
+        Log::info(sprintf('%s /%s [%s] ~%sms', $request->method(), ltrim($request->path(), '/'), $status, $duration));
 
         return $response;
     }
 }
+
