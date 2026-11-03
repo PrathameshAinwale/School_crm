@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +9,32 @@ import {
   LuChevronDown,
   LuX,
 } from 'react-icons/lu';
+
+// Helper to determine if a route is currently active (including query/hash and known aliases)
+const isPathActive = (targetPath, currentPath) => {
+  if (!targetPath || !currentPath) return false;
+  if (currentPath === targetPath) return true;
+  if (targetPath === '/dashboard') return currentPath === '/' || currentPath === '/dashboard';
+  if ((targetPath === '/library/books' || targetPath === '/library') && (currentPath === '/library' || currentPath === '/library/books')) return true;
+  if (targetPath === '/report-cards' && currentPath === '/reportcards') return true;
+  if (targetPath === '/marksheets' && currentPath === '/marksheet') return true;
+  if (targetPath === '/udise' && (currentPath === '/udise-plus' || currentPath === '/udiseplus')) return true;
+  if (targetPath === '/admission' && (currentPath === '/admissions' || currentPath === '/admission-portal')) return true;
+  if (targetPath === '/assignments' && currentPath === '/assignment') return true;
+  if (targetPath === '/assignment' && currentPath === '/assignments') return true;
+  if (targetPath === '/salary' && (currentPath === '/salaries' || currentPath === '/payroll')) return true;
+  if (targetPath === '/timetable' && currentPath === '/time-table') return true;
+  if (targetPath === '/hr/staff-leaves' && currentPath === '/hr/leaves') return true;
+  if (
+    targetPath !== '/' &&
+    targetPath !== '/dashboard' &&
+    targetPath !== '/library' &&
+    currentPath.startsWith(`${targetPath}/`)
+  ) {
+    return true;
+  }
+  return false;
+};
 
 export default function Sidebar({
   collapsed,
@@ -23,24 +48,25 @@ export default function Sidebar({
   const navItems = navigation[currentRole] || navigation.admin;
 
   const [expandedGroups, setExpandedGroups] = useState({
-    'HR Operations': true,
+    'Academic Leadership': true,
+    'Academic & Students': true,
+    'Classroom & Schedule': true,
+    'Academics & Classroom': true,
+    'Admissions Cell': true,
+    'Staff & Leave Management': true,
+    'Fee Operations': true,
+    'Circulation Desk': true,
+    'Sports & Competitions': true,
+    'SaaS Platform Control': true,
     'Employee (Self)': true,
-    'Sports Operations': true,
-    'Incharge (Self)': true,
   });
 
   // Automatically expand the group containing the active page
   useEffect(() => {
     navItems.forEach((item) => {
       if (item.type === 'group' && item.children) {
-        const hasActiveChild = item.children.some(
-          (child) =>
-            location.pathname === child.path ||
-            (location.pathname === '/library' &&
-              child.path === '/library/books') ||
-            (child.path !== '/dashboard' &&
-              child.path !== '/library' &&
-              location.pathname.startsWith(`${child.path}/`))
+        const hasActiveChild = item.children.some((child) =>
+          isPathActive(child.path, location.pathname)
         );
 
         if (hasActiveChild) {
@@ -69,10 +95,11 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen z-50 flex flex-col bg-white border-r border-slate-200/90 transition-all duration-300 shadow-sm ${mobileMenuOpen
+      className={`fixed left-0 top-0 h-screen z-50 flex flex-col bg-white border-r border-slate-200/90 transition-all duration-300 shadow-sm ${
+        mobileMenuOpen
           ? 'translate-x-0 shadow-2xl w-72 max-w-[85vw]'
           : '-translate-x-full lg:translate-x-0'
-        }`}
+      }`}
       style={{
         width:
           typeof window !== 'undefined' && window.innerWidth >= 1024
@@ -134,20 +161,14 @@ export default function Sidebar({
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-200">
+      <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-1 scrollbar-thin scrollbar-thumb-slate-200">
         {navItems.map((item) => {
           // GROUP ITEM
           if (item.type === 'group') {
             const Icon = item.icon;
 
-            const hasActiveChild = item.children.some(
-              (child) =>
-                location.pathname === child.path ||
-                (location.pathname === '/library' &&
-                  child.path === '/library/books') ||
-                (child.path !== '/dashboard' &&
-                  child.path !== '/library' &&
-                  location.pathname.startsWith(`${child.path}/`))
+            const hasActiveChild = item.children.some((child) =>
+              isPathActive(child.path, location.pathname)
             );
 
             const isExpanded =
@@ -157,42 +178,37 @@ export default function Sidebar({
                 : true);
 
             return (
-              <div key={item.label} className="space-y-1">
+              <div key={item.label} className="space-y-0.5">
                 <button
                   onClick={() => toggleGroup(item.label)}
-                  className={`w-full group relative flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold tracking-tight transition-all cursor-pointer ${hasActiveChild
-                      ? 'text-primary-800 bg-primary-50/60 font-bold'
-                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
-                    }`}
+                  className={`w-full group relative flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                    hasActiveChild
+                      ? 'bg-primary-50/70 text-primary-900 font-bold'
+                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 font-semibold'
+                  }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${hasActiveChild
-                          ? 'bg-primary-100 text-primary-700'
-                          : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200/80 group-hover:text-slate-800'
-                        }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                    </div>
+                    <Icon
+                      className={`w-4 h-4 shrink-0 transition-colors ${
+                        hasActiveChild
+                          ? 'text-primary-600'
+                          : 'text-slate-400 group-hover:text-slate-700'
+                      }`}
+                    />
 
                     {(!collapsed || mobileMenuOpen) && (
-                      <span className="truncate text-xs font-semibold text-slate-700 group-hover:text-slate-900">
+                      <span className="truncate text-xs tracking-tight">
                         {getNavLabel(item)}
                       </span>
                     )}
                   </div>
 
                   {(!collapsed || mobileMenuOpen) && (
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[10px] font-semibold text-slate-400 bg-slate-100/90 px-1.5 py-0.5 rounded-full">
-                        {item.children.length}
-                      </span>
-
-                      <LuChevronDown
-                        className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-primary-600' : ''
-                          }`}
-                      />
-                    </div>
+                    <LuChevronDown
+                      className={`w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 shrink-0 ${
+                        isExpanded ? 'rotate-180 text-primary-600' : ''
+                      }`}
+                    />
                   )}
 
                   {/* Collapsed Tooltip */}
@@ -206,10 +222,11 @@ export default function Sidebar({
                         {item.children.map((child) => (
                           <div
                             key={child.path}
-                            className={`text-[11px] ${location.pathname === child.path
+                            className={`text-[11px] ${
+                              isPathActive(child.path, location.pathname)
                                 ? 'text-primary-400 font-bold'
                                 : 'text-slate-300'
-                              }`}
+                            }`}
                           >
                             • {getNavLabel(child)}
                           </div>
@@ -221,43 +238,34 @@ export default function Sidebar({
 
                 {/* Submenu Children Links */}
                 {isExpanded && (!collapsed || mobileMenuOpen) && (
-                  <div className="border-l-2 border-slate-200/90 ml-5.5 pl-3 space-y-0.5 mt-0.5 mb-1.5 animate-slide-up">
+                  <div className="pl-6 pr-1 space-y-0.5 mt-0.5 mb-1 animate-slide-up">
                     {item.children.map((child) => {
                       const ChildIcon = child.icon;
-
-                      const isChildActive =
-                        location.pathname === child.path ||
-                        (location.pathname === '/library' &&
-                          child.path === '/library/books') ||
-                        (child.path !== '/dashboard' &&
-                          child.path !== '/library' &&
-                          location.pathname.startsWith(`${child.path}/`));
+                      const isChildActive = isPathActive(child.path, location.pathname);
 
                       return (
                         <NavLink
                           key={child.path}
                           to={child.path}
                           onClick={() => setMobileMenuOpen(false)}
-                          className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-all ${isChildActive
-                              ? 'bg-gradient-to-r from-primary-50 to-primary-100/70 text-primary-700 font-bold shadow-xs border-l-[3px] border-primary-600'
-                              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50/90 font-medium'
-                            }`}
+                          className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-all ${
+                            isChildActive
+                              ? 'bg-primary-600 text-white font-bold shadow-xs shadow-primary-500/20'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
+                          }`}
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
                             <ChildIcon
-                              className={`w-3.5 h-3.5 shrink-0 transition-colors ${isChildActive
-                                  ? 'text-primary-600'
+                              className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                                isChildActive
+                                  ? 'text-white'
                                   : 'text-slate-400 group-hover:text-slate-600'
-                                }`}
+                              }`}
                             />
                             <span className="truncate">
                               {getNavLabel(child)}
                             </span>
                           </div>
-
-                          {isChildActive && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary-600 shrink-0" />
-                          )}
                         </NavLink>
                       );
                     })}
@@ -269,45 +277,30 @@ export default function Sidebar({
 
           // SINGLE LINK (e.g. Dashboard)
           const Icon = item.icon;
-          const isDashboard = item.path === '/dashboard';
-
-          const isActive =
-            location.pathname === item.path ||
-            (isDashboard &&
-              (location.pathname === '/' ||
-                location.pathname === '/dashboard')) ||
-            (item.path !== '/dashboard' &&
-              item.path !== '/library' &&
-              location.pathname.startsWith(`${item.path}/`));
+          const isActive = isPathActive(item.path, location.pathname);
 
           return (
             <NavLink
               key={item.path}
               to={item.path}
               onClick={() => setMobileMenuOpen(false)}
-              className={`group relative flex items-center justify-between px-2.5 py-2.5 rounded-xl text-xs font-bold transition-all ${isActive
-                  ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-md shadow-primary-500/25'
+              className={`group relative flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all ${
+                isActive
+                  ? 'bg-primary-600 text-white font-bold shadow-xs shadow-primary-500/20'
                   : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 font-semibold'
-                }`}
+              }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isActive
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-100 text-slate-500 group-hover:bg-primary-50 group-hover:text-primary-600'
-                    }`}
-                >
-                  <Icon className="w-4 h-4" />
-                </div>
+                <Icon
+                  className={`w-4 h-4 shrink-0 transition-colors ${
+                    isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-700'
+                  }`}
+                />
 
                 {(!collapsed || mobileMenuOpen) && (
                   <span className="truncate">{getNavLabel(item)}</span>
                 )}
               </div>
-
-              {isActive && (!collapsed || mobileMenuOpen) && (
-                <span className="w-2 h-2 rounded-full bg-white shrink-0 mr-1 shadow-xs animate-pulse" />
-              )}
 
               {/* Collapsed Tooltip */}
               {collapsed && !mobileMenuOpen && (
