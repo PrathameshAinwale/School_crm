@@ -28,12 +28,12 @@ class LibraryController extends Controller
         }
 
         if ($request->filled('search')) {
-            $s = escape_like(trim($request->search));
+            $s = trim($request->search);
             $query->where(function ($q) use ($s) {
-                $q->where('title', 'like', "%{$s}%")
-                    ->orWhere('author', 'like', "%{$s}%")
-                    ->orWhere('isbn', 'like', "%{$s}%")
-                    ->orWhere('book_code', 'like', "%{$s}%");
+                $q->whereEscapedLike('title', $s)
+                    ->orWhereEscapedLike('author', $s)
+                    ->orWhereEscapedLike('isbn', $s)
+                    ->orWhereEscapedLike('book_code', $s);
             });
         }
 

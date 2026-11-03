@@ -18,13 +18,8 @@ use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use App\Support\QueryHelper;
 
-// Global helper for escaping LIKE wildcards
-if (!function_exists('escape_like')) {
-    function escape_like(?string $value): string
-    {
-        return QueryHelper::escapeLike($value);
-    }
-}
+// QueryHelper defines the global escape_like() function
+class_exists(QueryHelper::class);
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -41,17 +36,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Macro for safe LIKE searches
+        // Macro for safe LIKE searches with explicit SQL standard ESCAPE clause
         EloquentBuilder::macro('whereEscapedLike', function (string $column, ?string $value) {
             /** @var EloquentBuilder $this */
             $escaped = QueryHelper::escapeLike($value);
-            return $this->where($column, 'like', "%{$escaped}%");
+            return $this->whereRaw("{$column} LIKE ? ESCAPE '\\'", ["%{$escaped}%"]);
         });
 
         EloquentBuilder::macro('orWhereEscapedLike', function (string $column, ?string $value) {
             /** @var EloquentBuilder $this */
             $escaped = QueryHelper::escapeLike($value);
-            return $this->orWhere($column, 'like', "%{$escaped}%");
+            return $this->orWhereRaw("{$column} LIKE ? ESCAPE '\\'", ["%{$escaped}%"]);
         });
         // --- Centralized Rate Limiters ---
 
