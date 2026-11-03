@@ -90,16 +90,16 @@ class VehicleController extends Controller
     {
         $vehicle = Vehicle::findOrFail($id);
 
-        $request->validate([
-            'vehicle_number' => 'required|string|unique:vehicles,vehicle_number,' . $vehicle->id,
-            'type' => 'required|string',
-            'capacity' => 'required|integer|min:1',
+        $validated = $request->validate([
+            'vehicle_number' => 'required|string|max:50|unique:vehicles,vehicle_number,' . $vehicle->id,
+            'type' => 'required|string|max:50',
+            'capacity' => 'required|integer|min:1|max:200',
             'driver_name' => 'required|string|max:255',
             'driver_phone' => 'required|string|max:20',
             'status' => 'nullable|string|in:Active,Maintenance,Out of Service',
         ]);
 
-        $vehicle->update($request->all());
+        $vehicle->update($validated);
 
         return response()->json([
             'success' => true,

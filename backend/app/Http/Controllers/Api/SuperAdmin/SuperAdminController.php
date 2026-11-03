@@ -303,22 +303,17 @@ class SuperAdminController extends Controller
     {
         $school = School::findOrFail($id);
 
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:schools,code,' . $school->id,
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
-            'address' => 'nullable|string',
-            'phone' => 'nullable|string',
-            'email' => 'nullable|email',
-            'principal_name' => 'nullable|string',
-            'subscription_plan' => 'required|string|in:Trial,Standard,Pro,Enterprise',
-            'status' => 'required|string|in:active,inactive,suspended',
-            'max_students' => 'nullable|integer|min:1',
-            'max_staff' => 'nullable|integer|min:1',
+            'address' => 'nullable|string|max:500',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'principal_name' => 'nullable|string|max:255',
         ]);
 
-        $school->update($request->all());
+        $school->update($validated);
 
         return response()->json([
             'success' => true,

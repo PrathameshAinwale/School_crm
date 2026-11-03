@@ -139,22 +139,22 @@ class ResourceController extends Controller
     {
         $resource = Resource::findOrFail($id);
 
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'category' => 'required|string|max:100',
             'total_quantity' => 'required|integer|min:1',
             'available_quantity' => 'required|integer|min:0',
             'condition' => 'nullable|string|in:Good,Needs Repair,Damaged,Discarded',
-            'location_room' => 'nullable|string',
+            'location_room' => 'nullable|string|max:100',
             'purchase_date' => 'nullable|date',
             'unit_cost' => 'nullable|numeric|min:0',
             'status' => 'nullable|string|in:Available,In Use,Maintenance,Out of Stock',
             'assigned_teacher_id' => 'nullable|exists:teachers,id',
-            'notes' => 'nullable|string',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         $oldTeacherId = $resource->assigned_teacher_id;
-        $resource->update($request->all());
+        $resource->update($validated);
 
         // Notify new teacher if assigned
         if ($request->filled('assigned_teacher_id') && $request->assigned_teacher_id != $oldTeacherId) {
