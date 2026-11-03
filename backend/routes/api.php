@@ -71,7 +71,7 @@ use Illuminate\Support\Facades\Route;
 
 // Public Authentication & Public Assets & Inbound Webhooks
 Route::prefix('v1')->group(function () {
-    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::get('/settings/public', [SchoolSettingsController::class, 'publicConfig']);
     Route::get('/files/public/{token}', [MediaFileController::class, 'publicStream']);
 
@@ -82,7 +82,7 @@ Route::prefix('v1')->group(function () {
 });
 
 // Driver Mobile Phone GPS Broadcast
-Route::prefix('v1/driver')->group(function () {
+Route::prefix('v1/driver')->middleware('throttle:tracking')->group(function () {
     Route::get('/vehicles', [VehicleController::class, 'driverVehiclesList']);
     Route::get('/vehicle/{id}', [VehicleController::class, 'liveTelemetry']);
     Route::post('/gps-ping', [VehicleController::class, 'driverPing']);
@@ -90,7 +90,7 @@ Route::prefix('v1/driver')->group(function () {
 });
 
 // Protected Routes (Sanctum)
-Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(function () {
+Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school', 'throttle:api'])->group(function () {
 
     // Academic Year Context
     Route::get('/academic-years', [AcademicYearController::class, 'index']);
@@ -125,6 +125,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
     // Academic Structure
     Route::get('/admin/academic/classes', [AcademicController::class, 'classes']);
     Route::get('/admin/academic/subjects', [AcademicController::class, 'subjects']);
+    Route::get('/academic/classes', [AcademicController::class, 'classes']);
+    Route::get('/academic/subjects', [AcademicController::class, 'subjects']);
+    Route::get('/exams/terms', [ExamScheduleController::class, 'listTerms']);
 
     // Students Directory
     Route::get('admin/students', [StudentController::class, 'index'])->middleware('role:admin,teacher,librarian');
@@ -169,9 +172,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school'])->group(funct
         Route::post('admissions/{admission}/enroll', [AdmissionController::class, 'enroll']);
 
         // School Transport / Vehicles
-        Route::get('vehicles/{id}/live-telemetry', [VehicleController::class, 'liveTelemetry']);
-        Route::post('vehicles/{id}/driver-ping', [VehicleController::class, 'driverPing']);
-        Route::post('vehicles/toggle-trip', [VehicleController::class, 'toggleDriverTrip']);
+        Route::get('vehicles/{id}/live-telemetry', [VehicleController::class, 'liveTelemetry'])->withoutMiddleware('throttle:api')->middleware('throttle:tracking');
+        Route::post('vehicles/{id}/driver-ping', [VehicleController::class, 'driverPing'])->withoutMiddleware('throttle:api')->middleware('throttle:tracking');
+        Route::post('vehicles/toggle-trip', [VehicleController::class, 'toggleDriverTrip'])->withoutMiddleware('throttle:api')->middleware('throttle:tracking');
         Route::put('vehicles/{id}/route', [VehicleController::class, 'updateRoute']);
         Route::apiResource('vehicles', VehicleController::class);
 

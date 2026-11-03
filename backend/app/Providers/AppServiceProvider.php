@@ -11,6 +11,9 @@ use App\Models\Teacher;
 use App\Models\User;
 use App\Observers\AuditObserver;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,6 +30,61 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // --- Centralized Rate Limiters ---
+
+        // 1. Strict Login Rate Limiter (per-email+IP and per-IP fallback for school NAT)
+        RateLimiter::for('login', function (Request $request) {
+            $identifier = strtolower((string) ($request->input('email') ?: $request->input('identifier') ?: ''));
+            $ip = $request->ip();
+
+            return [
+                Limit::perMinute(5)
+                    ->by("login:{$identifier}|{$ip}")
+                    ->response(function (Request $request, array $headers) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Too many login attempts. Please try again in ' . ($headers['Retry-After'] ?? 60) . ' seconds.',
+                        ], 429, $headers);
+                    }),
+                Limit::perMinute(30)
+                    ->by("login_ip:{$ip}")
+                    ->response(function (Request $request, array $headers) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Too many login attempts from this network. Please try again in ' . ($headers['Retry-After'] ?? 60) . ' seconds.',
+                        ], 429, $headers);
+                    }),
+            ];
+        });
+
+        // 2. Authenticated Global API Rate Limiter (Keyed by User ID, generous 120/min)
+        RateLimiter::for('api', function (Request $request) {
+            $userId = $request->user()?->id ?: $request->ip();
+
+            return Limit::perMinute(120)
+                ->by("api:{$userId}")
+                ->response(function (Request $request, array $headers) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Rate limit exceeded. Please wait ' . ($headers['Retry-After'] ?? 60) . ' seconds before trying again.',
+                    ], 429, $headers);
+                });
+        });
+
+        // 3. High-throughput Telemetry & Live Tracking Rate Limiter (180/min)
+        RateLimiter::for('tracking', function (Request $request) {
+            $userId = $request->user()?->id ?: $request->ip();
+
+            return Limit::perMinute(180)
+                ->by("tracking:{$userId}")
+                ->response(function (Request $request, array $headers) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Telemetry rate limit reached. Retry in ' . ($headers['Retry-After'] ?? 10) . ' seconds.',
+                    ], 429, $headers);
+                });
+        });
+
         // Attach audit observers only to approved models
         Student::observe(AuditObserver::class);
         Teacher::observe(AuditObserver::class);
