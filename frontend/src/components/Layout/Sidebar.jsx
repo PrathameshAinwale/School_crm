@@ -136,13 +136,11 @@ export default function Sidebar({
       {/* Brand Header */}
       <div className="flex items-center justify-between px-3.5 h-16 border-b border-slate-100 shrink-0 bg-white">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 via-primary-700 to-indigo-800 flex items-center justify-center shrink-0 shadow-md shadow-primary-500/25 overflow-hidden">
             <img
               src="/logo.svg"
               alt="Arch Campus Logo"
               className="w-7 h-7 object-contain"
             />
-          </div>
 
           {(!collapsed || mobileMenuOpen) && (
             <div className="min-w-0">
@@ -150,9 +148,6 @@ export default function Sidebar({
                 <h1 className="text-base font-bold text-slate-800 tracking-tight leading-tight truncate">
                   Arch Campus
                 </h1>
-                <span className="text-[10px] font-bold text-primary-700 bg-primary-50 px-1.5 py-0.2 rounded-md border border-primary-200">
-                  ERP
-                </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium truncate">
                 School Management

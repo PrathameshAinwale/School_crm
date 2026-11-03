@@ -228,11 +228,6 @@ const navigation = {
 
   admission_officer: [
     {
-      label: 'Admissions Desk',
-      path: '/dashboard',
-      icon: LuLayoutDashboard,
-    },
-    {
       label: 'Admissions Cell',
       type: 'group',
       icon: LuUserPlus,
