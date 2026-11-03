@@ -19,7 +19,30 @@ const isPathActive = (targetPath, currentPath) => {
   if (targetPath === '/report-cards' && currentPath === '/reportcards') return true;
   if (targetPath === '/marksheets' && currentPath === '/marksheet') return true;
   if (targetPath === '/udise' && (currentPath === '/udise-plus' || currentPath === '/udiseplus')) return true;
-  if (targetPath === '/admission' && (currentPath === '/admissions' || currentPath === '/admission-portal')) return true;
+
+  if (targetPath === '/admission/calendar') {
+    return currentPath === '/admission/calendar' || currentPath === '/admission/interviews';
+  }
+  if (targetPath === '/admission/dashboard') {
+    return currentPath === '/admission/dashboard' || currentPath === '/admission/desk';
+  }
+  if (targetPath === '/admission') {
+    if (currentPath === '/admission' || currentPath === '/admissions' || currentPath === '/admission-portal') return true;
+    if (currentPath.startsWith('/admission/') || currentPath.startsWith('/admissions/')) {
+      // Must not highlight Student Admissions when on sibling routes (Calendar or Dashboard)
+      if (
+        currentPath.startsWith('/admission/calendar') ||
+        currentPath.startsWith('/admission/interviews') ||
+        currentPath.startsWith('/admission/dashboard') ||
+        currentPath.startsWith('/admission/desk')
+      ) {
+        return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
   if (targetPath === '/assignments' && currentPath === '/assignment') return true;
   if (targetPath === '/assignment' && currentPath === '/assignments') return true;
   if (targetPath === '/salary' && (currentPath === '/salaries' || currentPath === '/payroll')) return true;
@@ -29,6 +52,7 @@ const isPathActive = (targetPath, currentPath) => {
     targetPath !== '/' &&
     targetPath !== '/dashboard' &&
     targetPath !== '/library' &&
+    targetPath !== '/admission' &&
     currentPath.startsWith(`${targetPath}/`)
   ) {
     return true;
