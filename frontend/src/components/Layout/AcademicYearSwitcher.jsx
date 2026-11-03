@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { api } from '../../services/api';
+import { api, clearApiCache } from '../../services/api';
 import { LuCalendarDays, LuCheck, LuChevronDown } from 'react-icons/lu';
 
 export default function AcademicYearSwitcher() {
@@ -55,6 +55,7 @@ export default function AcademicYearSwitcher() {
 
     try {
       localStorage.setItem('active_academic_year_id', yr.id);
+      clearApiCache();
       setActiveYear(yr);
       setIsOpen(false);
       await api.post('/academic-years/switch', { academic_year_id: yr.id });

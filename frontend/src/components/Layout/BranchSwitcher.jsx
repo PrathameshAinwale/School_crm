@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { adminService } from '../../services/adminService';
+import { clearApiCache } from '../../services/api';
 import AddSchoolModal from './AddSchoolModal';
 import {
   LuBuilding2,

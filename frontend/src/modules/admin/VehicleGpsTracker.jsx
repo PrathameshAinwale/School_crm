@@ -533,11 +533,11 @@ export default function VehicleGpsTracker({
     };
 
     fetchDriverGps();
-    // Pause telemetry when tab is hidden, resume on visibility, lighter 3s interval
+    // Pause telemetry when tab is hidden, resume on visibility, smooth 1s interval
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
       fetchDriverGps();
-    }, 3000);
+    }, 1000);
 
     const handleVisibilityChange = () => {
       if (typeof document !== 'undefined' && !document.hidden) {

@@ -52,14 +52,31 @@ export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('auth_token');
   const activeSchoolId = localStorage.getItem('active_school_id');
   const activeAcademicYearId = localStorage.getItem('active_academic_year_id');
+  const activeBranchId = localStorage.getItem('active_branch_id');
   const activeLang = localStorage.getItem('app_language') || 'en';
+
+  let userSchoolId = '';
+  let userBranchId = '';
+  try {
+    const rawUser = localStorage.getItem('user');
+    if (rawUser) {
+      const u = JSON.parse(rawUser);
+      userSchoolId = u.school_id || u.school?.id || '';
+      userBranchId = u.branch_id || '';
+    }
+  } catch {}
+
+  const tenantSchool = activeSchoolId || userSchoolId || 'default';
+  const tenantBranch = activeBranchId || userBranchId || 'default';
+  const tenantYear = activeAcademicYearId || 'default';
 
   const headers = {
     'Accept': 'application/json',
     'Bypass-Tunnel-Reminder': 'true',
     'Accept-Language': activeLang,
-    ...(activeSchoolId ? { 'X-School-Id': activeSchoolId } : {}),
-    ...(activeAcademicYearId ? { 'X-Academic-Year-Id': activeAcademicYearId } : {}),
+    ...(tenantSchool !== 'default' ? { 'X-School-Id': tenantSchool } : {}),
+    ...(tenantBranch !== 'default' ? { 'X-Branch-Id': tenantBranch } : {}),
+    ...(tenantYear !== 'default' ? { 'X-Academic-Year-Id': tenantYear } : {}),
     ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...options.headers,
@@ -87,8 +104,8 @@ export async function apiRequest(endpoint, options = {}) {
     }
   }
 
-  // Cache key incorporates method, URL, and tenant scope context
-  const cacheKey = `${method}:${finalUrl}:S${activeSchoolId || 'default'}:Y${activeAcademicYearId || 'default'}`;
+  // Cache key incorporates method, complete URL + query params, and tenant scope context
+  const cacheKey = `${method}:${finalUrl}:S${tenantSchool}:B${tenantBranch}:Y${tenantYear}`;
 
   // 1. Check client-side memory cache for GET reference requests (unless bypassCache is true)
   if (method === 'GET' && !options.bypassCache && isReferenceEndpoint(finalUrl)) {

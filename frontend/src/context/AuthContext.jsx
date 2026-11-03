@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/authService';
+import { clearApiCache } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -69,6 +70,7 @@ export function AuthProvider({ children }) {
     try {
       const res = await authService.login(identifier, password);
       if (res.success && res.token) {
+        clearApiCache();
         setUser(res.user);
         setToken(res.token);
         setIsAuthenticated(true);
@@ -203,6 +205,7 @@ export function AuthProvider({ children }) {
 
   // Switch active session to a linked school account without requiring password again
   const switchSchoolAccount = (targetAccount) => {
+    clearApiCache();
     if (!targetAccount || !targetAccount.token) return;
 
     localStorage.setItem('auth_token', targetAccount.token);
@@ -258,6 +261,9 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('user');
       localStorage.removeItem('active_school_id');
       localStorage.removeItem('active_school_name');
+      localStorage.removeItem('active_academic_year_id');
+      localStorage.removeItem('active_branch_id');
+      clearApiCache();
     }
   };
 

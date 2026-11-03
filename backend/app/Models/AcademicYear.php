@@ -22,6 +22,23 @@ class AcademicYear extends Model
         'description',
     ];
 
+    protected static function booted()
+    {
+        static::saved(function ($yr) {
+            if ($yr->school_id) {
+                \Illuminate\Support\Facades\Cache::forget("school_{$yr->school_id}_current_year_id");
+                \Illuminate\Support\Facades\Cache::forget("school_{$yr->school_id}_classes_v2");
+            }
+        });
+
+        static::deleted(function ($yr) {
+            if ($yr->school_id) {
+                \Illuminate\Support\Facades\Cache::forget("school_{$yr->school_id}_current_year_id");
+                \Illuminate\Support\Facades\Cache::forget("school_{$yr->school_id}_classes_v2");
+            }
+        });
+    }
+
     protected $casts = [
         'is_current' => 'boolean',
         'start_date' => 'date',

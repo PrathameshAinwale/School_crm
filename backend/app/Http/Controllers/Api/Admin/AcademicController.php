@@ -13,7 +13,8 @@ class AcademicController extends Controller
     public function classes(Request $request)
     {
         $schoolId = \App\Services\SchoolContext::getActiveSchoolId() ?: $request->user()?->school_id;
-        $cacheKey = "school_" . ($schoolId ?? 'all') . "_classes_v2";
+        $branchId = $request->header('X-Branch-Id') ?: $request->user()?->branch_id;
+        $cacheKey = "school_" . ($schoolId ?? 'all') . ($branchId ? "_b{$branchId}" : '') . "_classes_v2";
 
         $classes = \Illuminate\Support\Facades\Cache::remember($cacheKey, 1800, function () use ($schoolId) {
             $query = SchoolClass::with('sections');
@@ -75,7 +76,9 @@ class AcademicController extends Controller
             'sections' => 'nullable|array',
         ]);
 
+        $schoolId = \App\Services\SchoolContext::getActiveSchoolId() ?: $request->user()?->school_id;
         $class = SchoolClass::create([
+            'school_id' => $schoolId,
             'name' => $request->name,
             'code' => $request->code,
             'description' => $request->description,
@@ -84,12 +87,16 @@ class AcademicController extends Controller
         if ($request->has('sections') && is_array($request->sections)) {
             foreach ($request->sections as $secName) {
                 Section::create([
+                    'school_id' => $schoolId,
                     'school_class_id' => $class->id,
                     'name' => $secName,
                     'capacity' => 40,
                 ]);
             }
         }
+
+        \Illuminate\Support\Facades\Cache::forget("school_" . ($schoolId ?? 'all') . "_classes_v2");
+        \Illuminate\Support\Facades\Cache::forget("school_all_classes_v2");
 
         return response()->json([
             'success' => true,
