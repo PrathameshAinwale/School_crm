@@ -49,7 +49,8 @@ class VehicleController extends Controller
             'route_from' => 'nullable|string|max:255',
             'route_to' => 'nullable|string|max:255',
             'route_name' => 'nullable|string',
-            'route_stops' => 'nullable|array',
+            'route_stops' => 'nullable|array|max:50',
+            'route_stops.*' => 'string|max:255',
             'fuel_type' => 'nullable|string',
             'insurance_expiry' => 'nullable|date',
             'fitness_expiry' => 'nullable|date',
@@ -102,7 +103,8 @@ class VehicleController extends Controller
             'route_name' => 'nullable|string|max:255',
             'route_from' => 'nullable|string|max:255',
             'route_to' => 'nullable|string|max:255',
-            'route_stops' => 'nullable|array',
+            'route_stops' => 'nullable|array|max:50',
+            'route_stops.*' => 'string|max:255',
             'fuel_type' => 'nullable|string|max:50',
             'insurance_expiry' => 'nullable|date',
             'fitness_expiry' => 'nullable|date',
@@ -125,7 +127,8 @@ class VehicleController extends Controller
             'route_from' => 'required|string|max:255',
             'route_to' => 'required|string|max:255',
             'route_name' => 'nullable|string|max:255',
-            'route_stops' => 'nullable|array',
+            'route_stops' => 'nullable|array|max:50',
+            'route_stops.*' => 'string|max:255',
         ]);
 
         $data = $request->only(['route_from', 'route_to', 'route_name', 'route_stops']);

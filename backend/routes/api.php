@@ -159,7 +159,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school', 'throttle:api
         Route::post('/academic/classes', [AcademicController::class, 'storeClass']);
 
         // Students Management
-        Route::apiResource('students', StudentController::class)->except(['index', 'show']);
+        Route::apiResource('students', StudentController::class)->except(['index', 'show'])->whereNumber('student');
         Route::post('students/{student}/reset-password', [StudentController::class, 'resetPassword'])->whereNumber('student');
 
         // Teachers

@@ -192,11 +192,6 @@ class AdminDashboardController extends Controller
 
         // 9. Recent Admission Applications
         $recentAdmissions = Admission::with('schoolClass')
-            ->where(function ($q) {
-                $q->where('first_name', 'not like', '%XSS%')
-                  ->where('last_name', 'not like', '%<%')
-                  ->where('last_name', 'not like', '%script%');
-            })
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();

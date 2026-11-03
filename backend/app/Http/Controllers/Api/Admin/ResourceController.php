@@ -143,7 +143,7 @@ class ResourceController extends Controller
             'name' => 'required|string|max:255',
             'category' => 'required|string|max:100',
             'total_quantity' => 'required|integer|min:1',
-            'available_quantity' => 'required|integer|min:0',
+            'available_quantity' => 'required|integer|min:0|lte:total_quantity',
             'condition' => 'nullable|string|in:Good,Needs Repair,Damaged,Discarded',
             'location_room' => 'nullable|string|max:100',
             'purchase_date' => 'nullable|date',

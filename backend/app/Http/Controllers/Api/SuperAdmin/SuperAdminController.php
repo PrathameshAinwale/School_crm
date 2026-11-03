@@ -305,7 +305,6 @@ class SuperAdminController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'nullable|string|max:50|unique:schools,code,' . $school->id,
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
             'address' => 'nullable|string|max:500',

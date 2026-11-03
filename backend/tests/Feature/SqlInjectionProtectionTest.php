@@ -183,5 +183,31 @@ class SqlInjectionProtectionTest extends TestCase
         $this->assertEquals('active', $fresh->status); // Preserved active
         $this->assertEquals('Pro', $fresh->subscription_plan); // Preserved Pro
     }
+
+    /**
+     * Test that MySQL-specific LIKE wildcard escaping behaves identically when MySQL is configured.
+     */
+    public function test_mysql_like_wildcard_escaping_matches_literal_characters(): void
+    {
+        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() !== 'mysql') {
+            $this->markTestSkipped('MySQL connection not configured for this test environment (running on ' . \Illuminate\Support\Facades\DB::connection()->getDriverName() . ').');
+        }
+
+        \Illuminate\Support\Facades\DB::statement('CREATE TEMPORARY TABLE test_like (id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(100))');
+        \Illuminate\Support\Facades\DB::table('test_like')->insert([
+            ['title' => 'Biology 50% discount'],
+            ['title' => 'Biology 500 total'],
+            ['title' => 'Biology_Unit_1'],
+            ['title' => 'BiologyAUnitA1'],
+        ]);
+
+        $escapedPercent = escape_like('50%');
+        $resPercent = \Illuminate\Support\Facades\DB::table('test_like')->where('title', 'like', "%{$escapedPercent}%")->pluck('title')->toArray();
+        $this->assertEquals(['Biology 50% discount'], $resPercent);
+
+        $escapedUnderscore = escape_like('Biology_Unit');
+        $resUnderscore = \Illuminate\Support\Facades\DB::table('test_like')->where('title', 'like', "%{$escapedUnderscore}%")->pluck('title')->toArray();
+        $this->assertEquals(['Biology_Unit_1'], $resUnderscore);
+    }
 }
 
