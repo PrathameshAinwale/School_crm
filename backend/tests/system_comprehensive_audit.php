@@ -166,6 +166,7 @@ if ($createdAdmId) {
     $enrollData = json_decode($enrollRes->getContent(), true);
     $hasCreds = isset($enrollData['credentials']['temporary_password']);
     recordTest('functional', 'Admissions: Enroll applicant and generate parent login', $enrollRes->getStatusCode() === 200 && $hasCreds, "Status: {$enrollRes->getStatusCode()}", 'High', 'AdmissionController.php:151');
+    Admission::withoutGlobalScopes()->where('id', $createdAdmId)->forceDelete();
 }
 
 // 4. Accounts & Finance
@@ -294,6 +295,10 @@ $emojiAdmRes = callApi('POST', '/api/v1/admin/admissions', [
     'remarks' => 'Unicode test: 🎓 こんにちは, مرحبا, नमस्ते',
 ], $adminHeaders);
 recordTest('validation', 'Admissions: Support clean Unicode and Emoji storage', $emojiAdmRes->getStatusCode() === 201, "Status: {$emojiAdmRes->getStatusCode()}", 'Low', 'AdmissionController.php');
+$emojiAdmId = json_decode($emojiAdmRes->getContent(), true)['data']['id'] ?? null;
+if ($emojiAdmId) {
+    Admission::withoutGlobalScopes()->where('id', $emojiAdmId)->forceDelete();
+}
 
 // 8. Expense Amount Validation: Negative Amount
 $negExpenseRes = callApi('POST', '/api/v1/accounts/expenses', [
@@ -364,6 +369,10 @@ $xssAdmData = json_decode($xssAdmRes->getContent(), true);
 $storedRemarks = $xssAdmData['data']['remarks'] ?? '';
 // Check that raw unencoded script isn't causing API crash or script execution headers
 recordTest('security', 'XSS: Handled safely via JSON response encoding and input processing', $xssAdmRes->getStatusCode() === 201, "Status: {$xssAdmRes->getStatusCode()}", 'High', 'AdmissionController.php');
+$xssAdmId = $xssAdmData['data']['id'] ?? null;
+if ($xssAdmId) {
+    Admission::withoutGlobalScopes()->where('id', $xssAdmId)->forceDelete();
+}
 
 // 3. Password Storage & Hashing (Bcrypt / Argon2)
 $sampleUser = User::withoutGlobalScopes()->where('email', 'admin@school.com')->first();

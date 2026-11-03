@@ -23,7 +23,7 @@ class NoticeController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = escape_like($request->search);
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                   ->orWhere('content', 'like', "%{$search}%")

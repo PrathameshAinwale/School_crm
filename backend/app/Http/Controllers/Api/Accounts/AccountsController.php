@@ -632,7 +632,7 @@ class AccountsController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = escape_like($request->input('search'));
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                   ->orWhere('expense_code', 'like', "%{$search}%")

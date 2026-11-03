@@ -92,7 +92,7 @@ class SportsController extends Controller
         $query = Sport::withCount(['competitions', 'participants']);
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = escape_like($request->input('search'));
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('code', 'like', "%{$search}%")
@@ -201,7 +201,7 @@ class SportsController extends Controller
             ]);
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = escape_like($request->input('search'));
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                   ->orWhere('opponent_school', 'like', "%{$search}%")
@@ -337,7 +337,7 @@ class SportsController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = escape_like($request->input('search'));
             $query->whereHas('student', function ($sq) use ($search) {
                 $sq->where('first_name', 'like', "%{$search}%")
                    ->orWhere('last_name', 'like', "%{$search}%")
@@ -567,7 +567,7 @@ class SportsController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = escape_like($request->input('search'));
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('location', 'like', "%{$search}%")
@@ -664,7 +664,7 @@ class SportsController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = escape_like($request->input('search'));
             $query->where(function ($q) use ($search) {
                 $q->where('squad_name', 'like', "%{$search}%")
                   ->orWhere('coach_name', 'like', "%{$search}%")
@@ -765,7 +765,7 @@ class SportsController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = escape_like($request->input('search'));
             $query->where(function ($q) use ($search) {
                 $q->where('item_name', 'like', "%{$search}%")
                   ->orWhere('storage_location', 'like', "%{$search}%");
@@ -953,7 +953,7 @@ class SportsController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = escape_like($request->input('search'));
             $query->whereHas('student', function ($sq) use ($search) {
                 $sq->where('first_name', 'like', "%{$search}%")
                    ->orWhere('last_name', 'like', "%{$search}%")

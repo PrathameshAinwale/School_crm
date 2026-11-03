@@ -26,7 +26,7 @@ class LibrarySeeder extends Seeder
             [
                 'school_id' => $schoolId,
                 'name' => 'Meena Iyer (Chief Librarian)',
-                'phone' => '9876543215',
+                'phone' => '9876543216',
                 'password' => Hash::make('111111'),
                 'role' => 'librarian',
                 'must_change_password' => false,

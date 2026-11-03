@@ -184,3 +184,4 @@ class SqlInjectionProtectionTest extends TestCase
         $this->assertEquals('Pro', $fresh->subscription_plan); // Preserved Pro
     }
 }
+

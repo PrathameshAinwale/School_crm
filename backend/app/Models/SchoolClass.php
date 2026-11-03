@@ -21,17 +21,11 @@ class SchoolClass extends Model
     protected static function booted()
     {
         static::saved(function ($cls) {
-            if ($cls->school_id) {
-                \Illuminate\Support\Facades\Cache::forget("school_{$cls->school_id}_classes_v2");
-            }
-            \Illuminate\Support\Facades\Cache::forget("school_all_classes_v2");
+            \App\Http\Controllers\Api\Admin\AcademicController::invalidateClassesCache($cls->school_id);
         });
 
         static::deleted(function ($cls) {
-            if ($cls->school_id) {
-                \Illuminate\Support\Facades\Cache::forget("school_{$cls->school_id}_classes_v2");
-            }
-            \Illuminate\Support\Facades\Cache::forget("school_all_classes_v2");
+            \App\Http\Controllers\Api\Admin\AcademicController::invalidateClassesCache($cls->school_id);
         });
     }
 

@@ -155,4 +155,70 @@ class BranchIsolationTest extends TestCase
         $this->assertContains('BranchTwo', $names2);
         $this->assertNotContains('BranchOne', $names2);
     }
+
+    public function test_cross_school_access_to_expense_student_and_book_returns_404()
+    {
+        $school1 = School::create([
+            'name' => 'Campus Alpha',
+            'code' => 'ALP-101',
+            'slug' => 'campus-alpha',
+        ]);
+
+        $school2 = School::create([
+            'name' => 'Campus Beta',
+            'code' => 'BET-102',
+            'slug' => 'campus-beta',
+        ]);
+
+        $admin1 = User::factory()->create(['school_id' => $school1->id, 'role' => 'admin']);
+
+        // Create records belonging to School 2
+        $expense2 = \App\Models\SchoolExpense::create([
+            'school_id' => $school2->id,
+            'expense_code' => 'EXP-BETA-001',
+            'title' => 'Beta Science Lab Consumables',
+            'category' => 'Laboratory',
+            'amount' => 4500,
+            'expense_date' => now()->toDateString(),
+            'payment_status' => 'Paid',
+        ]);
+
+        $user2 = User::factory()->create(['school_id' => $school2->id, 'role' => 'student_parent']);
+        $student2 = Student::create([
+            'school_id' => $school2->id,
+            'user_id' => $user2->id,
+            'admission_number' => 'BET-STU-99',
+            'first_name' => 'BetaChild',
+            'last_name' => 'Student',
+            'guardian_name' => 'Beta Parent',
+            'guardian_phone' => '9876543219',
+        ]);
+
+        $book2 = \App\Models\Book::create([
+            'school_id' => $school2->id,
+            'title' => 'Beta Library Rare Manuscript',
+            'author' => 'Historian X',
+            'isbn' => 'BET-ISBN-1',
+            'category' => 'History',
+            'total_copies' => 1,
+            'available_copies' => 1,
+        ]);
+
+        Sanctum::actingAs($admin1);
+
+        // 1. Admin of School 1 attempting to DELETE School 2's expense gets 404
+        $resExpense = $this->withHeader('X-School-Id', (string)$school1->id)
+            ->deleteJson("/api/v1/expenses/{$expense2->id}");
+        $resExpense->assertStatus(404);
+
+        // 2. Admin of School 1 attempting to GET School 2's student gets 404
+        $resStudent = $this->withHeader('X-School-Id', (string)$school1->id)
+            ->getJson("/api/v1/admin/students/{$student2->id}");
+        $resStudent->assertStatus(404);
+
+        // 3. Admin of School 1 attempting to DELETE School 2's book gets 404
+        $resBook = $this->withHeader('X-School-Id', (string)$school1->id)
+            ->deleteJson("/api/v1/library/books/{$book2->id}");
+        $resBook->assertStatus(404);
+    }
 }

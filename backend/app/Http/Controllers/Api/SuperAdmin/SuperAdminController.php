@@ -111,7 +111,7 @@ class SuperAdminController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = escape_like($request->input('search'));
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('code', 'like', "%{$search}%")
@@ -305,6 +305,7 @@ class SuperAdminController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'code' => 'nullable|string|max:50|unique:schools,code,' . $school->id,
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
             'address' => 'nullable|string|max:500',

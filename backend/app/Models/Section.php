@@ -20,18 +20,12 @@ class Section extends Model
     {
         static::saved(function ($s) {
             $sid = $s->school_id ?: $s->schoolClass?->school_id;
-            if ($sid) {
-                \Illuminate\Support\Facades\Cache::forget("school_{$sid}_classes_v2");
-            }
-            \Illuminate\Support\Facades\Cache::forget("school_all_classes_v2");
+            \App\Http\Controllers\Api\Admin\AcademicController::invalidateClassesCache($sid);
         });
 
         static::deleted(function ($s) {
             $sid = $s->school_id ?: $s->schoolClass?->school_id;
-            if ($sid) {
-                \Illuminate\Support\Facades\Cache::forget("school_{$sid}_classes_v2");
-            }
-            \Illuminate\Support\Facades\Cache::forget("school_all_classes_v2");
+            \App\Http\Controllers\Api\Admin\AcademicController::invalidateClassesCache($sid);
         });
     }
 

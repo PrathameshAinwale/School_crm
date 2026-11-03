@@ -27,13 +27,26 @@ class ExamScheduleController extends Controller
     // --- Terms Management ---
     public function listTerms(Request $request)
     {
-        $schoolId = SchoolContext::getActiveSchoolId() ?: $request->user()->school_id;
+        $schoolId = SchoolContext::getActiveSchoolId() ?: $request->user()?->school_id;
+        if (!$schoolId) {
+            $schoolId = \App\Models\School::first()?->id ?? 1;
+        }
+
         $academicYearId = AcademicYearContext::getActiveAcademicYearId($schoolId);
 
-        $terms = ExamTerm::where('school_id', $schoolId)
-            ->where('academic_year_id', $academicYearId)
-            ->with(['gradingScale', 'exams.subject', 'exams.schoolClass', 'exams.section'])
-            ->get();
+        $query = ExamTerm::where('school_id', $schoolId);
+        if ($academicYearId) {
+            $query->where('academic_year_id', $academicYearId);
+        }
+
+        $terms = $query->with(['gradingScale', 'exams.subject', 'exams.schoolClass', 'exams.section'])->get();
+
+        // Fallback: If no terms matched current year, return terms across the school
+        if ($terms->isEmpty()) {
+            $terms = ExamTerm::where('school_id', $schoolId)
+                ->with(['gradingScale', 'exams.subject', 'exams.schoolClass', 'exams.section'])
+                ->get();
+        }
 
         return response()->json([
             'success' => true,

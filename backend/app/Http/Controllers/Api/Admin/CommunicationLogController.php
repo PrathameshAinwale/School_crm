@@ -27,7 +27,7 @@ class CommunicationLogController extends Controller
         }
 
         if ($request->filled('search')) {
-            $s = $request->search;
+            $s = escape_like($request->search);
             $query->where(function ($q) use ($s) {
                 $q->where('recipient_name', 'like', "%{$s}%")
                   ->orWhere('recipient_phone', 'like', "%{$s}%")

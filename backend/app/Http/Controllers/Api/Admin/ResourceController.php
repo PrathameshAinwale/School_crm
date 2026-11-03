@@ -22,7 +22,7 @@ class ResourceController extends Controller
         $query = Resource::with('assignedTeacher');
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = escape_like($request->input('search'));
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('resource_code', 'like', "%{$search}%")

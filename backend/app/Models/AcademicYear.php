@@ -27,14 +27,14 @@ class AcademicYear extends Model
         static::saved(function ($yr) {
             if ($yr->school_id) {
                 \Illuminate\Support\Facades\Cache::forget("school_{$yr->school_id}_current_year_id");
-                \Illuminate\Support\Facades\Cache::forget("school_{$yr->school_id}_classes_v2");
+                \App\Http\Controllers\Api\Admin\AcademicController::invalidateClassesCache($yr->school_id);
             }
         });
 
         static::deleted(function ($yr) {
             if ($yr->school_id) {
                 \Illuminate\Support\Facades\Cache::forget("school_{$yr->school_id}_current_year_id");
-                \Illuminate\Support\Facades\Cache::forget("school_{$yr->school_id}_classes_v2");
+                \App\Http\Controllers\Api\Admin\AcademicController::invalidateClassesCache($yr->school_id);
             }
         });
     }

@@ -1,9 +1,9 @@
 {
-    "timestamp": "2026-10-26 12:37:50",
+    "timestamp": "2026-11-03 10:23:20",
     "results": {
         "functional": {
-            "passed": 18,
-            "failed": 0,
+            "passed": 16,
+            "failed": 2,
             "items": [
                 {
                     "name": "Authentication: Admin login via email & password",
@@ -52,13 +52,13 @@
                 },
                 {
                     "name": "Sports: Activities & Disciplines directory",
-                    "status": "PASS",
-                    "details": "Status: 200"
+                    "status": "FAIL",
+                    "details": "Status: 404"
                 },
                 {
                     "name": "Sports: Tournaments and Competitions schedule",
-                    "status": "PASS",
-                    "details": "Status: 200"
+                    "status": "FAIL",
+                    "details": "Status: 404"
                 },
                 {
                     "name": "HR: Staff Attendance roster retrieval",
@@ -98,8 +98,8 @@
             ]
         },
         "validation": {
-            "passed": 9,
-            "failed": 0,
+            "passed": 8,
+            "failed": 1,
             "items": [
                 {
                     "name": "Admissions: Reject empty mandatory fields (first_name, guardian_phone)",
@@ -128,8 +128,8 @@
                 },
                 {
                     "name": "Admissions: Reject invalid stage transition enum value",
-                    "status": "PASS",
-                    "details": "Status: 422"
+                    "status": "FAIL",
+                    "details": "Status: 404"
                 },
                 {
                     "name": "Admissions: Support clean Unicode and Emoji storage",
@@ -216,7 +216,7 @@
                 {
                     "name": "Performance: Admissions pipeline response time under 500ms",
                     "status": "PASS",
-                    "details": "Response time: 247.89ms"
+                    "details": "Response time: 295.19ms"
                 },
                 {
                     "name": "Concurrency: Transaction blocks wrap critical financial and enrollment state mutations",
@@ -226,5 +226,33 @@
             ]
         }
     },
-    "issues": []
+    "issues": [
+        {
+            "id": "ISSUE-1",
+            "category": "functional",
+            "name": "Sports: Activities & Disciplines directory",
+            "severity": "Medium",
+            "location": "SportsController.php",
+            "description": "Status: 404",
+            "status": "open"
+        },
+        {
+            "id": "ISSUE-2",
+            "category": "functional",
+            "name": "Sports: Tournaments and Competitions schedule",
+            "severity": "Medium",
+            "location": "SportsController.php",
+            "description": "Status: 404",
+            "status": "open"
+        },
+        {
+            "id": "ISSUE-3",
+            "category": "validation",
+            "name": "Admissions: Reject invalid stage transition enum value",
+            "severity": "Medium",
+            "location": "AdmissionController.php:131",
+            "description": "Status: 404",
+            "status": "open"
+        }
+    ]
 }

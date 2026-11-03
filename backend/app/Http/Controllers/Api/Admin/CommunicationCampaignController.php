@@ -28,7 +28,7 @@ class CommunicationCampaignController extends Controller
         }
 
         if ($request->filled('search')) {
-            $s = $request->search;
+            $s = escape_like($request->search);
             $query->where(function ($q) use ($s) {
                 $q->where('title', 'like', "%{$s}%")
                   ->orWhere('subject', 'like', "%{$s}%")

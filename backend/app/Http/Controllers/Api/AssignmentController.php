@@ -59,7 +59,8 @@ class AssignmentController extends Controller
         }
 
         if ($request->filled('subject') && strtolower($request->subject) !== 'all') {
-            $query->where('subject_name', 'like', "%{$request->subject}%");
+            $subj = escape_like($request->subject);
+            $query->where('subject_name', 'like', "%{$subj}%");
         }
 
         if ($request->filled('status') && strtolower($request->status) !== 'all') {
@@ -67,7 +68,7 @@ class AssignmentController extends Controller
         }
 
         if ($request->filled('search')) {
-            $s = $request->search;
+            $s = escape_like($request->search);
             $query->where(function ($q) use ($s) {
                 $q->where('title', 'like', "%{$s}%")
                   ->orWhere('description', 'like', "%{$s}%")

@@ -21,7 +21,7 @@ class EnsureDemoRolesCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Ensure Principal and Admission Officer demo accounts exist with active credentials';
+    protected $description = 'Ensure Principal, Admission Officer, and Librarian demo accounts exist with active credentials';
 
     /**
      * Execute the console command.
@@ -54,6 +54,18 @@ class EnsureDemoRolesCommand extends Command
         $admissionOfficer->must_change_password = false;
         $admissionOfficer->save();
         $this->info("Admissions Officer account ensured: admissions@school.com / 111111 (Role: {$admissionOfficer->role}, School: {$schoolId})");
+
+        // 3. Ensure Librarian account
+        $librarian = User::firstOrNew(['email' => 'library@school.com']);
+        $librarian->name = 'Meena Iyer (Chief Librarian)';
+        $librarian->phone = $librarian->phone ?: '9876543216';
+        $librarian->password = Hash::make('111111');
+        $librarian->role = 'librarian';
+        $librarian->school_id = $schoolId;
+        $librarian->status = 'active';
+        $librarian->must_change_password = false;
+        $librarian->save();
+        $this->info("Librarian account ensured: library@school.com / 111111 (Role: {$librarian->role}, School: {$schoolId})");
 
         return Command::SUCCESS;
     }

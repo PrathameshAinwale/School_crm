@@ -77,4 +77,14 @@ class Admission extends Model
     {
         return trim("{$this->first_name} {$this->last_name}");
     }
+
+    public function setFirstNameAttribute($value): void
+    {
+        $this->attributes['first_name'] = strip_tags(trim($value ?? ''));
+    }
+
+    public function setLastNameAttribute($value): void
+    {
+        $this->attributes['last_name'] = strip_tags(trim($value ?? ''));
+    }
 }

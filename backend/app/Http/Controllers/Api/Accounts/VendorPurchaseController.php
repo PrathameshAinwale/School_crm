@@ -34,7 +34,7 @@ class VendorPurchaseController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = escape_like($request->search);
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('vendor_code', 'like', "%{$search}%")
@@ -236,7 +236,7 @@ class VendorPurchaseController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = escape_like($request->search);
             $query->where(function ($q) use ($search) {
                 $q->where('po_number', 'like', "%{$search}%")
                   ->orWhereHas('vendor', function ($vq) use ($search) {
