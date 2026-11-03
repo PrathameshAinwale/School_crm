@@ -248,6 +248,14 @@ export function AuthProvider({ children }) {
     });
   };
 
+  const switchRole = (newRole) => {
+    if (!user || user.role === newRole) return;
+    clearApiCache();
+    const updatedUser = { ...user, role: newRole };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
   const logout = async () => {
     try {
       await authService.logout();

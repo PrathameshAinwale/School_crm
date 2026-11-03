@@ -1,3 +1,23 @@
+// Dev-only guard: Flag when the exact same endpoint is called 3+ times within 5 seconds
+const callFrequencyMap = new Map();
+
+function checkCallFrequency(endpoint, method) {
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') return;
+
+  const key = `${method}:${endpoint}`;
+  const now = Date.now();
+  const history = (callFrequencyMap.get(key) || []).filter((t) => now - t < 5000);
+  history.push(now);
+  callFrequencyMap.set(key, history);
+
+  if (history.length >= 3) {
+    console.warn(
+      `[API FREQUENCY WARNING] Endpoint ${key} called ${history.length} times within 5000ms. Check component effect dependencies or re-mount triggers!`,
+      { endpoint, method, callCountInWindow: history.length }
+    );
+  }
+}
+
 const API_BASE_URL = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.') || window.location.port === '5173'))
   ? 'http://127.0.0.1:8000/api/v1'
   : (import.meta.env.VITE_API_URL || 'https://powderblue-trout-993647.hostingersite.com/api/v1');
@@ -48,6 +68,7 @@ function invalidateCacheForMutation(endpoint) {
  * Universal API Request Helper with In-flight Deduplication & Reference Caching
  */
 export async function apiRequest(endpoint, options = {}) {
+  checkCallFrequency(endpoint, (options.method || "GET").toUpperCase());
   const method = (options.method || 'GET').toUpperCase();
   const token = localStorage.getItem('auth_token');
   const activeSchoolId = localStorage.getItem('active_school_id');

@@ -10,11 +10,28 @@ use Illuminate\Http\Request;
 
 class AcademicController extends Controller
 {
+        public static function invalidateClassesCache(?int $schoolId = null): void
+    {
+        $sid = $schoolId ?: \App\Services\SchoolContext::getActiveSchoolId();
+        if ($sid) {
+            \Illuminate\Support\Facades\Cache::increment("school_{$sid}_classes_ver");
+        }
+        \Illuminate\Support\Facades\Cache::increment("school_all_classes_ver");
+    }
+
+    public static function getClassesCacheVersion(?int $schoolId = null): int
+    {
+        $sid = $schoolId ?: 'all';
+        return (int) \Illuminate\Support\Facades\Cache::get("school_{$sid}_classes_ver", 1);
+    }
+
     public function classes(Request $request)
     {
         $schoolId = \App\Services\SchoolContext::getActiveSchoolId() ?: $request->user()?->school_id;
         $branchId = $request->header('X-Branch-Id') ?: $request->user()?->branch_id;
-        $cacheKey = "school_" . ($schoolId ?? 'all') . ($branchId ? "_b{$branchId}" : '') . "_classes_v2";
+        $ver = self::getClassesCacheVersion($schoolId);
+
+        $cacheKey = "school_" . ($schoolId ?? 'all') . "_v{$ver}" . ($branchId ? "_b{$branchId}" : '') . "_classes";
 
         $classes = \Illuminate\Support\Facades\Cache::remember($cacheKey, 1800, function () use ($schoolId) {
             $query = SchoolClass::with('sections');
@@ -95,8 +112,7 @@ class AcademicController extends Controller
             }
         }
 
-        \Illuminate\Support\Facades\Cache::forget("school_" . ($schoolId ?? 'all') . "_classes_v2");
-        \Illuminate\Support\Facades\Cache::forget("school_all_classes_v2");
+        self::invalidateClassesCache($schoolId);
 
         return response()->json([
             'success' => true,
