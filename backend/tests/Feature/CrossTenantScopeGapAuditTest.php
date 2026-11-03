@@ -243,17 +243,30 @@ class CrossTenantScopeGapAuditTest extends TestCase
                 'status' => 'Present',
             ]);
 
-        $this->assertTrue(in_array($res->status(), [403, 404]), "StaffAttendance failed cross-tenant isolation: Admin of School 1 marked attendance for School 2 teacher, returned {$res->status()}");
+        $res->assertStatus(404);
+        $this->assertDatabaseMissing('staff_attendances', [
+            'teacher_id' => $teacher2->id,
+            'date' => now()->toDateString(),
+        ]);
     }
 
     public function test_staff_salary_cross_tenant_access()
     {
-        $userBeta = User::factory()->create(['school_id' => $this->school2->id, 'role' => 'teacher']);
+        $teacher2 = Teacher::create([
+            'school_id' => $this->school2->id,
+            'user_id' => $this->admin2->id,
+            'teacher_id' => 'TCH-BETA-03',
+            'first_name' => 'BetaTeacher',
+            'last_name' => 'Staff',
+            'email' => 'betateacherstaff@schoolbeta.com',
+        ]);
+
         $sal2 = StaffSalary::create([
+            'teacher_id' => $teacher2->id,
             'name' => 'Beta Teacher Staff',
             'role' => 'Teacher',
             'staff_id' => 'STF-BETA-01',
-            'basic_salary' => 50000,
+            'base_salary' => 50000,
             'net_salary' => 50000,
         ]);
 
@@ -261,6 +274,7 @@ class CrossTenantScopeGapAuditTest extends TestCase
         $res = $this->withHeader('X-School-Id', (string)$this->school1->id)
             ->putJson("/api/v1/hr/salaries/{$sal2->id}", ['base_salary' => 99999]);
 
-        $this->assertTrue(in_array($res->status(), [403, 404]), "StaffSalary failed cross-tenant isolation: Admin of School 1 updated salary of School 2 staff, returned {$res->status()}");
+        $res->assertStatus(404);
+        $this->assertEquals(50000, (float)$sal2->fresh()->base_salary);
     }
 }

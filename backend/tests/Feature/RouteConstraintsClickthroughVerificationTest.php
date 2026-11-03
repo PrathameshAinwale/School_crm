@@ -182,3 +182,4 @@ class RouteConstraintsClickthroughVerificationTest extends TestCase
         $this->assertEquals('Digital Microscope Pro', $resource->fresh()->name);
     }
 }
+

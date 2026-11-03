@@ -985,8 +985,15 @@ class AccountsController extends Controller
             'accounts_notes' => 'nullable|string',
         ]);
 
-        $disbReq = SalaryDisbursementRequest::with(['salaries.teacher.user', 'requestedBy'])->findOrFail($id);
         $user = $request->user();
+        $disbReq = SalaryDisbursementRequest::where('id', $id)
+            ->when($user && $user->school_id, function ($query) use ($user) {
+                $query->whereHas('requestedBy', function ($q) use ($user) {
+                    $q->where('school_id', $user->school_id);
+                });
+            })
+            ->with(['salaries.teacher.user', 'requestedBy'])
+            ->firstOrFail();
         $status = $request->status;
 
         $payoutRef = $request->input('payment_reference') ?: ('NEFT-BATCH-' . strtoupper(Str::random(6)));

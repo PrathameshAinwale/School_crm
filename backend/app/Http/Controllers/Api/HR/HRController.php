@@ -244,8 +244,9 @@ class HRController extends Controller
         ]);
 
         // Support numeric ID or "LR-101"
+        $schoolId = $request->user()->school_id;
         $numericId = is_numeric($id) ? (int) $id : (int) preg_replace('/[^0-9]/', '', $id);
-        $leave = LeaveApplication::with(['user', 'teacher'])->find($numericId);
+        $leave = LeaveApplication::where('school_id', $schoolId)->with(['user', 'teacher'])->find($numericId);
 
         if (!$leave) {
             return response()->json(['success' => false, 'message' => 'Leave application not found.'], 404);
@@ -411,7 +412,18 @@ class HRController extends Controller
             'status' => 'required|string|in:Present,Absent,Late,Half Day,Leave,On Duty',
         ]);
 
+        $schoolId = $request->user()->school_id;
         $teacherId = $request->input('teacher_id');
+
+        // Verify teacher belongs to the caller's school
+        $teacher = Teacher::where('school_id', $schoolId)->where('id', $teacherId)->first();
+        if (!$teacher) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Staff member not found in your school.',
+            ], 404);
+        }
+
         $date = Carbon::parse($request->input('date'))->toDateString();
         $status = $request->input('status');
 
@@ -587,8 +599,21 @@ class HRController extends Controller
      */
     public function updateStaffSalary(Request $request, $id)
     {
+        $schoolId = $request->user()->school_id;
         $numericId = is_numeric($id) ? (int) $id : (int) preg_replace('/[^0-9]/', '', $id);
-        $salary = StaffSalary::find($numericId);
+
+        $salary = StaffSalary::where('id', $numericId)
+            ->where(function ($q) use ($schoolId) {
+                $q->whereHas('teacher', function ($tq) use ($schoolId) {
+                    $tq->where('school_id', $schoolId);
+                })->orWhereExists(function ($sub) use ($schoolId) {
+                    $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                        ->from('teachers')
+                        ->where('teachers.school_id', $schoolId)
+                        ->whereColumn('teachers.id', 'staff_salaries.teacher_id');
+                });
+            })
+            ->first();
 
         if (!$salary) {
             return response()->json(['success' => false, 'message' => 'Salary record not found.'], 404);
