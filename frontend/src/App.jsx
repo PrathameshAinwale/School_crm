@@ -104,7 +104,6 @@ import PrincipalDashboard from './modules/principal/PrincipalDashboard';
 import PrincipalAdmissionsPage from './modules/principal/PrincipalAdmissionsPage';
 import AdmissionInterviewCalendarPage from './modules/admission/AdmissionInterviewCalendarPage';
 import AdmissionDashboard from './modules/admission/AdmissionDashboard';
-import AdmissionApplicantDetailPage from './modules/admission/AdmissionApplicantDetailPage';
 
 // Protected route wrapper
 function ProtectedRoute({ children }) {
@@ -698,47 +697,20 @@ function AppRoutes() {
           }
         />
 
-        {/* Dedicated Full-Page New Admission Inquiry */}
-        <Route
-          path="admission/new"
-          element={
-            <RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="New Admission Inquiry">
-              <AdmissionApplicantDetailPage isNew />
-            </RoleRoute>
-          }
-        />
-        <Route
-          path="admissions/new"
-          element={
-            <RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="New Admission Inquiry">
-              <AdmissionApplicantDetailPage isNew />
-            </RoleRoute>
-          }
-        />
-
+        {/* Role-aware Deep Link / Parameterized Routes for Existing Admissions Page */}
         <Route
           path="admission/:id"
           element={
-            <RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="Applicant Dossier">
-              <AdmissionApplicantDetailPage />
+            <RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="Admissions">
+              <AdmissionRouter />
             </RoleRoute>
           }
         />
-
         <Route
           path="admissions/:id"
           element={
-            <RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="Applicant Dossier">
-              <AdmissionApplicantDetailPage />
-            </RoleRoute>
-          }
-        />
-
-        <Route
-          path="admission/applicant/:id"
-          element={
-            <RoleRoute allowedRoles={['admission_officer', 'admin', 'principal', 'super_admin']} moduleName="Applicant Dossier">
-              <AdmissionApplicantDetailPage />
+            <RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="Admissions">
+              <AdmissionRouter />
             </RoleRoute>
           }
         />

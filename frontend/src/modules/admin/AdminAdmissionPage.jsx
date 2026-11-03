@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/adminService';
 import CredentialsModal from '../../components/Common/CredentialsModal';
+import PrincipalAdmissionsPage from '../principal/PrincipalAdmissionsPage';
 import { useAuth } from '../../context/AuthContext';
 import {
   LuUserPlus,
@@ -57,9 +58,11 @@ const STANDARD_DOCS = [
 ];
 
 export default function AdminAdmissionPage() {
-  const navigate = useNavigate();
   const { currentRole } = useAuth();
   const isPrincipal = currentRole === 'principal';
+
+  const { id } = useParams();
+  const navigate = useNavigate();
 
   const [pipeline, setPipeline] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -111,29 +114,21 @@ export default function AdminAdmissionPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Load classes reference data once on mount
-  useEffect(() => {
-    let active = true;
-    adminService.getClasses().then((clsRes) => {
-      if (active && clsRes?.success && clsRes?.data) {
-        setClasses(clsRes.data);
-      }
-    }).catch(() => {});
-    return () => { active = false; };
-  }, []);
-
-  const loadData = async (query = searchQuery) => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const admRes = await adminService.getAdmissions({
-        search: query.trim() || undefined,
-        status: selectedStageTab !== 'ALL' ? selectedStageTab : undefined,
-        school_class_id: selectedClass !== 'ALL' ? selectedClass : undefined,
-        lead_source: selectedLeadSource !== 'ALL' ? selectedLeadSource : undefined,
-        per_page: 200,
-      });
+      const [admRes, clsRes] = await Promise.all([
+        adminService.getAdmissions({
+          search: searchQuery,
+          status: selectedStageTab !== 'ALL' ? selectedStageTab : undefined,
+          school_class_id: selectedClass !== 'ALL' ? selectedClass : undefined,
+          lead_source: selectedLeadSource !== 'ALL' ? selectedLeadSource : undefined,
+          per_page: 200,
+        }),
+        adminService.getClasses(),
+      ]);
 
-      if (admRes && admRes.success && admRes.data) {
+      if (admRes.success && admRes.data) {
         const items = Array.isArray(admRes.data.data)
           ? admRes.data.data
           : Array.isArray(admRes.data)
@@ -144,6 +139,9 @@ export default function AdminAdmissionPage() {
           setStats(admRes.stats);
         }
       }
+      if (clsRes.success && clsRes.data) {
+        setClasses(clsRes.data);
+      }
     } catch (err) {
       console.error('Failed to load admissions:', err);
       showToast('Failed to load admission pipeline data.');
@@ -152,13 +150,32 @@ export default function AdminAdmissionPage() {
     }
   };
 
-  // Debounced query and filter change effect
   useEffect(() => {
-    const timer = setTimeout(() => {
-      loadData(searchQuery);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, selectedClass, selectedLeadSource, selectedStageTab]);
+    loadData();
+  }, [selectedClass, selectedLeadSource, selectedStageTab]);
+  // Deep-link support for /admission/:id using existing modal without redesign
+  useEffect(() => {
+    if (id) {
+      const match = pipeline.find((a) => String(a.id) === String(id));
+      if (match) {
+        setSelectedApplicant(match);
+      } else if (!loading) {
+        adminService.getAdmission(id).then((res) => {
+          if (res?.success && res?.data) {
+            setSelectedApplicant(res.data);
+          }
+        }).catch(() => {});
+      }
+    }
+  }, [id, pipeline, loading]);
+
+  const handleCloseApplicant = () => {
+    setSelectedApplicant(null);
+    if (id) {
+      navigate('/admission', { replace: true });
+    }
+  };
+
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -192,6 +209,10 @@ export default function AdminAdmissionPage() {
   }, [pipeline, searchQuery]);
 
   // Group applicants by pipeline stage for Kanban Board
+  if (isPrincipal) {
+    return <PrincipalAdmissionsPage />;
+  }
+
   const stageGroups = useMemo(() => {
     const groups = {};
     PIPELINE_STAGES.forEach((stage) => {
@@ -214,10 +235,41 @@ export default function AdminAdmissionPage() {
   }, [filteredApplicants]);
 
   // Open detailed applicant inspection modal
-  const openApplicantDetails = (applicant) => {
-    if (applicant?.id) {
-      navigate(`/admission/${applicant.id}`);
-    }
+  const openApplicantDetails = (applicant, defaultTab = 'overview') => {
+    setSelectedApplicant(applicant);
+    setDetailActiveTab(defaultTab);
+
+    // Initialize stage edit form state
+    setStageFormData({
+      status: applicant.status,
+      remarks: '',
+      documents: applicant.documents || {
+        birth_certificate: 'pending',
+        transfer_certificate: 'pending',
+        previous_marksheet: 'pending',
+        address_proof: 'pending',
+        aadhar_card: 'pending',
+        medical_record: 'pending',
+      },
+      test_score: applicant.test_score || '',
+      test_date: applicant.test_date ? applicant.test_date.substring(0, 10) : '',
+      test_status: applicant.test_status || 'Pending',
+      interview_date: applicant.interview_date ? applicant.interview_date.replace(' ', 'T').substring(0, 16) : '',
+      interview_interviewer: applicant.interview_interviewer || 'Principal & Interview Panel',
+      interview_notes: applicant.interview_notes || '',
+      interview_result: applicant.interview_result || 'Pending',
+      offer_date: applicant.offer_date ? applicant.offer_date.substring(0, 10) : new Date().toISOString().substring(0, 10),
+      offer_valid_until: applicant.offer_valid_until ? applicant.offer_valid_until.substring(0, 10) : '',
+      admission_fee: applicant.admission_fee || 35000,
+      admission_fee_status: applicant.admission_fee_status || 'Pending',
+      admission_fee_receipt: applicant.admission_fee_receipt || `REC-${Date.now().toString().slice(-6)}`,
+      admission_fee_date: applicant.admission_fee_date ? applicant.admission_fee_date.substring(0, 10) : new Date().toISOString().substring(0, 10),
+      admission_fee_mode: applicant.admission_fee_mode || 'UPI',
+      // Enrollment specific
+      roll_number: '',
+      section_id: '',
+      with_transport: applicant.with_transport !== undefined ? Boolean(applicant.with_transport) : true,
+    });
   };
 
   // Create new admission application
@@ -249,7 +301,7 @@ export default function AdminAdmissionPage() {
         await loadData();
         showToast('New admission application registered successfully!');
         if (res.data) {
-          navigate(`/admission/${res.data.id}`);
+          openApplicantDetails(res.data, 'overview');
         }
       }
     } catch (err) {
@@ -489,7 +541,7 @@ export default function AdminAdmissionPage() {
           {!isPrincipal && (
             <button
               type="button"
-              onClick={() => navigate('/admission/new')}
+              onClick={() => setShowAddModal(true)}
               className="px-4 py-2 sm:py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
             >
               <LuPlus className="w-4 h-4" />
@@ -646,7 +698,7 @@ export default function AdminAdmissionPage() {
               </button>
             )}
             <button
-              onClick={() => navigate('/admission/new')}
+              onClick={() => setShowAddModal(true)}
               className="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all inline-flex items-center gap-2 cursor-pointer"
             >
               <LuPlus className="w-4 h-4" /> Create Application
@@ -907,11 +959,1102 @@ export default function AdminAdmissionPage() {
         </div>
       )}
 
-      {/* DETAILED APPLICANT PROCESS HAS MOVED TO DEDICATED PAGE /admission/:id */}
+      {/* ========================================================= */}
+      {/* DETAILED 6-STAGE APPLICANT PROCESS MODAL / DRAWER */}
+      {/* ========================================================= */}
+      {selectedApplicant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 max-w-4xl w-full my-4 sm:my-8 overflow-hidden animate-scale-up flex flex-col max-h-[92vh]">
+            {/* Header Banner */}
+            <div className="p-4 sm:p-5 border-b border-slate-200 bg-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center shrink-0">
+                  <LuGraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-base sm:text-lg text-slate-900 leading-tight">
+                      {selectedApplicant.first_name} {selectedApplicant.last_name || ''}
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary-50 text-primary-700 border border-primary-200">
+                      {selectedApplicant.application_number}
+                    </span>
+                  </div>
+                  <p className="text-slate-500 text-xs mt-0.5">
+                    Target: {selectedApplicant.school_class?.name || 'Class ' + (selectedApplicant.school_class_id || '')} • Academic Session {selectedApplicant.academic_year || '2026-2027'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePrintSlip(selectedApplicant)}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <LuPrinter className="w-3.5 h-3.5" /> Print Slip
+                </button>
+                <button
+                  onClick={() => handleCloseApplicant()}
+                  className="w-8 h-8 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                >
+                  <LuX className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* End-to-End Pipeline Progress Stepper */}
+            <div className="bg-slate-50 border-b border-slate-200 p-3 sm:p-4 overflow-x-auto shrink-0">
+              <div className="flex items-center justify-between min-w-[620px] gap-2">
+                {PIPELINE_STAGES.map((stg, idx) => {
+                  const currentNorm = normalizeStage(selectedApplicant.status);
+                  const isCurrent = currentNorm === stg.id;
+                  const currentIdx = PIPELINE_STAGES.findIndex((s) => s.id === currentNorm);
+                  const isPassed = currentIdx > idx || selectedApplicant.status === 'Enrolled';
+
+                  return (
+                    <div key={stg.id} className="flex items-center gap-2 flex-1">
+                      <button
+                        onClick={() => {
+                          if (stg.id === 'Document Review') setDetailActiveTab('docs');
+                          else if (stg.id === 'Assessment/Interview') setDetailActiveTab('assessment');
+                          else if (stg.id === 'Offer Extended') setDetailActiveTab('fee');
+                          else if (stg.id === 'Fee Paid') setDetailActiveTab('fee');
+                          else if (stg.id === 'Enrolled') setDetailActiveTab('enroll');
+                          else setDetailActiveTab('overview');
+                        }}
+                        className={`flex items-center gap-2 text-left cursor-pointer transition-all ${
+                          isCurrent
+                            ? 'scale-105'
+                            : 'opacity-85 hover:opacity-100'
+                        }`}
+                      >
+                        <div
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
+                            isCurrent
+                              ? 'bg-primary-600 text-white shadow-md shadow-primary-500/25'
+                              : isPassed
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {isPassed ? <LuCheck className="w-4 h-4" /> : idx + 1}
+                        </div>
+                        <div className="leading-tight">
+                          <span
+                            className={`text-[11px] font-bold block ${
+                              isCurrent ? 'text-primary-700' : isPassed ? 'text-emerald-700' : 'text-slate-600'
+                            }`}
+                          >
+                            {stg.name}
+                          </span>
+                          <span className="text-[9px] text-slate-400 block truncate max-w-[100px]">
+                            {stg.desc}
+                          </span>
+                        </div>
+                      </button>
+
+                      {idx < PIPELINE_STAGES.length - 1 && (
+                        <LuChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0 mx-1" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Navigation Tabs for Modal View */}
+            <div className="flex border-b border-slate-200 px-4 sm:px-6 bg-white gap-2 sm:gap-6 text-xs font-bold text-slate-600 overflow-x-auto shrink-0">
+              <button
+                onClick={() => setDetailActiveTab('overview')}
+                className={`py-3 border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  detailActiveTab === 'overview'
+                    ? 'border-primary-600 text-primary-600'
+                    : 'border-transparent hover:text-slate-900'
+                }`}
+              >
+                <LuFileText className="w-3.5 h-3.5" /> Candidate Bio & Inquiry
+              </button>
+              <button
+                onClick={() => setDetailActiveTab('docs')}
+                className={`py-3 border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  detailActiveTab === 'docs'
+                    ? 'border-primary-600 text-primary-600'
+                    : 'border-transparent hover:text-slate-900'
+                }`}
+              >
+                <LuFileCheck className="w-3.5 h-3.5" /> Document Checklist
+              </button>
+              <button
+                onClick={() => setDetailActiveTab('assessment')}
+                className={`py-3 border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  detailActiveTab === 'assessment'
+                    ? 'border-primary-600 text-primary-600'
+                    : 'border-transparent hover:text-slate-900'
+                }`}
+              >
+                <LuClipboardCheck className="w-3.5 h-3.5" /> Test & Interview
+              </button>
+              <button
+                onClick={() => setDetailActiveTab('fee')}
+                className={`py-3 border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  detailActiveTab === 'fee'
+                    ? 'border-primary-600 text-primary-600'
+                    : 'border-transparent hover:text-slate-900'
+                }`}
+              >
+                <LuCreditCard className="w-3.5 h-3.5" /> Offer & Fee Payment
+              </button>
+              <button
+                onClick={() => setDetailActiveTab('enroll')}
+                className={`py-3 border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  detailActiveTab === 'enroll'
+                    ? 'border-primary-600 text-primary-600'
+                    : 'border-transparent hover:text-slate-900'
+                }`}
+              >
+                <LuGraduationCap className="w-3.5 h-3.5" /> Final Enrollment
+              </button>
+              <button
+                onClick={() => setDetailActiveTab('timeline')}
+                className={`py-3 border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  detailActiveTab === 'timeline'
+                    ? 'border-primary-600 text-primary-600'
+                    : 'border-transparent hover:text-slate-900'
+                }`}
+              >
+                <LuClock className="w-3.5 h-3.5" /> Stage Audit Trail
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5 text-xs text-slate-700">
+              {/* TAB 1: OVERVIEW & CANDIDATE BIO */}
+              {detailActiveTab === 'overview' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                        Candidate Bio
+                      </span>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Full Name</span>
+                          <span className="font-bold text-slate-800">
+                            {selectedApplicant.first_name} {selectedApplicant.last_name}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Gender & DOB</span>
+                          <span className="font-semibold text-slate-700">
+                            {selectedApplicant.gender || '—'} • {selectedApplicant.date_of_birth ? new Date(selectedApplicant.date_of_birth).toLocaleDateString() : 'N/A'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Applying Class</span>
+                          <span className="font-bold text-primary-700">
+                            {selectedApplicant.school_class?.name || 'Class ' + selectedApplicant.school_class_id}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Academic Session</span>
+                          <span className="font-semibold text-slate-700">{selectedApplicant.academic_year}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                        Guardian & Contact
+                      </span>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Guardian Name</span>
+                          <span className="font-bold text-slate-800">
+                            {selectedApplicant.guardian_name} ({selectedApplicant.guardian_relation || 'Parent'})
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Primary Phone</span>
+                          <a
+                            href={`tel:${selectedApplicant.guardian_phone}`}
+                            className="font-bold text-primary-600 hover:underline flex items-center gap-1 font-mono"
+                          >
+                            <LuPhone className="w-3 h-3" /> {selectedApplicant.guardian_phone}
+                          </a>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-slate-400 block text-[11px]">Email Address</span>
+                          <span className="font-medium text-slate-700">{selectedApplicant.guardian_email || 'Not provided'}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-slate-400 block text-[11px]">Residential Address</span>
+                          <span className="font-medium text-slate-700">{selectedApplicant.address || 'Not recorded'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Previous School</span>
+                      <span className="font-semibold text-slate-800 text-xs">
+                        {selectedApplicant.previous_school || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Previous Academic Score</span>
+                      <span className="font-semibold text-primary-600 text-xs">
+                        {selectedApplicant.previous_score || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">School Bus Transport</span>
+                      <span className="font-semibold text-slate-800 text-xs flex items-center gap-1.5">
+                        <LuBus className="w-3.5 h-3.5 text-amber-600" />
+                        {selectedApplicant.with_transport ? 'Opted (Transport fee applicable)' : 'Self Commute'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Stage Advancement Action Box */}
+                  {!isPrincipal && (
+                    <div className="p-4 rounded-xl bg-primary-50/70 border border-primary-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold text-primary-950 text-xs">Current Admission Stage</h4>
+                        <p className="text-[11px] text-primary-800 mt-0.5">
+                          Candidate is currently in <b>{selectedApplicant.status}</b> stage. Advance to Document Review or update status.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setDetailActiveTab('docs');
+                            handleSaveStageData('Document Review');
+                          }}
+                          className="px-3.5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-xs shadow-md shadow-primary-500/20 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <span>Move to Document Verification</span>
+                          <LuArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: DOCUMENT CHECKLIST VERIFICATION */}
+              {detailActiveTab === 'docs' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between bg-amber-50/60 border border-amber-200 p-3.5 rounded-xl">
+                    <div className="flex items-center gap-2.5">
+                      <LuFileCheck className="w-5 h-5 text-amber-600 shrink-0" />
+                      <div>
+                        <h4 className="font-bold text-slate-800 text-xs">Document Verification Checklist</h4>
+                        <p className="text-[11px] text-slate-500">
+                          Verify applicant credentials and original records before scheduling entrance exam.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                      {getDocVerifiedCount(selectedApplicant).percent}% Complete
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {STANDARD_DOCS.map((doc) => {
+                      const currentVal = stageFormData.documents?.[doc.key] || 'pending';
+                      return (
+                        <div
+                          key={doc.key}
+                          className="p-3.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between gap-2 shadow-2xs"
+                        >
+                          <div>
+                            <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                              {doc.label}
+                              {doc.required && <span className="text-red-500 text-xs">*</span>}
+                            </div>
+                            <span className="text-[10px] text-slate-400 block mt-0.5">
+                              Status:{' '}
+                              <b
+                                className={
+                                  currentVal === 'verified'
+                                    ? 'text-emerald-600'
+                                    : currentVal === 'missing'
+                                    ? 'text-rose-600'
+                                    : 'text-amber-600'
+                                }
+                              >
+                                {currentVal.toUpperCase()}
+                              </b>
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newDocs = { ...stageFormData.documents, [doc.key]: 'verified' };
+                                setStageFormData({ ...stageFormData, documents: newDocs });
+                              }}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                                currentVal === 'verified'
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                            >
+                              Verified
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newDocs = { ...stageFormData.documents, [doc.key]: 'pending' };
+                                setStageFormData({ ...stageFormData, documents: newDocs });
+                              }}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                                currentVal === 'pending'
+                                  ? 'bg-amber-500 text-white shadow-2xs'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                            >
+                              Pending
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newDocs = { ...stageFormData.documents, [doc.key]: 'missing' };
+                                setStageFormData({ ...stageFormData, documents: newDocs });
+                              }}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                                currentVal === 'missing'
+                                  ? 'bg-rose-500 text-white shadow-2xs'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                            >
+                              Waived
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {!isPrincipal && (
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => handleSaveStageData()}
+                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                      >
+                        Save Document Status
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => {
+                          setDetailActiveTab('assessment');
+                          handleSaveStageData('Assessment/Interview');
+                        }}
+                        className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center gap-2 cursor-pointer"
+                      >
+                        {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
+                        <span>Verify & Schedule Assessment</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 3: ASSESSMENT & INTERVIEW */}
+              {detailActiveTab === 'assessment' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Entrance Test Card */}
+                    <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                          <LuClipboardCheck className="w-4 h-4 text-primary-600" />
+                          Written Aptitude Assessment
+                        </h4>
+                        <span className="text-[10px] font-bold text-slate-500">Class Intake Exam</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Assessment Test Date
+                        </label>
+                        <input
+                          type="date"
+                          value={stageFormData.test_date}
+                          onChange={(e) => setStageFormData({ ...stageFormData, test_date: e.target.value })}
+                          className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Marks Obtained / Cutoff
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 88/100"
+                            value={stageFormData.test_score}
+                            onChange={(e) => setStageFormData({ ...stageFormData, test_score: e.target.value })}
+                            className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Test Result Status
+                          </label>
+                          <select
+                            value={stageFormData.test_status}
+                            onChange={(e) => setStageFormData({ ...stageFormData, test_status: e.target.value })}
+                            className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500 cursor-pointer"
+                          >
+                            <option value="Pending">Pending / Scheduled</option>
+                            <option value="Cleared">Cleared</option>
+                            <option value="Failed">Not Cleared</option>
+                            <option value="Waived">Waived / Direct Intake</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Principal / Panel Interview Card */}
+                    <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                          <LuUserCheck className="w-4 h-4 text-primary-600" />
+                          Candidate & Parent Interaction
+                        </h4>
+                        <span className="text-[10px] font-bold text-slate-500">Interview Stage</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Interview Date & Time
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={stageFormData.interview_date}
+                            onChange={(e) => setStageFormData({ ...stageFormData, interview_date: e.target.value })}
+                            className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Interview Recommendation
+                          </label>
+                          <select
+                            value={stageFormData.interview_result}
+                            onChange={(e) => setStageFormData({ ...stageFormData, interview_result: e.target.value })}
+                            className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500 cursor-pointer"
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Recommended">Recommended</option>
+                            <option value="On Hold">On Hold</option>
+                            <option value="Not Recommended">Not Recommended</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Interviewer Panel / Remarks
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Principal Dr. Sharma & Vice Principal"
+                          value={stageFormData.interview_interviewer}
+                          onChange={(e) => setStageFormData({ ...stageFormData, interview_interviewer: e.target.value })}
+                          className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500"
+                        />
+                      </div>
+
+                      <div>
+                        <textarea
+                          rows={2}
+                          placeholder="Interview feedback, strengths, and observations..."
+                          value={stageFormData.interview_notes}
+                          onChange={(e) => setStageFormData({ ...stageFormData, interview_notes: e.target.value })}
+                          className="w-full p-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-primary-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {!isPrincipal && (
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => handleSaveStageData()}
+                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                      >
+                        Save Assessment Records
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => {
+                          setDetailActiveTab('fee');
+                          handleSaveStageData('Offer Extended');
+                        }}
+                        className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center gap-2 cursor-pointer"
+                      >
+                        {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuAward className="w-4 h-4" />}
+                        <span>Approve & Extend Admission Offer</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 4: OFFER & FEE PAYMENT */}
+              {detailActiveTab === 'fee' && (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl border border-primary-200 bg-primary-50/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <LuAward className="w-5 h-5 text-primary-600" />
+                        <div>
+                          <h4 className="font-bold text-slate-900 text-xs">Admission Offer Letter</h4>
+                          <p className="text-[11px] text-slate-500">Formal seat reservation issued to parent.</p>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-100 text-primary-800">
+                        Provisional Offer
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Offer Issued Date
+                        </label>
+                        <input
+                          type="date"
+                          value={stageFormData.offer_date}
+                          onChange={(e) => setStageFormData({ ...stageFormData, offer_date: e.target.value })}
+                          className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Offer Valid Until (Deadline)
+                        </label>
+                        <input
+                          type="date"
+                          value={stageFormData.offer_valid_until}
+                          onChange={(e) => setStageFormData({ ...stageFormData, offer_valid_until: e.target.value })}
+                          className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Admission / Seat Confirmation Fee Card */}
+                  <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <LuCreditCard className="w-5 h-5 text-emerald-600" />
+                        <div>
+                          <h4 className="font-bold text-emerald-950 text-xs">Admission Fee Confirmation</h4>
+                          <p className="text-[11px] text-emerald-700">Record registration / admission fee settlement.</p>
+                        </div>
+                      </div>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          stageFormData.admission_fee_status === 'Paid'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            : 'bg-amber-100 text-amber-800 border border-amber-200'
+                        }`}
+                      >
+                        {stageFormData.admission_fee_status === 'Paid' ? 'PAID IN FULL' : 'FEE PENDING'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Admission Fee Amount (₹)
+                        </label>
+                        <input
+                          type="number"
+                          value={stageFormData.admission_fee}
+                          onChange={(e) => setStageFormData({ ...stageFormData, admission_fee: e.target.value })}
+                          className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-bold text-emerald-700 focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Payment Mode
+                        </label>
+                        <select
+                          value={stageFormData.admission_fee_mode}
+                          onChange={(e) => setStageFormData({ ...stageFormData, admission_fee_mode: e.target.value })}
+                          className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500 cursor-pointer"
+                        >
+                          <option value="UPI">UPI / QR Code</option>
+                          <option value="Cash">Cash at Counter</option>
+                          <option value="Netbanking">Netbanking / NEFT</option>
+                          <option value="Cheque">Bank Cheque</option>
+                          <option value="Card">Debit / Credit Card</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Receipt / Transaction Ref #
+                        </label>
+                        <input
+                          type="text"
+                          value={stageFormData.admission_fee_receipt}
+                          onChange={(e) => setStageFormData({ ...stageFormData, admission_fee_receipt: e.target.value })}
+                          className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-mono text-xs font-semibold focus:outline-none focus:border-primary-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-800 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={stageFormData.admission_fee_status === 'Paid'}
+                          onChange={(e) =>
+                            setStageFormData({
+                              ...stageFormData,
+                              admission_fee_status: e.target.checked ? 'Paid' : 'Pending',
+                            })
+                          }
+                          className="w-4 h-4 rounded text-emerald-600 focus:ring-0 cursor-pointer"
+                        />
+                        <span>Mark Admission Fee as Settled & Paid</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {!isPrincipal && (
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => handleSaveStageData()}
+                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                      >
+                        Save Payment Records
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => {
+                          const updatedData = {
+                            ...stageFormData,
+                            admission_fee_status: 'Paid',
+                            status: 'Fee Paid',
+                          };
+                          setStageFormData(updatedData);
+                          setDetailActiveTab('enroll');
+                          handleSaveStageData('Fee Paid');
+                        }}
+                        className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-500/20 transition-all flex items-center gap-2 cursor-pointer"
+                      >
+                        {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
+                        <span>Confirm Fee & Proceed to Final Enrollment</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 5: FINAL CLASSROOM ENROLLMENT */}
+              {detailActiveTab === 'enroll' && (
+                <div className="space-y-4">
+                  {selectedApplicant.status === 'Enrolled' ? (
+                    <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-3">
+                      <div className="w-12 h-12 bg-emerald-600 text-white rounded-full flex items-center justify-center mx-auto shadow-md">
+                        <LuCheck className="w-6 h-6" />
+                      </div>
+                      <h4 className="font-extrabold text-base text-emerald-900">Applicant Officially Enrolled!</h4>
+                      <p className="text-xs text-emerald-700 max-w-md mx-auto">
+                        This candidate has been officially added to the active student roster. Class fee structure installments and parent login access are already initialized.
+                      </p>
+                      <button
+                        onClick={() => handlePrintSlip(selectedApplicant)}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all inline-flex items-center gap-2 cursor-pointer shadow-xs"
+                      >
+                        <LuPrinter className="w-4 h-4" /> Print Enrollment Admission Pass
+                      </button>
+                    </div>
+                  ) : isPrincipal ? (
+                    <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-2">
+                      <LuGraduationCap className="w-8 h-8 text-primary-600 mx-auto" />
+                      <h4 className="font-bold text-slate-800 text-xs">Enrollment Operations</h4>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto">
+                        Classroom roll allocation and official student conversion are executed by the Admissions Officer or School Administrator.
+                      </p>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleExecuteEnroll} className="space-y-4">
+                      <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
+                        <h4 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                          <LuGraduationCap className="w-4 h-4 text-emerald-600" />
+                          Classroom Section & Roll Allocation
+                        </h4>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Classroom Roll Number
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. 101"
+                              value={stageFormData.roll_number}
+                              onChange={(e) => setStageFormData({ ...stageFormData, roll_number: e.target.value })}
+                              className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-emerald-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Target Class / Grade
+                            </label>
+                            <input
+                              type="text"
+                              disabled
+                              value={selectedApplicant.school_class?.name || 'Class ' + selectedApplicant.school_class_id}
+                              className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-slate-100 text-xs font-bold text-slate-700 cursor-not-allowed"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Transport Option Toggle */}
+                        <div className="p-3 rounded-xl border border-slate-200 bg-white">
+                          <label className="flex items-start gap-2.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={stageFormData.with_transport}
+                              onChange={(e) => setStageFormData({ ...stageFormData, with_transport: e.target.checked })}
+                              className="w-4 h-4 mt-0.5 rounded text-emerald-600 focus:ring-0 cursor-pointer"
+                            />
+                            <div>
+                              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                <LuBus className="w-3.5 h-3.5 text-amber-600" />
+                                Opt for School Bus / Vehicle Route Transport
+                              </span>
+                              <p className="text-[11px] text-slate-500 mt-0.5">
+                                If selected, transport fees will be distributed across student quarterly installments.
+                              </p>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-primary-50/70 border border-primary-200 text-primary-950 space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-xs text-primary-950">
+                          <LuReceipt className="w-4 h-4 text-primary-600 shrink-0" />
+                          <span>Automated Account & Fee Structure Provisioning</span>
+                        </div>
+                        <p className="text-[11px] text-primary-800 leading-relaxed">
+                          Enrolling will automatically:
+                        </p>
+                        <ul className="text-[11px] text-primary-800 list-disc list-inside space-y-0.5 ml-1">
+                          <li>Assign unique permanent Admission ID (e.g. STU-2026-XXX)</li>
+                          <li>Create student roster record in active academic directory</li>
+                          <li>Generate secure Parent Portal credentials (phone + temporary password)</li>
+                          <li>Initialize standard fee schedule and quarterly ledger installments</li>
+                        </ul>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => handleCloseApplicant()}
+                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={submitting}
+                          className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-500/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                        >
+                          {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuGraduationCap className="w-4 h-4" />}
+                          <span>Confirm Enrollment & Generate Parent Credentials</span>
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 6: TIMELINE & AUDIT LOG */}
+              {detailActiveTab === 'timeline' && (
+                <div className="space-y-4">
+                  <h4 className="font-bold text-slate-800 text-xs">Admission Process History & Audit Trail</h4>
+                  {(!selectedApplicant.pipeline_notes || selectedApplicant.pipeline_notes.length === 0) ? (
+                    <div className="py-8 text-center text-slate-400 text-xs">
+                      No prior timeline logs recorded for this candidate.
+                    </div>
+                  ) : (
+                    <div className="relative pl-6 space-y-4 before:content-[''] before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                      {selectedApplicant.pipeline_notes.map((log, lIdx) => (
+                        <div key={lIdx} className="relative group">
+                          <div className="absolute -left-6 top-1 w-3 h-3 rounded-full bg-primary-600 border-2 border-white shadow-xs"></div>
+                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-xs text-slate-800">{log.action || log.stage}</span>
+                              <span className="text-[10px] font-mono text-slate-400">
+                                {log.time ? new Date(log.time).toLocaleString() : 'Recent'}
+                              </span>
+                            </div>
+                            {log.notes && <p className="text-[11px] text-slate-600 mt-1">{log.notes}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================= */}
       {/* NEW ADMISSION INQUIRY REGISTRATION MODAL */}
       {/* ========================================================= */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full my-4 sm:my-8 overflow-hidden animate-scale-up">
+            <div className="p-4 sm:p-5 border-b border-slate-200 bg-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+                  <LuPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 leading-tight">New Admission Application Inquiry</h3>
+                  <p className="text-slate-500 text-xs mt-0.5">Capture prospective student lead into the intake pipeline</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+              >
+                <LuX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddSubmit} className="p-4 sm:p-6 space-y-4 max-h-[78vh] overflow-y-auto text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Student First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newAppForm.first_name}
+                    onChange={(e) => setNewAppForm({ ...newAppForm, first_name: e.target.value })}
+                    placeholder="e.g. Aarav"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    value={newAppForm.last_name}
+                    onChange={(e) => setNewAppForm({ ...newAppForm, last_name: e.target.value })}
+                    placeholder="e.g. Sharma"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Applying Class <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    required
+                    value={newAppForm.school_class_id}
+                    onChange={(e) => setNewAppForm({ ...newAppForm, school_class_id: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500 font-semibold cursor-pointer"
+                  >
+                    <option value="">Select Grade</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Academic Session</label>
+                  <input
+                    type="text"
+                    value={newAppForm.academic_year}
+                    onChange={(e) => setNewAppForm({ ...newAppForm, academic_year: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500 font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Lead Source</label>
+                  <select
+                    value={newAppForm.lead_source}
+                    onChange={(e) => setNewAppForm({ ...newAppForm, lead_source: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500 font-semibold cursor-pointer"
+                  >
+                    <option value="Walk-in">Walk-in Inquiry</option>
+                    <option value="Website">Website Portal</option>
+                    <option value="Referral">Alumni / Word of Mouth</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Phone">Telephone Inquiry</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Date of Birth</label>
+                  <input
+                    type="date"
+                    value={newAppForm.date_of_birth}
+                    onChange={(e) => setNewAppForm({ ...newAppForm, date_of_birth: e.target.value })}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500 font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
+                  <select
+                    value={newAppForm.gender}
+                    onChange={(e) => setNewAppForm({ ...newAppForm, gender: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500 font-semibold cursor-pointer"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Parent / Guardian Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newAppForm.guardian_name}
+                    onChange={(e) => setNewAppForm({ ...newAppForm, guardian_name: e.target.value })}
+                    placeholder="e.g. Vikram Sharma"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Contact Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newAppForm.guardian_phone}
+                    onChange={(e) => setNewAppForm({ ...newAppForm, guardian_phone: e.target.value })}
+                    placeholder="e.g. 9820112233"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500 font-mono font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Previous School Name</label>
+                  <input
+                    type="text"
+                    value={newAppForm.previous_school}
+                    onChange={(e) => setNewAppForm({ ...newAppForm, previous_school: e.target.value })}
+                    placeholder="e.g. St. Joseph Convent"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Previous Score / Grade</label>
+                  <input
+                    type="text"
+                    value={newAppForm.previous_score}
+                    onChange={(e) => setNewAppForm({ ...newAppForm, previous_score: e.target.value })}
+                    placeholder="e.g. 91% or Grade A"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Transport preference checkbox */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newAppForm.with_transport}
+                    onChange={(e) => setNewAppForm({ ...newAppForm, with_transport: e.target.checked })}
+                    className="w-4 h-4 rounded text-primary-600 focus:ring-0 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <LuBus className="w-3.5 h-3.5 text-amber-600" />
+                      Opt for School Bus Route Commute
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      If selected, annual vehicle transport fee will be added to candidate installments.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Counselor Remarks & Notes</label>
+                <textarea
+                  rows={2}
+                  value={newAppForm.remarks}
+                  onChange={(e) => setNewAppForm({ ...newAppForm, remarks: e.target.value })}
+                  placeholder="Inquiry notes, parent interaction observations..."
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
+                  <span>Register Application</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Credentials Modal for Newly Enrolled Student Parent */}
       <CredentialsModal
         isOpen={!!credentialsModalData}
