@@ -71,19 +71,37 @@ export default function Topbar({ onToggleMobileMenu }) {
     // Initial load once on mount
     loadNotifications();
 
-    // Refresh notifications when any action is performed in the app (POST, PUT, PATCH, DELETE)
+    // Throttled refetch on tab focus (at most once every 60s)
+    let lastTabFocusTime = Date.now();
+    const handleTabFocus = () => {
+      const now = Date.now();
+      if (now - lastTabFocusTime > 60000) {
+        lastTabFocusTime = now;
+        loadNotifications();
+      }
+    };
+    window.addEventListener('focus', handleTabFocus);
+
+    // Refresh notifications after user mutation action with debounced trigger
     let debounceTimer = null;
-    const handleAction = () => {
+    const handleAction = (event) => {
+      // If event payload has created notification details, prepend locally
+      if (event?.detail?.notification) {
+        setNotificationsList((prev) => [event.detail.notification, ...prev]);
+        setUnreadCount((prev) => prev + 1);
+        return;
+      }
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         loadNotifications();
-      }, 600);
+      }, 1000);
     };
 
     window.addEventListener('app:action-performed', handleAction);
     window.addEventListener('app:notification-refresh', handleAction);
 
     return () => {
+      window.removeEventListener('focus', handleTabFocus);
       if (debounceTimer) clearTimeout(debounceTimer);
       window.removeEventListener('app:action-performed', handleAction);
       window.removeEventListener('app:notification-refresh', handleAction);

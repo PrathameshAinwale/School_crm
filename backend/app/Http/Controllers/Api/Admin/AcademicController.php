@@ -10,9 +10,18 @@ use Illuminate\Http\Request;
 
 class AcademicController extends Controller
 {
-    public function classes()
+    public function classes(Request $request)
     {
-        $classes = SchoolClass::with('sections')->get();
+        $schoolId = \App\Services\SchoolContext::getActiveSchoolId() ?: $request->user()?->school_id;
+        $cacheKey = "school_" . ($schoolId ?? 'all') . "_classes_v2";
+
+        $classes = \Illuminate\Support\Facades\Cache::remember($cacheKey, 1800, function () use ($schoolId) {
+            $query = SchoolClass::with('sections');
+            if ($schoolId) {
+                $query->where('school_id', $schoolId);
+            }
+            return $query->get();
+        });
 
         if ($classes->isEmpty()) {
             $defaultClasses = [
@@ -24,16 +33,22 @@ class AcademicController extends Controller
             $sections = ['Saffron (A)', 'White (B)', 'Green (C)'];
 
             foreach ($defaultClasses as $clsName) {
-                $cls = SchoolClass::create(['name' => $clsName]);
+                $cls = SchoolClass::create([
+                    'name' => $clsName,
+                    'school_id' => $schoolId ?? 1,
+                ]);
                 foreach ($sections as $secName) {
                     Section::create([
+                        'school_id' => $schoolId ?? 1,
                         'school_class_id' => $cls->id,
                         'name' => $secName,
                         'capacity' => 40,
                     ]);
                 }
             }
-            $classes = SchoolClass::with('sections')->get();
+            $classes = $schoolId 
+                ? SchoolClass::where('school_id', $schoolId)->with('sections')->get()
+                : SchoolClass::with('sections')->get();
         }
 
         return response()->json([

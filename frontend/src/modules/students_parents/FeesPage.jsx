@@ -108,8 +108,18 @@ export default function FeesPage() {
 
   useEffect(() => {
     fetchFeesData();
-    const interval = setInterval(fetchFeesData, 15000); // live sync every 15s
-    return () => clearInterval(interval);
+
+    // Refetch on tab focus (throttled to at most once per 30s) instead of timer-based polling
+    let lastFocusTime = Date.now();
+    const handleFocus = () => {
+      if (Date.now() - lastFocusTime > 30000) {
+        lastFocusTime = Date.now();
+        fetchFeesData();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const handleMarkNotifRead = async (id) => {

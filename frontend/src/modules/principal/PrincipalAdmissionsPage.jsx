@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { adminService } from '../../services/adminService';
 import {
   LuUserPlus,
@@ -24,6 +25,7 @@ import {
 } from 'react-icons/lu';
 
 export default function PrincipalAdmissionsPage() {
+  const navigate = useNavigate();
   const [pipeline, setPipeline] = useState([]);
   const [classes, setClasses] = useState([]);
   const [stats, setStats] = useState(null);
@@ -37,18 +39,26 @@ export default function PrincipalAdmissionsPage() {
   // Detail Modal
   const [selectedApplicant, setSelectedApplicant] = useState(null);
 
-  const loadData = async () => {
+  // Load classes reference data once on mount
+  useEffect(() => {
+    let active = true;
+    adminService.getClasses().then((clsRes) => {
+      if (active && clsRes?.success && clsRes?.data) {
+        setClasses(clsRes.data);
+      }
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  const loadData = async (query = searchQuery) => {
     setLoading(true);
     try {
-      const [admRes, clsRes] = await Promise.all([
-        adminService.getAdmissions({
-          search: searchQuery || undefined,
-          status: selectedStatusTab !== 'ALL' && selectedStatusTab !== 'IN_PROGRESS' ? selectedStatusTab : undefined,
-          school_class_id: selectedClass !== 'ALL' ? selectedClass : undefined,
-          per_page: 200,
-        }),
-        adminService.getClasses(),
-      ]);
+      const admRes = await adminService.getAdmissions({
+        search: query.trim() || undefined,
+        status: selectedStatusTab !== 'ALL' && selectedStatusTab !== 'IN_PROGRESS' ? selectedStatusTab : undefined,
+        school_class_id: selectedClass !== 'ALL' ? selectedClass : undefined,
+        per_page: 200,
+      });
 
       if (admRes?.success && admRes?.data) {
         const items = Array.isArray(admRes.data.data)
@@ -61,9 +71,6 @@ export default function PrincipalAdmissionsPage() {
           setStats(admRes.stats);
         }
       }
-      if (clsRes?.success && clsRes?.data) {
-        setClasses(clsRes.data);
-      }
     } catch (err) {
       console.error('Failed to load admissions for principal:', err);
     } finally {
@@ -71,9 +78,13 @@ export default function PrincipalAdmissionsPage() {
     }
   };
 
+  // Debounced search and filter change effect
   useEffect(() => {
-    loadData();
-  }, [selectedClass, selectedStatusTab]);
+    const timer = setTimeout(() => {
+      loadData(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedClass, selectedStatusTab]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -450,7 +461,7 @@ export default function PrincipalAdmissionsPage() {
                     <tr
                       key={app.id}
                       className="hover:bg-gray-50/70 transition-colors cursor-pointer"
-                      onClick={() => setSelectedApplicant(app)}
+                      onClick={() => navigate(`/admission/${app.id}`)}
                     >
                       <td className="py-3 px-4">
                         <span className="font-mono font-bold text-gray-900">
@@ -460,7 +471,7 @@ export default function PrincipalAdmissionsPage() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="font-bold text-gray-900">
-                          {app.first_name} {app.last_name || ''}
+                          {String(app.first_name || '').replace(/<[^>]*>?/gm, '').trim()} {String(app.last_name || '').replace(/<[^>]*>?/gm, '').trim()}
                         </div>
                         <div className="text-[10px] text-gray-400">
                           {app.gender || 'Not specified'} • {app.with_transport ? 'Bus Transport' : 'Self'}
@@ -468,7 +479,7 @@ export default function PrincipalAdmissionsPage() {
                       </td>
                       <td className="py-3 px-4">
                         <span className="font-semibold text-gray-800">
-                          {app.school_class?.name || (app.school_class_id ? `Class ${app.school_class_id}` : 'Unassigned')}
+                          {app.school_class?.name || (app.school_class_id ? `Class ${app.school_class_id}` : 'General Intake')}
                         </span>
                         <div className="text-[10px] text-gray-400">{app.academic_year || '2026-2027'}</div>
                       </td>
@@ -500,7 +511,7 @@ export default function PrincipalAdmissionsPage() {
                       </td>
                       <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <button
-                          onClick={() => setSelectedApplicant(app)}
+                          onClick={() => navigate(`/admission/${app.id}`)}
                           className="px-2.5 py-1 text-xs font-semibold text-primary-600 hover:text-primary-700 bg-primary-50/70 hover:bg-primary-100 rounded-lg transition-all inline-flex items-center gap-1"
                         >
                           <LuEye className="w-3.5 h-3.5" />

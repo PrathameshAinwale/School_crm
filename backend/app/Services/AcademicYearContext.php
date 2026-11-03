@@ -15,9 +15,14 @@ class AcademicYearContext
         self::$activeAcademicYear = null;
     }
 
-    public static function getActiveAcademicYearId(): ?int
+    public static function getActiveAcademicYearId(?int $schoolId = null): ?int
     {
-        return self::$activeAcademicYearId;
+        if (self::$activeAcademicYearId !== null) {
+            return self::$activeAcademicYearId;
+        }
+
+        $active = self::getActiveAcademicYear($schoolId);
+        return $active ? $active->id : null;
     }
 
     public static function getActiveAcademicYear(?int $schoolId = null): ?AcademicYear
@@ -40,17 +45,22 @@ class AcademicYearContext
             }
         }
 
-        // Fallback to active school's is_current year
+        // Fallback to active school's is_current year (cached to avoid redundant queries on every request)
         if ($schoolId) {
-            $current = AcademicYear::withoutGlobalScopes()
-                ->where('school_id', $schoolId)
-                ->where('is_current', true)
-                ->first();
+            $yearId = \Illuminate\Support\Facades\Cache::remember("school_{$schoolId}_current_year_id", 3600, function () use ($schoolId) {
+                return AcademicYear::withoutGlobalScopes()
+                    ->where('school_id', $schoolId)
+                    ->where('is_current', true)
+                    ->value('id');
+            });
 
-            if ($current) {
-                self::$activeAcademicYearId = $current->id;
-                self::$activeAcademicYear = $current;
-                return $current;
+            if ($yearId) {
+                self::$activeAcademicYearId = $yearId;
+                $current = AcademicYear::withoutGlobalScopes()->find($yearId);
+                if ($current) {
+                    self::$activeAcademicYear = $current;
+                    return $current;
+                }
             }
         }
 
