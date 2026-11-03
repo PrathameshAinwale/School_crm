@@ -299,10 +299,11 @@ class TimetableController extends Controller
                 // Check if assigned to another teacher to send notification
                 $targetTeacherName = trim($p['teacher_name']);
                 if ($targetTeacherName && $targetTeacherName !== $creatorName) {
-                    $targetTeacher = Teacher::where(function ($q) use ($targetTeacherName) {
-                        $q->where('first_name', 'like', "%{$targetTeacherName}%")
-                          ->orWhere('last_name', 'like', "%{$targetTeacherName}%")
-                          ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), 'like', "%{$targetTeacherName}%");
+                    $escapedTeacher = escape_like($targetTeacherName);
+                    $targetTeacher = Teacher::where(function ($q) use ($escapedTeacher) {
+                        $q->where('first_name', 'like', "%{$escapedTeacher}%")
+                          ->orWhere('last_name', 'like', "%{$escapedTeacher}%")
+                          ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$escapedTeacher}%"]);
                     })->first();
 
                     if ($targetTeacher && $targetTeacher->user_id && $targetTeacher->id !== $teacherId) {

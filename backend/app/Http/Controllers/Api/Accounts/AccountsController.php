@@ -202,7 +202,7 @@ class AccountsController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = trim($request->input('search'));
+            $search = escape_like(trim($request->input('search')));
             if ($search !== '' && strtolower($search) !== 'undefined' && strtolower($search) !== 'null') {
                 $studentsQuery->where(function ($sq) use ($search) {
                     $sq->where('first_name', 'like', "%{$search}%")
@@ -902,8 +902,9 @@ class AccountsController extends Controller
             $teacher = Teacher::find($request->teacher_id);
         }
         if (!$teacher) {
-            $teacher = Teacher::whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$staffName}%"])
-                ->orWhere('first_name', 'like', "%{$staffName}%")
+            $escapedStaff = escape_like($staffName);
+            $teacher = Teacher::whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$escapedStaff}%"])
+                ->orWhere('first_name', 'like', "%{$escapedStaff}%")
                 ->first();
         }
 

@@ -28,7 +28,7 @@ class LibraryController extends Controller
         }
 
         if ($request->filled('search')) {
-            $s = trim($request->search);
+            $s = escape_like(trim($request->search));
             $query->where(function ($q) use ($s) {
                 $q->where('title', 'like', "%{$s}%")
                     ->orWhere('author', 'like', "%{$s}%")
@@ -272,7 +272,7 @@ class LibraryController extends Controller
         }
 
         if ($request->filled('search')) {
-            $s = trim($request->search);
+            $s = escape_like(trim($request->search));
             $query->where(function ($q) use ($s) {
                 $q->where('borrower_name', 'like', "%{$s}%")
                     ->orWhere('borrower_identifier', 'like', "%{$s}%")
@@ -485,7 +485,7 @@ class LibraryController extends Controller
         $query = \App\Models\Student::with(['schoolClass', 'section']);
 
         if ($request->filled('search')) {
-            $s = trim($request->search);
+            $s = escape_like(trim($request->search));
             $query->where(function ($q) use ($s) {
                 $q->where('first_name', 'like', "%{$s}%")
                     ->orWhere('last_name', 'like', "%{$s}%")

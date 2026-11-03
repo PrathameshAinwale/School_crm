@@ -23,7 +23,7 @@ class AdmissionController extends Controller
         $query = Admission::with(['schoolClass', 'enrolledStudent']);
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = escape_like($request->input('search'));
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%")
