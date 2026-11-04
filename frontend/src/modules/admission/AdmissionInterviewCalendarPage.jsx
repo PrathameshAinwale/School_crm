@@ -728,7 +728,10 @@ export default function AdmissionInterviewCalendarPage() {
         <div className="space-y-3">
           {scheduledInterviews.map((item) => {
             const resultBadge = getResultBadge(item.interview_result);
-            const isCompleted = item.interview_result && item.interview_result !== 'Pending';
+            const isCompleted =
+              (item.interview_result && item.interview_result !== 'Pending') ||
+              isInterviewDayPassed(item.interview_date) ||
+              ['Offer Extended', 'Fee Paid', 'Enrolled'].includes(item.status);
 
             return (
               <div
@@ -816,7 +819,7 @@ export default function AdmissionInterviewCalendarPage() {
 
                   {!isPrincipal && (
                     <div className="flex items-center gap-2">
-                      {item.interview_result === 'Completed' ? (
+                      {isCompleted ? (
                         <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-2xs">
                           <LuCircleCheck className="w-3.5 h-3.5 text-emerald-600" />
                           <span>Completed</span>

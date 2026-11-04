@@ -132,6 +132,15 @@ export default function AdmissionProcessPage() {
     return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
+  const isInterviewDayPassed = (dateStr) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr.replace(' ', 'T'));
+    if (isNaN(d.getTime())) return false;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    return d < todayStart;
+  };
+
   const normalizeStage = (status) => {
     if (!status) return 'Inquiry';
     if (status === 'Pending') return 'Inquiry';
@@ -197,12 +206,7 @@ export default function AdmissionProcessPage() {
           interview_notes: app.interview_notes || '',
           interview_result: (() => {
             if (app.interview_result && app.interview_result !== 'Pending') return app.interview_result;
-            if (app.interview_date) {
-              const d = new Date(app.interview_date.replace(' ', 'T'));
-              const todayStart = new Date();
-              todayStart.setHours(0, 0, 0, 0);
-              if (d < todayStart) return 'Completed';
-            }
+            if (isInterviewDayPassed(app.interview_date)) return 'Completed';
             return app.interview_result || 'Pending';
           })(),
           offer_date: app.offer_date ? app.offer_date.substring(0, 10) : new Date().toISOString().substring(0, 10),
