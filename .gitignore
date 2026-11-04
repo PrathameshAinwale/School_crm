@@ -21,6 +21,11 @@ frontend/dist
 .env.*
 *.env
 
+# QA artifacts
+qa/screenshots/
+qa/backup/
+qa/test_sidebar_playwright.mjs
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
