@@ -24,8 +24,9 @@ import {
 export default function AdminProfilePage() {
   const {
     user,
+    currentRole,
     currentSchool,
-    linkedSchoolAccounts,
+    linkedSchoolAccounts = [],
     addSchoolAccount,
     switchSchoolAccount,
     removeSchoolAccount,
@@ -33,8 +34,12 @@ export default function AdminProfilePage() {
     ROLE_LABELS,
   } = useAuth();
 
+  const userRole = (user?.role || currentRole || '').toLowerCase();
+  const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'overview';
+  const requestedTab = searchParams.get('tab') || 'overview';
+  const initialTab = (!isAdmin && requestedTab === 'switch-school') ? 'overview' : requestedTab;
   const [activeTab, setActiveTab] = useState(initialTab);
 
   // Switch School Form state
@@ -58,6 +63,7 @@ export default function AdminProfilePage() {
 
   // Sync tab with URL
   const handleTabChange = (tabId) => {
+    if (!isAdmin && tabId === 'switch-school') return;
     setActiveTab(tabId);
     setSearchParams(tabId === 'overview' ? {} : { tab: tabId });
   };
@@ -207,21 +213,23 @@ export default function AdminProfilePage() {
             <span>Profile Overview</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => handleTabChange('switch-school')}
-            className={`py-3.5 px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'switch-school'
-                ? 'border-primary-600 text-primary-700 bg-white shadow-2xs rounded-t-xl -mb-px'
-                : 'border-transparent text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            <LuLayers className="w-4 h-4 text-primary-600" />
-            <span>Switch School</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-primary-100 text-primary-800 font-extrabold">
-              {linkedSchoolAccounts.length}
-            </span>
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => handleTabChange('switch-school')}
+              className={`py-3.5 px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'switch-school'
+                  ? 'border-primary-600 text-primary-700 bg-white shadow-2xs rounded-t-xl -mb-px'
+                  : 'border-transparent text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              <LuLayers className="w-4 h-4 text-primary-600" />
+              <span>Switch School</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-primary-100 text-primary-800 font-extrabold">
+                {linkedSchoolAccounts?.length || 0}
+              </span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -241,7 +249,7 @@ export default function AdminProfilePage() {
       {/* 3. TAB CONTENT */}
 
       {/* -------------------- TAB: SWITCH SCHOOL (Requested Feature) -------------------- */}
-      {activeTab === 'switch-school' && (
+      {isAdmin && activeTab === 'switch-school' && (
         <div className="space-y-6 animate-fade-in">
           {/* Info Banner */}
           <div className="bg-gradient-to-r from-blue-50/80 via-primary-50/60 to-white rounded-2xl p-4 sm:p-5 border border-primary-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -494,13 +502,13 @@ export default function AdminProfilePage() {
               <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
                 <LuUser className="w-4 h-4" />
               </div>
-              <h2 className="text-sm font-bold text-gray-900">Administrator Information</h2>
+              <h2 className="text-sm font-bold text-gray-900">{isAdmin ? 'Administrator Information' : 'Staff Profile Information'}</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               {user?.name && (
                 <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Administrator Name</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase">{isAdmin ? 'Administrator Name' : 'Full Name'}</p>
                   <p className="font-bold text-gray-800 text-xs sm:text-sm mt-0.5">{user.name}</p>
                 </div>
               )}
@@ -550,14 +558,16 @@ export default function AdminProfilePage() {
                 <h2 className="text-sm font-bold text-gray-900">Current School Campus</h2>
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleTabChange('switch-school')}
-                className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 cursor-pointer"
-              >
-                <span>Switch School</span>
-                <LuArrowRight className="w-3.5 h-3.5" />
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('switch-school')}
+                  className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Switch School</span>
+                  <LuArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
