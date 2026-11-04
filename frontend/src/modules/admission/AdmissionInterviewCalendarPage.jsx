@@ -345,7 +345,7 @@ export default function AdmissionInterviewCalendarPage() {
       case 'Completed':
         return {
           label: 'Completed',
-          cls: 'bg-blue-50 text-blue-700 border border-blue-200',
+          cls: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
         };
       case 'Recommended':
         return {
@@ -514,10 +514,10 @@ export default function AdmissionInterviewCalendarPage() {
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200/80 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-500">Conducted / Completed</p>
-            <p className="text-xl sm:text-2xl font-bold text-blue-700 mt-1">{completedCount}</p>
-            <p className="text-[11px] text-blue-600 font-medium mt-0.5">Interview finished/passed</p>
+            <p className="text-xl sm:text-2xl font-bold text-emerald-700 mt-1">{completedCount}</p>
+            <p className="text-[11px] text-emerald-600 font-medium mt-0.5">Interview finished/passed</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
             <LuCircleCheck className="w-5 h-5" />
           </div>
         </div>
@@ -816,22 +816,22 @@ export default function AdmissionInterviewCalendarPage() {
                   {!isPrincipal && (
                     <div className="flex items-center gap-2">
                       {item.interview_result === 'Completed' ? (
-                        <span className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-2xs">
-                          <LuCircleCheck className="w-3.5 h-3.5 text-blue-600" />
-                          <span>Interview Completed</span>
+                        <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-2xs">
+                          <LuCircleCheck className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Completed</span>
                         </span>
                       ) : (
                         <button
                           type="button"
                           disabled={updatingId === item.id}
                           onClick={() => handleMarkCompleted(item)}
-                          className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
+                          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
                           title="Mark this interview as completed"
                         >
                           {updatingId === item.id ? (
                             <LuLoader className="w-3.5 h-3.5 animate-spin" />
                           ) : (
-                            <LuCircleCheck className="w-3.5 h-3.5 text-blue-600" />
+                            <LuCircleCheck className="w-3.5 h-3.5 text-emerald-600" />
                           )}
                           <span>Mark Completed</span>
                         </button>
@@ -1154,9 +1154,9 @@ export default function AdmissionInterviewCalendarPage() {
                         setSelectedInterview(null);
                       }
                     }}
-                    className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                    className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
                   >
-                    <LuCircleCheck className="w-3.5 h-3.5 text-blue-600" />
+                    <LuCircleCheck className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Quick Mark Completed</span>
                   </button>
                 ) : <div />}
