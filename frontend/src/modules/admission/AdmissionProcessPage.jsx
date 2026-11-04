@@ -14,6 +14,7 @@ import {
   LuCheck,
   LuClock,
   LuPrinter,
+  LuTrash2,
   LuPencil,
   LuX,
   LuPhone,
@@ -150,13 +151,16 @@ export default function AdmissionProcessPage() {
         const app = res.data;
         setApplicant(app);
 
-        // Normalize initial documents
+        // Normalize initial documents: if file exists, marked uploaded; otherwise marked pending
         const defaultDocs = {};
         STANDARD_DOCS.forEach((d) => {
+          const docData = app.documents?.[d.key];
+          const hasFile = Boolean(docData?.file_name || docData?.file_url);
+          const isUploaded = hasFile || docData === 'verified' || docData?.status === 'verified' || docData?.status === 'uploaded';
           defaultDocs[d.key] = {
-            status: app.documents?.[d.key]?.status || (typeof app.documents?.[d.key] === 'string' ? app.documents[d.key] : 'pending'),
-            file_name: app.documents?.[d.key]?.file_name || null,
-            file_url: app.documents?.[d.key]?.file_url || null,
+            status: isUploaded ? 'uploaded' : 'pending',
+            file_name: docData?.file_name || (isUploaded && !docData?.file_name ? `${d.label}.pdf` : null),
+            file_url: docData?.file_url || null,
           };
         });
 
@@ -237,12 +241,16 @@ export default function AdmissionProcessPage() {
   const docStats = useMemo(() => {
     if (!stageFormData.documents) return { verified: 0, total: 6, percent: 0 };
     const keys = Object.keys(stageFormData.documents);
-    const verified = keys.filter((k) => stageFormData.documents[k]?.status === 'verified').length;
+    const uploaded = keys.filter((k) => {
+      const doc = stageFormData.documents[k];
+      return Boolean(doc?.file_name || doc?.file_url || doc?.status === 'uploaded' || doc?.status === 'verified' || doc === 'verified');
+    }).length;
     const total = STANDARD_DOCS.length;
     return {
-      verified,
+      uploaded,
+      verified: uploaded,
       total,
-      percent: Math.round((verified / total) * 100),
+      percent: Math.round((uploaded / total) * 100),
     };
   }, [stageFormData.documents]);
 
@@ -299,14 +307,14 @@ export default function AdmissionProcessPage() {
         documents: {
           ...prev.documents,
           [docKey]: {
-            status: 'verified',
+            status: 'uploaded',
             file_name: fileName,
             file_url: fileUrl,
             uploaded_at: new Date().toISOString(),
           },
         },
       }));
-      showToast(`${STANDARD_DOCS.find((d) => d.key === docKey)?.label || 'Document'} uploaded and marked verified!`);
+      showToast(`${STANDARD_DOCS.find((d) => d.key === docKey)?.label || 'Document'} uploaded successfully!`);
     } catch (err) {
       console.warn('Backend file upload error, using local fallback:', err);
       // Local fallback in case media endpoint is unreachable
@@ -315,7 +323,7 @@ export default function AdmissionProcessPage() {
         documents: {
           ...prev.documents,
           [docKey]: {
-            status: 'verified',
+            status: 'uploaded',
             file_name: file.name,
             file_url: URL.createObjectURL(file),
             uploaded_at: new Date().toISOString(),
@@ -326,6 +334,23 @@ export default function AdmissionProcessPage() {
     } finally {
       setUploadingDocKey(null);
     }
+  };
+
+  // Remove an uploaded document and reset to pending
+  const handleRemoveDoc = (docKey) => {
+    setStageFormData((prev) => ({
+      ...prev,
+      documents: {
+        ...prev.documents,
+        [docKey]: {
+          status: 'pending',
+          file_name: null,
+          file_url: null,
+          uploaded_at: null,
+        },
+      },
+    }));
+    showToast(`${STANDARD_DOCS.find((d) => d.key === docKey)?.label || 'Document'} removed and marked pending.`);
   };
 
   // Toggle document status manually
@@ -1155,18 +1180,18 @@ export default function AdmissionProcessPage() {
                 </span>
                 <span className="text-xs text-slate-400 font-medium">&bull; Document Uploadation</span>
               </div>
-              <h2 className="text-lg font-bold text-slate-900 mt-1">Student Document Scrutiny & Uploadation</h2>
+              <h2 className="text-lg font-bold text-slate-900 mt-1">Student Document Uploadation</h2>
               <p className="text-xs text-slate-500">
-                Upload scans of student certificates, identity proofs, and marksheets. Mark documents verified to advance to assessment.
+                Upload scans of student certificates, identity proofs, and marksheets. If a document is not uploaded, it remains marked as pending.
               </p>
             </div>
 
             {/* Document progress indicator */}
             <div className="bg-amber-50/80 border border-amber-200 p-3 rounded-xl flex items-center gap-3">
               <div>
-                <span className="text-xs font-bold text-amber-900 block">Verification Progress</span>
+                <span className="text-xs font-bold text-amber-900 block">Upload Progress</span>
                 <span className="text-[11px] text-amber-700 font-medium">
-                  {docStats.verified} of {docStats.total} Documents Verified
+                  {docStats.uploaded} of {docStats.total} Documents Uploaded
                 </span>
               </div>
               <div className="w-12 h-12 rounded-full bg-white border-2 border-amber-400 flex items-center justify-center font-black text-xs text-amber-800 shadow-2xs">
@@ -1175,28 +1200,26 @@ export default function AdmissionProcessPage() {
             </div>
           </div>
 
-          {/* Document Upload & Verification Grid */}
+          {/* Document Upload Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {STANDARD_DOCS.map((doc) => {
               const currentDoc = stageFormData.documents?.[doc.key] || { status: 'pending' };
-              const currentStatus = currentDoc.status || 'pending';
+              const isUploaded = Boolean(currentDoc.file_name || currentDoc.file_url || currentDoc.status === 'uploaded' || currentDoc.status === 'verified');
               const isUploading = uploadingDocKey === doc.key;
 
               return (
                 <div
                   key={doc.key}
                   className={`p-4 rounded-2xl border transition-all ${
-                    currentStatus === 'verified'
+                    isUploaded
                       ? 'border-emerald-200 bg-emerald-50/30'
-                      : currentStatus === 'missing'
-                      ? 'border-rose-200 bg-rose-50/20'
                       : 'border-slate-200 bg-white shadow-2xs'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <LuFileText className={`w-4 h-4 ${currentStatus === 'verified' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                        <LuFileText className={`w-4 h-4 ${isUploaded ? 'text-emerald-600' : 'text-slate-400'}`} />
                         <h4 className="font-bold text-xs text-slate-800">
                           {doc.label} {doc.required && <span className="text-red-500 font-black">*</span>}
                         </h4>
@@ -1207,20 +1230,18 @@ export default function AdmissionProcessPage() {
                     </div>
 
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${
-                        currentStatus === 'verified'
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${
+                        isUploaded
                           ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                          : currentStatus === 'missing'
-                          ? 'bg-rose-100 text-rose-800 border-rose-300'
                           : 'bg-amber-100 text-amber-800 border-amber-300'
                       }`}
                     >
-                      {currentStatus.toUpperCase()}
+                      {isUploaded ? 'UPLOADED' : 'PENDING'}
                     </span>
                   </div>
 
                   {/* Uploaded File Link if any */}
-                  {currentDoc.file_name && (
+                  {isUploaded && currentDoc.file_name && (
                     <div className="mt-3 p-2 rounded-xl bg-white border border-slate-200 flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2 truncate">
                         <LuFileCheck className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -1239,72 +1260,48 @@ export default function AdmissionProcessPage() {
                     </div>
                   )}
 
-                  {/* Actions: File Input & Status Selector */}
-                  <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-                    {/* File Upload Trigger */}
-                    <div>
-                      <label className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] transition inline-flex items-center gap-1.5 cursor-pointer">
-                        {isUploading ? (
-                          <>
-                            <LuLoader className="w-3.5 h-3.5 animate-spin text-primary-600" />
-                            <span>Uploading...</span>
-                          </>
-                        ) : (
-                          <>
-                            <LuUpload className="w-3.5 h-3.5 text-primary-600" />
-                            <span>{currentDoc.file_name ? 'Re-upload' : 'Upload Document'}</span>
-                          </>
-                        )}
-                        <input
-                          type="file"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          disabled={isUploading}
-                          onChange={(e) => {
-                            if (e.target.files?.[0]) {
-                              handleFileUpload(doc.key, e.target.files[0]);
-                            }
-                          }}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
+                  {/* Actions: File Upload Option ONLY */}
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <label className={`px-3.5 py-2 rounded-xl font-bold text-xs transition inline-flex items-center gap-1.5 cursor-pointer ${
+                      isUploaded
+                        ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        : 'bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 shadow-2xs'
+                    }`}>
+                      {isUploading ? (
+                        <>
+                          <LuLoader className="w-3.5 h-3.5 animate-spin text-primary-600" />
+                          <span>Uploading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <LuUpload className="w-3.5 h-3.5 text-primary-600" />
+                          <span>{isUploaded ? 'Re-upload Document' : 'Upload Document'}</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        disabled={isUploading}
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleFileUpload(doc.key, e.target.files[0]);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
 
-                    {/* Status Toggle Buttons */}
-                    <div className="flex items-center gap-1">
+                    {isUploaded && (
                       <button
                         type="button"
-                        onClick={() => setDocStatus(doc.key, 'verified')}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${
-                          currentStatus === 'verified'
-                            ? 'bg-emerald-600 text-white shadow-2xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
+                        onClick={() => handleRemoveDoc(doc.key)}
+                        className="px-2.5 py-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition text-xs flex items-center gap-1 cursor-pointer"
+                        title="Remove uploaded file and mark pending"
                       >
-                        Verified
+                        <LuTrash2 className="w-3.5 h-3.5" />
+                        <span className="text-[11px] font-semibold">Remove</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setDocStatus(doc.key, 'pending')}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${
-                          currentStatus === 'pending'
-                            ? 'bg-amber-500 text-white shadow-2xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        Pending
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDocStatus(doc.key, 'missing')}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${
-                          currentStatus === 'missing'
-                            ? 'bg-rose-500 text-white shadow-2xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        Waive
-                      </button>
-                    </div>
+                    )}
                   </div>
                 </div>
               );
@@ -1319,7 +1316,7 @@ export default function AdmissionProcessPage() {
               onClick={() => handleSaveStageData('Document Review')}
               className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
             >
-              {submitting ? 'Saving Changes...' : 'Save Document Scrutiny Progress'}
+              {submitting ? 'Saving Changes...' : 'Save Document Progress'}
             </button>
 
             <button
@@ -1331,7 +1328,7 @@ export default function AdmissionProcessPage() {
               className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
             >
               {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
-              <span>Verify & Proceed to Step 3: Assessment & Interview &rarr;</span>
+              <span>Proceed to Step 3: Assessment & Interview &rarr;</span>
             </button>
           </div>
         </div>
