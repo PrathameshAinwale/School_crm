@@ -302,6 +302,14 @@ export default function AdmissionProcessPage() {
     return 120000;
   }, [classFeeStructure, appliedClassName]);
 
+  // Current stage index for progress stepper
+  const currentStageIndex = useMemo(() => {
+    if (!applicant) return 0;
+    const norm = normalizeStage(applicant.status);
+    const idx = PIPELINE_STAGES.findIndex((s) => s.id === norm);
+    return idx >= 0 ? idx : 0;
+  }, [applicant]);
+
   // 1. Is Interview Step (Step 3) Completed?
   const isInterviewCompleted = useMemo(() => {
     if (!applicant) return false;
@@ -357,14 +365,6 @@ export default function AdmissionProcessPage() {
     }
     setActiveTab(tabKey);
   };
-
-  // Current stage index for progress stepper
-  const currentStageIndex = useMemo(() => {
-    if (!applicant) return 0;
-    const norm = normalizeStage(applicant.status);
-    const idx = PIPELINE_STAGES.findIndex((s) => s.id === norm);
-    return idx >= 0 ? idx : 0;
-  }, [applicant]);
 
   // Handle stage data saving & status advancement
   const handleSaveStageData = async (targetStage = null, nextTab = null) => {

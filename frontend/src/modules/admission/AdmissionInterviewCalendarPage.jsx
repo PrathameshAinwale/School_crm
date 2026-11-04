@@ -262,6 +262,7 @@ export default function AdmissionInterviewCalendarPage() {
     setUpdatingId(item.id);
     try {
       await adminService.updateAdmissionStatus(item.id, {
+        status: item.status || 'Assessment/Interview',
         interview_result: 'Completed',
         remarks: 'Interview marked as completed by admission panel.',
       });

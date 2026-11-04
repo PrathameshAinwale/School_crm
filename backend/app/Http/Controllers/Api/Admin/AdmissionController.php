@@ -213,7 +213,7 @@ class AdmissionController extends Controller
         $admission = Admission::findOrFail($id);
 
         $request->validate([
-            'status' => 'required|string|in:Pending,Under Review,Approved,Rejected,Enrolled,Inquiry,Document Review,Assessment/Interview,Offer Extended,Fee Paid',
+            'status' => 'nullable|string|in:Pending,Under Review,Approved,Rejected,Enrolled,Inquiry,Document Review,Assessment/Interview,Offer Extended,Fee Paid',
             'remarks' => 'nullable|string',
             'documents' => 'nullable|array',
             'test_score' => 'nullable|string',
@@ -233,7 +233,7 @@ class AdmissionController extends Controller
         ]);
 
         $oldStatus = $admission->status;
-        $newStatus = $request->status;
+        $newStatus = $request->filled('status') ? $request->status : $admission->status;
 
         $admission->status = $newStatus;
 
