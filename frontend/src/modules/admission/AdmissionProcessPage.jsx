@@ -55,6 +55,30 @@ const STANDARD_DOCS = [
   { key: 'medical_record', label: 'Medical / Immunization Record', required: false, description: 'Vaccination chart & blood group certificate' },
 ];
 
+const formatAppliedDate = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'N/A';
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const isInterviewDayPassed = (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr.replace(' ', 'T'));
+  if (isNaN(d.getTime())) return false;
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  return d < todayStart;
+};
+
+const normalizeStage = (status) => {
+  if (!status) return 'Inquiry';
+  if (status === 'Pending') return 'Inquiry';
+  if (status === 'Under Review') return 'Document Review';
+  if (status === 'Approved') return 'Offer Extended';
+  return status;
+};
+
 export default function AdmissionProcessPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -123,30 +147,6 @@ export default function AdmissionProcessPage() {
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
-  };
-
-  const formatAppliedDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return 'N/A';
-    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
-  const isInterviewDayPassed = (dateStr) => {
-    if (!dateStr) return false;
-    const d = new Date(dateStr.replace(' ', 'T'));
-    if (isNaN(d.getTime())) return false;
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    return d < todayStart;
-  };
-
-  const normalizeStage = (status) => {
-    if (!status) return 'Inquiry';
-    if (status === 'Pending') return 'Inquiry';
-    if (status === 'Under Review') return 'Document Review';
-    if (status === 'Approved') return 'Offer Extended';
-    return status;
   };
 
   const loadApplicant = async () => {
@@ -816,15 +816,13 @@ export default function AdmissionProcessPage() {
                             ? 'text-primary-700'
                             : isPassed
                             ? 'text-emerald-700'
-                            : isStageLocked
-                            ? 'text-slate-400'
                             : 'text-slate-600'
                         }`}
                       >
                         {stg.name}
                       </span>
                       <span className="text-[10px] text-slate-400 block truncate max-w-[110px]">
-                        {isPassed ? 'Completed ✓' : isCurrent ? 'Active Process' : isStageLocked ? 'Locked 🔒' : 'Upcoming'}
+                        {isPassed ? 'Completed ✓' : isCurrent ? 'Active Process' : 'Upcoming'}
                       </span>
                     </div>
                   </button>
