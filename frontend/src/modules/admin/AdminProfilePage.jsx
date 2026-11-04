@@ -225,7 +225,7 @@ export default function AdminProfilePage() {
     .slice(0, 2);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-12 animate-fade-in">
+    <div className="space-y-6 max-w-4xl mx-auto pb-12 animate-fade-in">
       {/* 1. Header Banner */}
       <div className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden">
         <div className="bg-gradient-to-r from-primary-700 via-primary-800 to-indigo-900 p-5 sm:p-7 text-white">
@@ -601,349 +601,392 @@ export default function AdminProfilePage() {
         </div>
       )}
 
-      {/* -------------------- TAB: PROFILE OVERVIEW -------------------- */}
+      {/* -------------------- TAB: PROFILE OVERVIEW (Single Form Layout) -------------------- */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 animate-fade-in items-start">
-          {/* 1. Account Profile Card */}
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-3.5 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
-                  <LuUser className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-gray-900">
-                    {isAdmin ? 'Administrator Information' : 'Staff Profile Information'}
-                  </h2>
-                  <p className="text-[11px] text-gray-400">Account identity & communication details</p>
-                </div>
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200/80 p-5 sm:p-8 shadow-xs animate-fade-in space-y-6">
+          {/* Form Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-100 gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0 shadow-2xs">
+                <LuUser className="w-5 h-5" />
               </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-gray-900">
+                  {isAdmin ? 'Administrator Profile & Account Details' : 'Staff Profile & Account Details'}
+                </h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Complete user account information and institutional campus affiliation
+                </p>
+              </div>
+            </div>
 
-              {!isEditing && (
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {!isEditing ? (
                 <button
                   type="button"
                   onClick={handleStartEditing}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary-50 hover:bg-primary-100 text-primary-700 font-bold text-xs border border-primary-200/80 transition-all cursor-pointer shadow-2xs"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs transition-all shadow-xs cursor-pointer"
                 >
-                  <LuPencil className="w-3.5 h-3.5 text-primary-600" />
+                  <LuPencil className="w-3.5 h-3.5" />
                   <span>Edit Profile</span>
                 </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCancelEditing}
+                    disabled={editLoading}
+                    className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    form="profile-single-form"
+                    disabled={editLoading}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs transition-all shadow-xs cursor-pointer disabled:opacity-60"
+                  >
+                    {editLoading ? (
+                      <>
+                        <LuLoader className="w-3.5 h-3.5 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LuSave className="w-3.5 h-3.5" />
+                        <span>Save Changes</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
+          </div>
 
-            {editSuccess && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-2 text-xs text-emerald-800 animate-fade-in">
-                <LuCircleCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>{editSuccess}</span>
+          {editSuccess && (
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-2.5 text-xs text-emerald-800 animate-fade-in">
+              <LuCircleCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <span className="font-medium">{editSuccess}</span>
+            </div>
+          )}
+
+          {editError && (
+            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2.5 text-xs text-rose-800 animate-fade-in">
+              <LuCircleAlert className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span className="font-medium">{editError}</span>
+            </div>
+          )}
+
+          {/* Single Form with all details listed vertically one below the other */}
+          <form id="profile-single-form" onSubmit={handleSaveProfile} className="space-y-6">
+            {/* ================= SECTION 1: ACCOUNT & PERSONAL DETAILS ================= */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                <LuUser className="w-4 h-4 text-primary-600" />
+                <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+                  Account & Personal Details
+                </h3>
               </div>
-            )}
 
-            {editError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2 text-xs text-rose-800 animate-fade-in">
-                <LuCircleAlert className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                <span>{editError}</span>
-              </div>
-            )}
-
-            {isEditing ? (
-              /* Edit Mode Form */
-              <form onSubmit={handleSaveProfile} className="space-y-4 pt-1 animate-fade-in">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Full Name <span className="text-rose-500">*</span>
-                  </label>
+              {/* 1. Full Name */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  {isAdmin ? 'Administrator Name' : 'Full Name'} {isEditing && <span className="text-rose-500">*</span>}
+                </label>
+                {isEditing ? (
                   <div className="relative">
-                    <LuUser className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <LuUser className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       required
                       value={editForm.name}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                      placeholder="Enter full name"
-                      className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 font-medium transition-all"
+                      placeholder="Enter your full name"
+                      className="w-full h-10.5 pl-10 pr-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-900 font-semibold focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 transition-all"
                     />
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50/80 border border-gray-200/70 text-xs">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <LuUser className="w-4 h-4 text-primary-600 shrink-0" />
+                      <span className="font-bold text-gray-900 truncate text-xs sm:text-sm">{user?.name}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Official Email Address <span className="text-rose-500">*</span>
-                  </label>
+              {/* 2. Official Email Address */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Official Email Address {isEditing && <span className="text-rose-500">*</span>}
+                </label>
+                {isEditing ? (
                   <div className="relative">
-                    <LuMail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <LuMail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="email"
                       required
                       value={editForm.email}
                       onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                       placeholder="name@school.com"
-                      className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 font-medium transition-all"
+                      className="w-full h-10.5 pl-10 pr-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-900 font-semibold focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 transition-all"
                     />
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50/80 border border-gray-200/70 text-xs">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <LuMail className="w-4 h-4 text-blue-600 shrink-0" />
+                      <span className="font-bold text-gray-800 truncate">{user?.email}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Contact Phone Number
-                  </label>
+              {/* 3. Contact Phone Number */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Contact Phone Number
+                </label>
+                {isEditing ? (
                   <div className="relative">
-                    <LuPhone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <LuPhone className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="tel"
                       value={editForm.phone}
                       onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                       placeholder="e.g. 9876543210"
-                      className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 font-medium transition-all"
+                      className="w-full h-10.5 pl-10 pr-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-900 font-semibold focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 transition-all"
                     />
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50/80 border border-gray-200/70 text-xs">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <LuPhone className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="font-bold text-gray-800">{user?.phone || 'Not configured'}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-                {/* Read-Only System Badges */}
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div className="p-3 rounded-xl bg-gray-50/80 border border-gray-200/60">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase">Assigned Role</p>
-                    <p className="font-bold text-primary-700 text-xs mt-0.5 truncate">
+              {/* 4. Role / Access Permissions */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Role / Access Level
+                </label>
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50/80 border border-gray-200/70 text-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <LuShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <span className="font-bold text-primary-700 text-xs sm:text-sm">
                       {ROLE_LABELS[userRole] || userRole}
-                    </p>
+                    </span>
                   </div>
-                  <div className="p-3 rounded-xl bg-gray-50/80 border border-gray-200/60">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase">Account Status</p>
-                    <p className="font-bold text-emerald-600 text-xs mt-0.5 flex items-center gap-1.5 capitalize">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      {user?.status || 'Active'}
-                    </p>
-                  </div>
+                  <span className="text-[10px] font-semibold text-gray-400 bg-white px-2 py-0.5 rounded border border-gray-200">
+                    System Managed
+                  </span>
                 </div>
+              </div>
 
-                <div className="flex items-center gap-2 pt-2">
-                  <button
-                    type="submit"
-                    disabled={editLoading}
-                    className="flex-1 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-                  >
-                    {editLoading ? (
-                      <>
-                        <LuLoader className="w-4 h-4 animate-spin" />
-                        <span>Saving Changes...</span>
-                      </>
-                    ) : (
-                      <>
-                        <LuSave className="w-4 h-4" />
-                        <span>Save Changes</span>
-                      </>
-                    )}
-                  </button>
+              {/* 5. Account Status */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Account Status
+                </label>
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50/80 border border-gray-200/70 text-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <LuCircleCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-bold text-emerald-700 flex items-center gap-2 capitalize">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      {user?.status || 'Active'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-gray-400 bg-white px-2 py-0.5 rounded border border-gray-200">
+                    Verified Credentials
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ================= SECTION 2: INSTITUTIONAL CAMPUS AFFILIATION ================= */}
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <LuBuilding2 className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+                    School & Campus Affiliation
+                  </h3>
+                </div>
+                {isAdmin && (
                   <button
                     type="button"
-                    onClick={handleCancelEditing}
-                    disabled={editLoading}
-                    className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-all cursor-pointer"
+                    onClick={() => handleTabChange('switch-school')}
+                    className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 cursor-pointer bg-primary-50 px-2.5 py-1 rounded-lg border border-primary-200 transition-all"
                   >
-                    Cancel
+                    <span>Switch School</span>
+                    <LuArrowRight className="w-3.5 h-3.5" />
                   </button>
-                </div>
-              </form>
-            ) : (
-              /* Neat View Mode Layout */
-              <div className="space-y-3 pt-1">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  {/* Name Tile */}
-                  <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center shrink-0 mt-0.5">
-                      <LuUser className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">
-                        {isAdmin ? 'Administrator Name' : 'Full Name'}
-                      </p>
-                      <p className="font-bold text-gray-900 text-xs sm:text-sm mt-0.5 truncate">
-                        {user?.name}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Role Tile */}
-                  <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
-                      <LuShieldCheck className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Role / Access</p>
-                      <p className="font-bold text-primary-700 text-xs sm:text-sm mt-0.5 truncate">
-                        {ROLE_LABELS[userRole] || userRole}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Email Tile */}
-                  <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
-                      <LuMail className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Email Address</p>
-                      <p className="font-bold text-gray-800 text-xs mt-0.5 truncate">{user?.email}</p>
-                    </div>
-                  </div>
-
-                  {/* Contact Phone Tile */}
-                  <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-                      <LuPhone className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Contact Phone</p>
-                      <p className="font-bold text-gray-800 text-xs mt-0.5">{user?.phone || 'Not configured'}</p>
-                    </div>
-                  </div>
-
-                  {/* Account Status Tile */}
-                  <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3 sm:col-span-2">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-                      <LuCircleCheck className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1 flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Account Status</p>
-                        <p className="font-bold text-emerald-700 text-xs mt-0.5 flex items-center gap-1.5 capitalize">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                          {user?.status || 'Active'}
-                        </p>
-                      </div>
-                      <span className="text-[10px] text-gray-400 bg-white px-2.5 py-1 rounded-lg border border-gray-200 font-medium">
-                        Verified Credentials
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* 2. Current School Campus Card */}
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-3.5 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <LuBuilding2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-gray-900">Current School Campus</h2>
-                  <p className="text-[11px] text-gray-400">Institutional campus affiliation & details</p>
+              {/* 6. Affiliated School Name */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Affiliated School Campus
+                </label>
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50/80 border border-gray-200/70 text-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <LuBuilding2 className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span className="font-bold text-gray-900 truncate text-xs sm:text-sm">
+                      {currentSchool?.name || activeSchoolName || 'Delhi Public Academy'}
+                    </span>
+                  </div>
+                  {(currentSchool?.code || activeSchoolCode) && (
+                    <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200">
+                      {currentSchool?.code || activeSchoolCode}
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {isAdmin && (
+              {/* 7. Campus Code */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Campus Code
+                </label>
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50/80 border border-gray-200/70 text-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <LuBuilding2 className="w-4 h-4 text-gray-400 shrink-0" />
+                    <span className="font-mono font-bold text-gray-800">
+                      {currentSchool?.code || activeSchoolCode || 'DPS-101'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 8. Affiliation Board */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Affiliation Board
+                </label>
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50/80 border border-gray-200/70 text-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <LuAward className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <span className="font-bold text-gray-800">
+                      {currentSchool?.affiliation || 'CBSE'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 9. Principal / Head of School */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Principal / Head of Institution
+                </label>
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50/80 border border-gray-200/70 text-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <LuUser className="w-4 h-4 text-purple-600 shrink-0" />
+                    <span className="font-bold text-gray-800">
+                      {currentSchool?.principal_name || 'Dr. Rajeshwari Sharma'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 10. Campus Location (City / State) */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Campus City & State
+                </label>
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50/80 border border-gray-200/70 text-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <LuMapPin className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span className="font-bold text-gray-800">
+                      {currentSchool?.city ? `${currentSchool.city}${currentSchool.state ? `, ${currentSchool.state}` : ''}` : 'New Delhi, Delhi'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 11. School Phone */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  School Official Phone
+                </label>
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50/80 border border-gray-200/70 text-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <LuPhone className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-bold text-gray-800">
+                      {currentSchool?.phone || '+91 11 2890 1200'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 12. School Official Email */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  School Official Email
+                </label>
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50/80 border border-gray-200/70 text-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <LuMail className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span className="font-bold text-gray-800">
+                      {currentSchool?.email || 'contact@delhipublic.edu'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 13. Subscription Plan */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Campus Subscription Plan
+                </label>
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50/80 border border-gray-200/70 text-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <LuSparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span className="font-bold text-primary-700">
+                      {currentSchool?.subscription_plan || 'Enterprise'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Form Actions (Active in Edit Mode) */}
+            {isEditing && (
+              <div className="flex items-center justify-end gap-3 pt-5 border-t border-gray-100 animate-fade-in">
                 <button
                   type="button"
-                  onClick={() => handleTabChange('switch-school')}
-                  className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 cursor-pointer bg-primary-50 px-2.5 py-1 rounded-lg border border-primary-200 transition-all"
+                  onClick={handleCancelEditing}
+                  disabled={editLoading}
+                  className="px-5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition-all cursor-pointer"
                 >
-                  <span>Switch School</span>
-                  <LuArrowRight className="w-3.5 h-3.5" />
+                  Cancel
                 </button>
-              )}
-            </div>
-
-            {/* School Hero Banner */}
-            <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-100 flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Affiliated Campus</p>
-                <h3 className="text-sm sm:text-base font-extrabold text-gray-900 truncate mt-0.5">
-                  {currentSchool?.name || activeSchoolName || 'School Campus'}
-                </h3>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="px-6 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                >
+                  {editLoading ? (
+                    <>
+                      <LuLoader className="w-4 h-4 animate-spin" />
+                      <span>Saving Changes...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LuSave className="w-4 h-4" />
+                      <span>Save Changes</span>
+                    </>
+                  )}
+                </button>
               </div>
-              {(currentSchool?.code || activeSchoolCode) && (
-                <span className="font-mono text-xs font-extrabold px-2.5 py-1 rounded-lg bg-white text-blue-700 border border-blue-200 shrink-0 shadow-2xs">
-                  {currentSchool?.code || activeSchoolCode}
-                </span>
-              )}
-            </div>
-
-            {/* Campus Info Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              {/* Affiliation Board */}
-              <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
-                  <LuAward className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Affiliation Board</p>
-                  <p className="font-bold text-gray-900 text-xs mt-0.5 truncate">
-                    {currentSchool?.affiliation || 'CBSE'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Principal / Head */}
-              <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 mt-0.5">
-                  <LuUser className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Principal / Head</p>
-                  <p className="font-bold text-gray-900 text-xs mt-0.5 truncate">
-                    {currentSchool?.principal_name || 'Dr. Rajeshwari Sharma'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Location */}
-              <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 mt-0.5">
-                  <LuMapPin className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Campus Location</p>
-                  <p className="font-bold text-gray-900 text-xs mt-0.5 truncate">
-                    {currentSchool?.city ? `${currentSchool.city}${currentSchool.state ? `, ${currentSchool.state}` : ''}` : 'New Delhi, Delhi'}
-                  </p>
-                </div>
-              </div>
-
-              {/* School Phone */}
-              <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-                  <LuPhone className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">School Phone</p>
-                  <p className="font-bold text-gray-900 text-xs mt-0.5 truncate">
-                    {currentSchool?.phone || '+91 11 2890 1200'}
-                  </p>
-                </div>
-              </div>
-
-              {/* School Email */}
-              <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
-                  <LuMail className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">School Official Email</p>
-                  <p className="font-bold text-gray-900 text-xs mt-0.5 truncate">
-                    {currentSchool?.email || 'contact@delhipublic.edu'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Subscription Plan */}
-              <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
-                  <LuSparkles className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Subscription Plan</p>
-                  <p className="font-bold text-primary-700 text-xs mt-0.5 truncate">
-                    {currentSchool?.subscription_plan || 'Enterprise'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+            )}
+          </form>
         </div>
-      )}
-
+      )}
+
       {/* -------------------- TAB: PASSWORD & SECURITY -------------------- */}
       {activeTab === 'security' && (
         <div className="max-w-xl mx-auto bg-white rounded-2xl border border-gray-200 p-5 sm:p-7 shadow-xs space-y-5 animate-fade-in">
