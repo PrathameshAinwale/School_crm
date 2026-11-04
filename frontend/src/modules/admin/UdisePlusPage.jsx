@@ -360,37 +360,37 @@ export default function UdisePlusPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
               <div className="text-xs font-semibold text-slate-500">Total Teachers</div>
-              <div className="text-2xl font-black text-slate-800 mt-1">{dashboardData.stats.total_teachers}</div>
+              <div className="text-2xl font-black text-slate-800 mt-1">{dashboardData.stats?.total_teachers ?? 0}</div>
               <div className="text-[11px] text-blue-600 font-medium mt-0.5">
-                {dashboardData.stats.udise_teachers} with National Code
+                {dashboardData.stats?.udise_teachers ?? 0} with National Code
               </div>
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
               <div className="text-xs font-semibold text-slate-500">Total Students</div>
-              <div className="text-2xl font-black text-slate-800 mt-1">{dashboardData.stats.total_students}</div>
+              <div className="text-2xl font-black text-slate-800 mt-1">{dashboardData.stats?.total_students ?? 0}</div>
               <div className="text-[11px] text-emerald-600 font-medium mt-0.5">
-                {dashboardData.stats.students_with_pen} Verified PEN
+                {dashboardData.stats?.students_with_pen ?? 0} Verified PEN
               </div>
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
               <div className="text-xs font-semibold text-slate-500">Boys / Girls</div>
               <div className="text-2xl font-black text-slate-800 mt-1">
-                {dashboardData.stats.male_students} <span className="text-xs text-slate-400 font-normal">/</span> {dashboardData.stats.female_students}
+                {dashboardData.stats?.male_students ?? 0} <span className="text-xs text-slate-400 font-normal">/</span> {dashboardData.stats?.female_students ?? 0}
               </div>
               <div className="text-[11px] text-slate-500 mt-0.5">Gender Ratio Balanced</div>
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
               <div className="text-xs font-semibold text-slate-500">CWSN Students</div>
-              <div className="text-2xl font-black text-amber-600 mt-1">{dashboardData.stats.cwsn_count}</div>
+              <div className="text-2xl font-black text-amber-600 mt-1">{dashboardData.stats?.cwsn_count ?? 0}</div>
               <div className="text-[11px] text-amber-700 font-medium mt-0.5">With Ramps & Handrails</div>
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
               <div className="text-xs font-semibold text-slate-500">BPL / EWS Disadv.</div>
-              <div className="text-2xl font-black text-indigo-600 mt-1">{dashboardData.stats.bpl_count}</div>
+              <div className="text-2xl font-black text-indigo-600 mt-1">{dashboardData.stats?.bpl_count ?? 0}</div>
               <div className="text-[11px] text-indigo-700 font-medium mt-0.5">Fee & Book Benefits</div>
             </div>
 
@@ -409,7 +409,7 @@ export default function UdisePlusPage() {
               Government of India DCF Sections Status
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {dashboardData.modules.map((m) => (
+              {(dashboardData.modules || []).map((m) => (
                 <div
                   key={m.id}
                   onClick={() => setActiveTab(m.id)}
