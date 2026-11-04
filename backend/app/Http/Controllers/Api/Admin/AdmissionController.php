@@ -30,7 +30,7 @@ class AdmissionController extends Controller
             })
             ->update(['interview_result' => 'Completed']);
 
-        $query = Admission::with(['schoolClass', 'enrolledStudent']);
+        $query = Admission::with(['schoolClass.feeStructure.installments', 'enrolledStudent']);
 
         if ($request->filled('search')) {
             $search = escape_like($request->input('search'));
@@ -189,7 +189,7 @@ class AdmissionController extends Controller
      */
     public function show($id)
     {
-        $admission = Admission::with(['schoolClass', 'enrolledStudent'])->findOrFail($id);
+        $admission = Admission::with(['schoolClass.feeStructure.installments', 'enrolledStudent'])->findOrFail($id);
 
         // Auto-mark passed interview day as completed if still pending
         if ($admission->interview_date && $admission->interview_date->lt(now()->startOfDay())) {
@@ -301,7 +301,7 @@ class AdmissionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Application stage updated to ' . $admission->status,
-            'data' => $admission->load(['schoolClass', 'enrolledStudent']),
+            'data' => $admission->load(['schoolClass.feeStructure.installments', 'enrolledStudent']),
         ]);
     }
 
@@ -454,7 +454,7 @@ class AdmissionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Application updated successfully',
-            'data' => $admission->load(['schoolClass', 'enrolledStudent']),
+            'data' => $admission->load(['schoolClass.feeStructure.installments', 'enrolledStudent']),
         ]);
     }
 

@@ -33,6 +33,7 @@ import {
   LuLoader,
   LuExternalLink,
   LuCircleCheck,
+  LuLock,
   LuUserCheck,
 } from 'react-icons/lu';
 
@@ -206,7 +207,11 @@ export default function AdmissionProcessPage() {
           })(),
           offer_date: app.offer_date ? app.offer_date.substring(0, 10) : new Date().toISOString().substring(0, 10),
           offer_valid_until: app.offer_valid_until ? app.offer_valid_until.substring(0, 10) : '',
-          admission_fee: app.admission_fee || 35000,
+          admission_fee: (app.admission_fee && Number(app.admission_fee) > 0)
+            ? Number(app.admission_fee)
+            : (app.school_class?.fee_structure?.total_annual_fee
+                ? Math.round(Number(app.school_class.fee_structure.total_annual_fee) / 4)
+                : 34000),
           admission_fee_status: app.admission_fee_status || 'Pending',
           admission_fee_receipt: app.admission_fee_receipt || `REC-${Date.now().toString().slice(-6)}`,
           admission_fee_date: app.admission_fee_date ? app.admission_fee_date.substring(0, 10) : new Date().toISOString().substring(0, 10),
@@ -262,6 +267,96 @@ export default function AdmissionProcessPage() {
       percent: Math.round((uploaded / total) * 100),
     };
   }, [stageFormData.documents]);
+
+  // Applied Class Name Helper
+  const appliedClassName = useMemo(() => {
+    if (!applicant) return 'Applied Class';
+    return (
+      applicant.school_class?.name ||
+      classes.find((c) => String(c.id) === String(applicant.school_class_id))?.name ||
+      'Class ' + (applicant.school_class_id || '')
+    );
+  }, [applicant, classes]);
+
+  // Class Fee Structure
+  const classFeeStructure = useMemo(() => {
+    return applicant?.school_class?.fee_structure || applicant?.schoolClass?.feeStructure || null;
+  }, [applicant]);
+
+  // Total Annual Class Fee calculation
+  const totalClassAnnualFee = useMemo(() => {
+    if (classFeeStructure?.total_annual_fee) {
+      return Number(classFeeStructure.total_annual_fee);
+    }
+    const name = appliedClassName.toLowerCase();
+    if (name.includes('10')) return 110000;
+    if (name.includes('9')) return 141000;
+    if (name.includes('8')) return 136000;
+    if (name.includes('7')) return 131000;
+    if (name.includes('6')) return 126000;
+    if (name.includes('5')) return 121000;
+    if (name.includes('4')) return 116000;
+    if (name.includes('3')) return 111000;
+    if (name.includes('2')) return 106000;
+    if (name.includes('1')) return 101000;
+    return 120000;
+  }, [classFeeStructure, appliedClassName]);
+
+  // 1. Is Interview Step (Step 3) Completed?
+  const isInterviewCompleted = useMemo(() => {
+    if (!applicant) return false;
+    const result = stageFormData.interview_result || applicant.interview_result;
+    if (result === 'Completed' || result === 'Recommended') return true;
+    if (isInterviewDayPassed(stageFormData.interview_date || applicant.interview_date)) return true;
+    const norm = normalizeStage(applicant.status);
+    return ['Offer Extended', 'Fee Paid', 'Enrolled'].includes(norm) || currentStageIndex >= 3;
+  }, [applicant, stageFormData.interview_result, stageFormData.interview_date, currentStageIndex]);
+
+  // 2. Is Provisional Offer (Step 4) Completed?
+  const isOfferCompleted = useMemo(() => {
+    if (!applicant) return false;
+    const norm = normalizeStage(applicant.status);
+    return (
+      ['Offer Extended', 'Fee Paid', 'Enrolled'].includes(norm) ||
+      stageFormData.status === 'Offer Extended' ||
+      stageFormData.status === 'Fee Paid' ||
+      stageFormData.status === 'Enrolled' ||
+      currentStageIndex >= 3
+    );
+  }, [applicant, stageFormData.status, currentStageIndex]);
+
+  // 3. Are All Previous Steps Completed for Fee Payment (Step 5)?
+  const isFeeUnlocked = useMemo(() => {
+    return isInterviewCompleted && isOfferCompleted;
+  }, [isInterviewCompleted, isOfferCompleted]);
+
+  // 4. Is Fee Paid & Settled for Final Enrollment (Step 6)?
+  const isFeePaid = useMemo(() => {
+    if (!applicant) return false;
+    return (
+      stageFormData.admission_fee_status === 'Paid' ||
+      applicant.admission_fee_status === 'Paid' ||
+      applicant.status === 'Fee Paid' ||
+      applicant.status === 'Enrolled'
+    );
+  }, [applicant, stageFormData.admission_fee_status]);
+
+  // Guarded Tab Switcher
+  const handleTabClick = (tabKey) => {
+    if (tabKey === 'offer' && !isInterviewCompleted) {
+      showToast('⚠️ Interview must be completed before provisional offer can be activated.');
+      return;
+    }
+    if (tabKey === 'fee' && !isFeeUnlocked) {
+      showToast('⚠️ Complete all previous steps (Documents, Interview, and Offer) before activating Fee Payment.');
+      return;
+    }
+    if (tabKey === 'enroll' && !isFeePaid) {
+      showToast('⚠️ Admission confirmation fee must be collected and settled before final enrollment.');
+      return;
+    }
+    setActiveTab(tabKey);
+  };
 
   // Current stage index for progress stepper
   const currentStageIndex = useMemo(() => {
@@ -690,23 +785,27 @@ export default function AdmissionProcessPage() {
               const isCurrent = currentNorm === stg.id;
               const isPassed = currentStageIndex > idx || applicant.status === 'Enrolled';
 
+              // Check if stage is locked
+              let isStageLocked = false;
+              if (stg.id === 'Offer Extended' && !isInterviewCompleted) isStageLocked = true;
+              if (stg.id === 'Fee Paid' && !isFeeUnlocked) isStageLocked = true;
+              if (stg.id === 'Enrolled' && !isFeePaid) isStageLocked = true;
+
               return (
                 <div key={stg.id} className="flex items-center gap-2 flex-1">
                   <button
                     type="button"
                     onClick={() => {
-                      if (stg.id === 'Inquiry') setActiveTab('overview');
-                      else if (stg.id === 'Document Review') setActiveTab('docs');
-                      else if (stg.id === 'Assessment/Interview') setActiveTab('assessment');
-                      else if (stg.id === 'Offer Extended') setActiveTab('offer');
-                      else if (stg.id === 'Fee Paid') setActiveTab('fee');
-                      else if (stg.id === 'Enrolled') setActiveTab('enroll');
+                      if (stg.id === 'Inquiry') handleTabClick('overview');
+                      else if (stg.id === 'Document Review') handleTabClick('docs');
+                      else if (stg.id === 'Assessment/Interview') handleTabClick('assessment');
+                      else if (stg.id === 'Offer Extended') handleTabClick('offer');
+                      else if (stg.id === 'Fee Paid') handleTabClick('fee');
+                      else if (stg.id === 'Enrolled') handleTabClick('enroll');
                     }}
-                    className={`flex items-center gap-2.5 text-left cursor-pointer transition-all ${
-                      isCurrent
-                        ? 'scale-105'
-                        : 'opacity-85 hover:opacity-100'
-                    }`}
+                    className={`flex items-center gap-2.5 text-left transition-all ${
+                      isStageLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer opacity-85 hover:opacity-100'
+                    } ${isCurrent ? 'scale-105' : ''}`}
                   >
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 transition-colors ${
@@ -714,10 +813,18 @@ export default function AdmissionProcessPage() {
                           ? 'bg-primary-600 text-white shadow-md shadow-primary-500/30 ring-2 ring-primary-300'
                           : isPassed
                           ? 'bg-emerald-600 text-white'
+                          : isStageLocked
+                          ? 'bg-slate-100 text-slate-400 border border-slate-200'
                           : 'bg-slate-200 text-slate-600'
                       }`}
                     >
-                      {isPassed ? <LuCheck className="w-4 h-4" /> : stg.step}
+                      {isPassed ? (
+                        <LuCheck className="w-4 h-4" />
+                      ) : isStageLocked ? (
+                        <LuLock className="w-3.5 h-3.5" />
+                      ) : (
+                        stg.step
+                      )}
                     </div>
 
                     <div className="leading-tight">
@@ -727,13 +834,15 @@ export default function AdmissionProcessPage() {
                             ? 'text-primary-700'
                             : isPassed
                             ? 'text-emerald-700'
+                            : isStageLocked
+                            ? 'text-slate-400'
                             : 'text-slate-600'
                         }`}
                       >
                         {stg.name}
                       </span>
                       <span className="text-[10px] text-slate-400 block truncate max-w-[110px]">
-                        {isPassed ? 'Completed ✓' : isCurrent ? 'Active Process' : 'Upcoming'}
+                        {isPassed ? 'Completed ✓' : isCurrent ? 'Active Process' : isStageLocked ? 'Locked 🔒' : 'Upcoming'}
                       </span>
                     </div>
                   </button>
@@ -1513,6 +1622,26 @@ export default function AdmissionProcessPage() {
       {/* TAB 4: PROVISIONAL OFFER LETTER (STEP 4) */}
       {/* ========================================================================= */}
       {activeTab === 'offer' && (
+        !isInterviewCompleted ? (
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center shadow-xs space-y-4">
+            <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto border border-amber-200">
+              <LuLock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-800">Provisional Offer is Locked</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
+                The candidate interview and assessment evaluation (Step 3) must be marked as <strong>Completed</strong> or <strong>Recommended</strong> before generating a provisional admission offer.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('assessment')}
+              className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <span>Go to Step 3: Assessment & Interview &rarr;</span>
+            </button>
+          </div>
+        ) : (
         <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
@@ -1602,12 +1731,42 @@ export default function AdmissionProcessPage() {
             </button>
           </div>
         </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 5: ADMISSION FEE PAYMENT (STEP 5) */}
+        )
+      )}{/* TAB 5: ADMISSION FEE PAYMENT (STEP 5) */}
       {/* ========================================================================= */}
       {activeTab === 'fee' && (
+        !isFeeUnlocked ? (
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center shadow-xs space-y-4">
+            <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto border border-amber-200">
+              <LuLock className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-800">Fee Payment is Locked</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
+                All previous steps (Basic Details, Document Scrutiny, Interview completion, and Provisional Offer issuance) must be completed before the fee payment module is activated.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-1">
+              {!isInterviewCompleted ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('assessment')}
+                  className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <span>Complete Step 3: Interview &rarr;</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('offer')}
+                  className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <span>Extend Step 4: Provisional Offer &rarr;</span>
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
         <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
@@ -1630,6 +1789,106 @@ export default function AdmissionProcessPage() {
             >
               {stageFormData.admission_fee_status === 'Paid' ? 'PAID IN FULL ✓' : 'PAYMENT PENDING'}
             </span>
+          </div>
+
+          {/* Official Applied Class Fee Structure Card */}
+          <div className="bg-gradient-to-br from-emerald-50/70 via-teal-50/30 to-white rounded-2xl border border-emerald-200/80 p-5 shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs">
+                  <LuGraduationCap className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-sm text-slate-900">
+                      Official Fee Structure — {appliedClassName}
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      {classFeeStructure?.academic_year || applicant.academic_year || '2026-2027'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Standard prescribed fee schedule for {appliedClassName} admission
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-left sm:text-right">
+                <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block">Total Annual Class Fee</span>
+                <span className="text-xl sm:text-2xl font-black text-emerald-700 font-mono">
+                  ₹{Number(totalClassAnnualFee).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+
+            {/* Fee Heads Breakdown Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="bg-white p-3 rounded-xl border border-emerald-100/80 shadow-2xs">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Tuition Fee</span>
+                <span className="text-sm font-bold text-slate-800 font-mono mt-0.5 block">
+                  ₹{Number(classFeeStructure?.tuition_fee || (totalClassAnnualFee * 0.68)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+                <span className="text-[10px] text-slate-400">Core academic curriculum</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-emerald-100/80 shadow-2xs">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Lab & Library Fee</span>
+                <span className="text-sm font-bold text-slate-800 font-mono mt-0.5 block">
+                  ₹{Number(classFeeStructure?.lab_library_fee || 12000).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+                <span className="text-[10px] text-slate-400">Digital library & sciences</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-emerald-100/80 shadow-2xs">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Activity & Sports</span>
+                <span className="text-sm font-bold text-slate-800 font-mono mt-0.5 block">
+                  ₹{Number(classFeeStructure?.activity_fee || 12000).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+                <span className="text-[10px] text-slate-400">Physical ed & sports</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-emerald-100/80 shadow-2xs">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">School Transport</span>
+                <span className="text-sm font-bold text-slate-800 font-mono mt-0.5 block">
+                  {applicant.with_transport || stageFormData.with_transport
+                    ? `₹${Number(classFeeStructure?.transport_fee || 15000).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                    : 'Opted Out / Nil'}
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  {applicant.with_transport || stageFormData.with_transport ? 'Bus route included' : 'No school bus requested'}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Fee Presets for Admission Confirmation */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-emerald-100/80 text-xs">
+              <span className="text-xs text-slate-600 font-medium">
+                Auto-fill confirmation fee from class schedule:
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const depositAmt = Math.round(totalClassAnnualFee / 4);
+                    setStageFormData((prev) => ({ ...prev, admission_fee: depositAmt }));
+                    showToast(`Applied 1st Term Deposit of ₹${depositAmt.toLocaleString('en-IN')}`);
+                  }}
+                  className="px-2.5 py-1 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold rounded-lg text-[11px] transition cursor-pointer shadow-2xs"
+                >
+                  Set 1st Term Deposit (₹{Math.round(totalClassAnnualFee / 4).toLocaleString('en-IN')})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStageFormData((prev) => ({ ...prev, admission_fee: totalClassAnnualFee }));
+                    showToast(`Applied Full Annual Class Fee of ₹${Number(totalClassAnnualFee).toLocaleString('en-IN')}`);
+                  }}
+                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[11px] transition cursor-pointer shadow-2xs"
+                >
+                  Set Full Annual Fee (₹{Number(totalClassAnnualFee).toLocaleString('en-IN')})
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="p-5 rounded-2xl border border-emerald-200 bg-emerald-50/20 space-y-4">
@@ -1741,10 +2000,8 @@ export default function AdmissionProcessPage() {
             </button>
           </div>
         </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 6: CONFIRMED CLASSROOM ENROLLMENT (STEP 6) */}
+        )
+      )}{/* TAB 6: CONFIRMED CLASSROOM ENROLLMENT (STEP 6) */}
       {/* ========================================================================= */}
       {activeTab === 'enroll' && (
         <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-6">
