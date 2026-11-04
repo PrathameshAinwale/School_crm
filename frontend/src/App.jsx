@@ -104,6 +104,8 @@ import PrincipalDashboard from './modules/principal/PrincipalDashboard';
 import PrincipalAdmissionsPage from './modules/principal/PrincipalAdmissionsPage';
 import AdmissionInterviewCalendarPage from './modules/admission/AdmissionInterviewCalendarPage';
 import AdmissionDashboard from './modules/admission/AdmissionDashboard';
+import NewAdmissionPage from './modules/admission/NewAdmissionPage';
+import AdmissionProcessPage from './modules/admission/AdmissionProcessPage';
 
 // Protected route wrapper
 function ProtectedRoute({ children }) {
@@ -697,20 +699,38 @@ function AppRoutes() {
           }
         />
 
-        {/* Role-aware Deep Link / Parameterized Routes for Existing Admissions Page */}
+        {/* Dedicated New Student Admission Registration Page */}
+        <Route
+          path="admission/new"
+          element={
+            <RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="New Admission Application">
+              <NewAdmissionPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="admissions/new"
+          element={
+            <RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="New Admission Application">
+              <NewAdmissionPage />
+            </RoleRoute>
+          }
+        />
+
+        {/* Role-aware Deep Link / Parameterized Routes for Admissions Process Page */}
         <Route
           path="admission/:id"
           element={
-            <RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="Admissions">
-              <AdmissionRouter />
+            <RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="Admission Process">
+              <AdmissionProcessPage />
             </RoleRoute>
           }
         />
         <Route
           path="admissions/:id"
           element={
-            <RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="Admissions">
-              <AdmissionRouter />
+            <RoleRoute allowedRoles={['admin', 'principal', 'admission_officer', 'super_admin']} moduleName="Admission Process">
+              <AdmissionProcessPage />
             </RoleRoute>
           }
         />

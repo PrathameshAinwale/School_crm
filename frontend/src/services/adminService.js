@@ -146,6 +146,12 @@ export const adminService = {
       body: data,
     });
   },
+  uploadFile(formData) {
+    return apiRequest('/files/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  },
   deleteAdmission(id) {
     return apiRequest(`/admin/admissions/${id}`, {
       method: 'DELETE',
