@@ -55,6 +55,9 @@ export default function AdminProfilePage() {
   const [currentPwd, setCurrentPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
+  const [showCurrentPwd, setShowCurrentPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
   const [pwdLoading, setPwdLoading] = useState(false);
   const [pwdError, setPwdError] = useState('');
   const [pwdSuccess, setPwdSuccess] = useState('');
@@ -113,7 +116,7 @@ export default function AdminProfilePage() {
     try {
       const res = await changePassword(currentPwd, newPwd, confirmPwd);
       if (res.success) {
-        setPwdSuccess('Your administrator password has been updated successfully.');
+        setPwdSuccess(`Password for ${user?.name || 'your account'} (${user?.email || ''}) has been updated successfully.`);
         setCurrentPwd('');
         setNewPwd('');
         setConfirmPwd('');
@@ -645,10 +648,48 @@ export default function AdminProfilePage() {
               <LuKey className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-bold text-gray-900">Change Admin Password</h2>
-              <p className="text-xs text-gray-400">Keep your school administrator account secure</p>
+              <h2 className="text-sm sm:text-base font-bold text-gray-900">
+                {isAdmin ? 'Change Administrator Password' : `Change ${ROLE_LABELS[userRole] || 'Account'} Password`}
+              </h2>
+              <p className="text-xs text-gray-400">
+                {isAdmin
+                  ? 'Keep your school administrator account secure'
+                  : `Keep your ${ROLE_LABELS[userRole] || 'staff account'} credentials secure`}
+              </p>
             </div>
           </div>
+
+          {/* Active Account Identity Card */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 font-bold flex items-center justify-center text-xs shrink-0 border border-primary-200">
+                {user?.name ? user.name.slice(0, 2).toUpperCase() : 'U'}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-xs font-bold text-gray-900 truncate">
+                    {user?.name || 'Active Account'}
+                  </p>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200 shrink-0">
+                    {ROLE_LABELS[userRole] || userRole}
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                  {user?.email || 'Logged in account'}
+                </p>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Active Account
+              </span>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-gray-500 leading-relaxed -mt-2">
+            This form will update the password strictly for <span className="font-semibold text-gray-800">{user?.name}</span> (<span className="text-primary-700 font-medium">{user?.email}</span>).
+          </p>
 
           {pwdError && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2 text-xs text-rose-800">
@@ -669,42 +710,72 @@ export default function AdminProfilePage() {
               <label className="block text-xs font-bold text-gray-700 mb-1">
                 Current Password
               </label>
-              <input
-                type="password"
-                required
-                value={currentPwd}
-                onChange={(e) => setCurrentPwd(e.target.value)}
-                placeholder="Enter current password"
-                className="w-full h-10 px-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 transition-all font-medium"
-              />
+              <div className="relative">
+                <input
+                  type={showCurrentPwd ? 'text' : 'password'}
+                  required
+                  value={currentPwd}
+                  onChange={(e) => setCurrentPwd(e.target.value)}
+                  placeholder="Enter current password"
+                  className="w-full h-10 pl-3.5 pr-10 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 transition-all font-medium"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPwd(!showCurrentPwd)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showCurrentPwd ? <LuEyeOff className="w-4 h-4" /> : <LuEye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
                 New Password (Min 6 characters)
               </label>
-              <input
-                type="password"
-                required
-                value={newPwd}
-                onChange={(e) => setNewPwd(e.target.value)}
-                placeholder="Enter new password"
-                className="w-full h-10 px-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 transition-all font-medium"
-              />
+              <div className="relative">
+                <input
+                  type={showNewPwd ? 'text' : 'password'}
+                  required
+                  value={newPwd}
+                  onChange={(e) => setNewPwd(e.target.value)}
+                  placeholder="Enter new password"
+                  className="w-full h-10 pl-3.5 pr-10 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 transition-all font-medium"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPwd(!showNewPwd)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showNewPwd ? <LuEyeOff className="w-4 h-4" /> : <LuEye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
                 Confirm New Password
               </label>
-              <input
-                type="password"
-                required
-                value={confirmPwd}
-                onChange={(e) => setConfirmPwd(e.target.value)}
-                placeholder="Re-type new password"
-                className="w-full h-10 px-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 transition-all font-medium"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPwd ? 'text' : 'password'}
+                  required
+                  value={confirmPwd}
+                  onChange={(e) => setConfirmPwd(e.target.value)}
+                  placeholder="Re-type new password"
+                  className="w-full h-10 pl-3.5 pr-10 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 transition-all font-medium"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showConfirmPwd ? <LuEyeOff className="w-4 h-4" /> : <LuEye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <button
@@ -715,12 +786,12 @@ export default function AdminProfilePage() {
               {pwdLoading ? (
                 <>
                   <LuLoader className="w-4 h-4 animate-spin" />
-                  <span>Updating Password...</span>
+                  <span>Updating Password for ${user?.name || 'Account'}...</span>
                 </>
               ) : (
                 <>
                   <LuShieldCheck className="w-4 h-4" />
-                  <span>Update Password</span>
+                  <span>Update Password for ${user?.name ? user.name.split(' ')[0] : 'Account'}</span>
                 </>
               )}
             </button>
