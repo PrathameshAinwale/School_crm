@@ -14,6 +14,8 @@ import {
   LuCheck,
   LuClock,
   LuPrinter,
+  LuPencil,
+  LuX,
   LuPhone,
   LuMail,
   LuMapPin,
@@ -65,9 +67,32 @@ export default function AdmissionProcessPage() {
   const [activeTab, setActiveTab] = useState('docs'); // overview, docs, assessment, offer, fee, enroll, timeline
   const [toastMessage, setToastMessage] = useState(null);
   const [copiedText, setCopiedText] = useState(false);
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [bioFormData, setBioFormData] = useState({});
+  const [savingBio, setSavingBio] = useState(false);
 
   // In-page parent credentials generated on enrollment
   const [enrolledCredentials, setEnrolledCredentials] = useState(null);
+
+  const handleSaveBio = async (e) => {
+    e.preventDefault();
+    if (!applicant) return;
+    setSavingBio(true);
+    try {
+      const res = await adminService.updateAdmission(applicant.id, bioFormData);
+      if (res?.success && res?.data) {
+        setApplicant(res.data);
+        showToast('Applicant basic details updated successfully!');
+        setIsEditingBio(false);
+      } else {
+        showToast(res?.message || 'Failed to update details.');
+      }
+    } catch (err) {
+      showToast(err.data?.message || err.message || 'Error updating details.');
+    } finally {
+      setSavingBio(false);
+    }
+  };
 
   // Stage form data
   const [stageFormData, setStageFormData] = useState({
@@ -98,6 +123,13 @@ export default function AdmissionProcessPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const formatAppliedDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
   const normalizeStage = (status) => {
     if (!status) return 'Inquiry';
     if (status === 'Pending') return 'Inquiry';
@@ -126,6 +158,25 @@ export default function AdmissionProcessPage() {
             file_name: app.documents?.[d.key]?.file_name || null,
             file_url: app.documents?.[d.key]?.file_url || null,
           };
+        });
+
+        setBioFormData({
+          first_name: app.first_name || '',
+          last_name: app.last_name || '',
+          school_class_id: app.school_class_id || '',
+          academic_year: app.academic_year || '2026-2027',
+          lead_source: app.lead_source || 'Walk-in',
+          date_of_birth: app.date_of_birth ? app.date_of_birth.substring(0, 10) : '',
+          gender: app.gender || 'Male',
+          guardian_name: app.guardian_name || '',
+          guardian_phone: app.guardian_phone || '',
+          guardian_email: app.guardian_email || '',
+          guardian_relation: app.guardian_relation || 'Father',
+          previous_school: app.previous_school || '',
+          previous_score: app.previous_score || '',
+          address: app.address || '',
+          with_transport: Boolean(app.with_transport),
+          remarks: app.remarks || '',
         });
 
         const initialStatus = app.status || 'Inquiry';
@@ -563,7 +614,7 @@ export default function AdmissionProcessPage() {
                 <span>{applicant.first_name} {applicant.last_name || ''}</span>
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Applying for <b>{applicant.school_class?.name || 'Class ' + (applicant.school_class_id || '')}</b> &bull; Academic Session {applicant.academic_year || '2026-2027'} &bull; Guardian: {applicant.guardian_name} ({applicant.guardian_phone})
+                Applying for <b>{applicant.school_class?.name || 'Class ' + (applicant.school_class_id || '')}</b> &bull; Academic Session {applicant.academic_year || '2026-2027'} &bull; Guardian: {applicant.guardian_name} ({applicant.guardian_phone}) &bull; Applied: {formatAppliedDate(applicant.created_at)}
               </p>
             </div>
           </div>
@@ -766,16 +817,229 @@ export default function AdmissionProcessPage() {
               <h2 className="text-lg font-bold text-slate-900 mt-1">Candidate Basic Details & Lead Origin</h2>
               <p className="text-xs text-slate-500">Student information registered during inquiry intake</p>
             </div>
-            <button
-              onClick={() => setActiveTab('docs')}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setBioFormData({
+                    first_name: applicant.first_name || '',
+                    last_name: applicant.last_name || '',
+                    school_class_id: applicant.school_class_id || '',
+                    academic_year: applicant.academic_year || '2026-2027',
+                    lead_source: applicant.lead_source || 'Walk-in',
+                    date_of_birth: applicant.date_of_birth ? applicant.date_of_birth.substring(0, 10) : '',
+                    gender: applicant.gender || 'Male',
+                    guardian_name: applicant.guardian_name || '',
+                    guardian_phone: applicant.guardian_phone || '',
+                    guardian_email: applicant.guardian_email || '',
+                    guardian_relation: applicant.guardian_relation || 'Father',
+                    previous_school: applicant.previous_school || '',
+                    previous_score: applicant.previous_score || '',
+                    address: applicant.address || '',
+                    with_transport: Boolean(applicant.with_transport),
+                    remarks: applicant.remarks || '',
+                  });
+                  setIsEditingBio(!isEditingBio);
+                }}
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <LuPencil className="w-3.5 h-3.5" />
+                <span>{isEditingBio ? 'Cancel Editing' : 'Edit Details'}</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('docs')}
               className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
             >
               <span>Proceed to Document Scrutiny</span>
               <LuChevronRight className="w-4 h-4" />
             </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {isEditingBio ? (
+            <form onSubmit={handleSaveBio} className="space-y-4 p-5 rounded-2xl bg-slate-50 border border-slate-200">
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <LuPencil className="w-4 h-4 text-primary-600" />
+                <span>Edit Basic Information</span>
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">First Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bioFormData.first_name}
+                    onChange={(e) => setBioFormData({ ...bioFormData, first_name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    value={bioFormData.last_name}
+                    onChange={(e) => setBioFormData({ ...bioFormData, last_name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Applying Class</label>
+                  <select
+                    value={bioFormData.school_class_id}
+                    onChange={(e) => setBioFormData({ ...bioFormData, school_class_id: e.target.value })}
+                    className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500 cursor-pointer"
+                  >
+                    <option value="">Select Grade</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Academic Session</label>
+                  <input
+                    type="text"
+                    value={bioFormData.academic_year}
+                    onChange={(e) => setBioFormData({ ...bioFormData, academic_year: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Lead Source</label>
+                  <select
+                    value={bioFormData.lead_source}
+                    onChange={(e) => setBioFormData({ ...bioFormData, lead_source: e.target.value })}
+                    className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500 cursor-pointer"
+                  >
+                    <option value="Walk-in">Walk-in Inquiry</option>
+                    <option value="Website">Website Portal</option>
+                    <option value="Referral">Alumni / Referral</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Phone">Phone Inquiry</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Date of Birth</label>
+                  <input
+                    type="date"
+                    value={bioFormData.date_of_birth}
+                    onChange={(e) => setBioFormData({ ...bioFormData, date_of_birth: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Gender</label>
+                  <select
+                    value={bioFormData.gender}
+                    onChange={(e) => setBioFormData({ ...bioFormData, gender: e.target.value })}
+                    className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500 cursor-pointer"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Guardian Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bioFormData.guardian_name}
+                    onChange={(e) => setBioFormData({ ...bioFormData, guardian_name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Relationship</label>
+                  <select
+                    value={bioFormData.guardian_relation}
+                    onChange={(e) => setBioFormData({ ...bioFormData, guardian_relation: e.target.value })}
+                    className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500 cursor-pointer"
+                  >
+                    <option value="Father">Father</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Guardian">Guardian</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Contact Phone *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={bioFormData.guardian_phone}
+                    onChange={(e) => setBioFormData({ ...bioFormData, guardian_phone: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={bioFormData.guardian_email}
+                    onChange={(e) => setBioFormData({ ...bioFormData, guardian_email: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Address</label>
+                  <input
+                    type="text"
+                    value={bioFormData.address}
+                    onChange={(e) => setBioFormData({ ...bioFormData, address: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl border border-slate-200 bg-white">
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bioFormData.with_transport}
+                    onChange={(e) => setBioFormData({ ...bioFormData, with_transport: e.target.checked })}
+                    className="w-4 h-4 rounded text-primary-600 focus:ring-0 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <LuBus className="w-3.5 h-3.5 text-amber-600" />
+                    Opt for School Bus Transport
+                  </span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingBio(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingBio}
+                  className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {savingBio ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
+                  <span>{savingBio ? 'Saving...' : 'Save Changes'}</span>
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Student Bio Card */}
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
               <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
@@ -873,6 +1137,8 @@ export default function AdmissionProcessPage() {
               </span>
             </div>
           </div>
+            </>
+          )}
         </div>
       )}
 

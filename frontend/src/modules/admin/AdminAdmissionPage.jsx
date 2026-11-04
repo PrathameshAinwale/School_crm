@@ -13,6 +13,7 @@ import {
   LuPlus,
   LuGraduationCap,
   LuBus,
+  LuCalendar,
   LuCalendarDays,
   LuPrinter,
   LuTable,
@@ -21,6 +22,11 @@ import {
   LuClipboardCheck,
   LuLayers,
   LuFileCheck,
+  LuPencil,
+  LuX,
+  LuUser,
+  LuMail,
+  LuMapPin,
 } from 'react-icons/lu';
 
 // Standard 6-Stage Pipeline definition
@@ -50,6 +56,11 @@ export default function AdminAdmissionPage() {
   const [selectedLeadSource, setSelectedLeadSource] = useState('ALL');
   const [selectedStageTab, setSelectedStageTab] = useState('ALL');
   const [toastMessage, setToastMessage] = useState(null);
+
+  // Edit Applicant Modal State
+  const [editingApplicant, setEditingApplicant] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -108,6 +119,18 @@ export default function AdminAdmissionPage() {
     if (status === 'Under Review') return 'Document Review';
     if (status === 'Approved') return 'Offer Extended';
     return status;
+  };
+
+  // Helper to format applied date
+  const formatAppliedDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
   };
 
   // Stage progress metadata helper
@@ -170,6 +193,50 @@ export default function AdminAdmissionPage() {
           subtext: 'In Process',
           badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
         };
+    }
+  };
+
+  // Open edit modal pre-filled with existing data
+  const handleOpenEditModal = (item) => {
+    setEditingApplicant(item);
+    setEditFormData({
+      first_name: item.first_name || '',
+      last_name: item.last_name || '',
+      date_of_birth: item.date_of_birth ? item.date_of_birth.substring(0, 10) : '',
+      gender: item.gender || 'Male',
+      school_class_id: item.school_class_id || '',
+      academic_year: item.academic_year || '2026-2027',
+      lead_source: item.lead_source || 'Walk-in',
+      guardian_name: item.guardian_name || '',
+      guardian_phone: item.guardian_phone || '',
+      guardian_email: item.guardian_email || '',
+      guardian_relation: item.guardian_relation || 'Father',
+      previous_school: item.previous_school || '',
+      previous_score: item.previous_score || '',
+      address: item.address || '',
+      with_transport: Boolean(item.with_transport),
+      remarks: item.remarks || '',
+    });
+  };
+
+  // Save edited data
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingApplicant) return;
+    setSavingEdit(true);
+    try {
+      const res = await adminService.updateAdmission(editingApplicant.id, editFormData);
+      if (res?.success) {
+        showToast('Applicant data updated successfully!');
+        setEditingApplicant(null);
+        await loadData();
+      } else {
+        showToast(res?.message || 'Failed to update applicant data.');
+      }
+    } catch (err) {
+      showToast(err.data?.message || err.message || 'Error updating applicant.');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -255,6 +322,7 @@ export default function AdminAdmissionPage() {
             <div class="item"><div class="label">Candidate Name</div><div class="value">${applicant.first_name} ${applicant.last_name || ''}</div></div>
             <div class="item"><div class="label">Target Class / Grade</div><div class="value">${applicant.school_class?.name || 'Class ' + (applicant.school_class_id || '')} (${applicant.academic_year || '2026-2027'})</div></div>
             <div class="item"><div class="label">Date of Birth & Gender</div><div class="value">${applicant.date_of_birth ? new Date(applicant.date_of_birth).toLocaleDateString() : 'N/A'} • ${applicant.gender || 'Not specified'}</div></div>
+            <div class="item"><div class="label">Date Applied</div><div class="value">${formatAppliedDate(applicant.created_at)}</div></div>
             <div class="item"><div class="label">School Bus Transport</div><div class="value">${applicant.with_transport ? 'YES - Opted for School Transport' : 'NO - Self Commute'}</div></div>
           </div>
 
@@ -374,7 +442,7 @@ export default function AdminAdmissionPage() {
             <span>Interview Calendar</span>
           </Link>
 
-          {/* DEDICATED PAGE LINK TO REGISTER NEW STUDENT (NO POPUP!) */}
+          {/* DEDICATED PAGE LINK TO REGISTER NEW STUDENT */}
           <Link
             to="/admission/new"
             className="px-4 py-2 sm:py-2.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
@@ -576,12 +644,17 @@ export default function AdminAdmissionPage() {
                           onClick={() => navigate(`/admission/${item.id}`)}
                           className="bg-white rounded-xl p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-primary-400 transition-all cursor-pointer group space-y-2.5"
                         >
-                          {/* Top Row: Name & Application Number */}
+                          {/* Top Row: Name, Applied Date & Application Number */}
                           <div className="flex items-start justify-between gap-1.5">
                             <div>
                               <h4 className="font-bold text-xs text-slate-800 group-hover:text-primary-600 transition-colors leading-tight">
                                 {item.first_name} {item.last_name || ''}
                               </h4>
+                              {/* APPLIED DATE UNDER NAME */}
+                              <div className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+                                <LuCalendar className="w-3 h-3 text-slate-400" />
+                                <span>Applied: {formatAppliedDate(item.created_at)}</span>
+                              </div>
                               <span className="text-[10px] font-mono font-bold text-primary-700 block mt-0.5">
                                 {item.application_number}
                               </span>
@@ -619,16 +692,25 @@ export default function AdminAdmissionPage() {
 
                           {/* Bottom Action Row */}
                           <div
-                            className="pt-1.5 border-t border-slate-100 flex items-center justify-between"
+                            className="pt-1.5 border-t border-slate-100 flex items-center justify-between gap-1"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <button
-                              onClick={() => handlePrintSlip(item)}
-                              title="Print Application Slip"
-                              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
-                            >
-                              <LuPrinter className="w-3.5 h-3.5" />
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handlePrintSlip(item)}
+                                title="Print Application Slip"
+                                className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+                              >
+                                <LuPrinter className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleOpenEditModal(item)}
+                                title="Edit Applicant Details"
+                                className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+                              >
+                                <LuPencil className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
 
                             <Link
                               to={`/admission/${item.id}`}
@@ -654,7 +736,7 @@ export default function AdminAdmissionPage() {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
                 <tr>
-                  <th className="px-5 py-3.5">Applicant & Application No</th>
+                  <th className="px-5 py-3.5">Applicant & Applied Date</th>
                   <th className="px-5 py-3.5">Applying For</th>
                   <th className="px-5 py-3.5">Parent / Contact</th>
                   <th className="px-5 py-3.5">Completed Process & Stage</th>
@@ -673,12 +755,17 @@ export default function AdminAdmissionPage() {
                       onClick={() => navigate(`/admission/${item.id}`)}
                       className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
                     >
-                      {/* 1. Student Name & App No */}
+                      {/* 1. Student Name, Applied Date & Application Number */}
                       <td className="px-5 py-4">
                         <div className="font-bold text-slate-800 text-sm group-hover:text-primary-600 transition-colors">
                           {item.first_name} {item.last_name || ''}
                         </div>
-                        <div className="text-[11px] text-primary-700 font-mono font-bold">
+                        {/* APPLIED DATE UNDER NAME */}
+                        <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1.5 mt-0.5">
+                          <LuCalendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>Applied: {formatAppliedDate(item.created_at)}</span>
+                        </div>
+                        <div className="text-[10px] text-primary-700 font-mono font-bold mt-0.5">
                           {item.application_number}
                         </div>
                       </td>
@@ -746,7 +833,7 @@ export default function AdminAdmissionPage() {
                         )}
                       </td>
 
-                      {/* 6. Actions: Direct Page Link (No Popup) */}
+                      {/* 6. Actions: Print Slip, Edit Data, and Continue Process */}
                       <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1.5">
                           <button
@@ -757,6 +844,19 @@ export default function AdminAdmissionPage() {
                           >
                             <LuPrinter className="w-4 h-4" />
                           </button>
+
+                          {/* EDIT BUTTON */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(item)}
+                            title="Edit Applicant Details"
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <LuPencil className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Edit</span>
+                          </button>
+
+                          {/* CONTINUE PROCESS BUTTON */}
                           <Link
                             to={`/admission/${item.id}`}
                             className="px-3.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1 cursor-pointer"
@@ -771,6 +871,296 @@ export default function AdminAdmissionPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* EDIT APPLICANT DATA MODAL DIALOG */}
+      {/* ========================================================================= */}
+      {editingApplicant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full my-4 sm:my-8 overflow-hidden animate-scale-up">
+            <div className="p-4 sm:p-5 border-b border-slate-200 bg-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+                  <LuPencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 leading-tight">
+                    Edit Applicant Information
+                  </h3>
+                  <p className="text-slate-500 text-xs mt-0.5">
+                    Update student bio, parent contact, class or transportation records for {editingApplicant.application_number}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingApplicant(null)}
+                className="w-8 h-8 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition cursor-pointer"
+              >
+                <LuX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="p-4 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
+              {/* Student Name */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.first_name}
+                    onChange={(e) => setEditFormData({ ...editFormData, first_name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.last_name}
+                    onChange={(e) => setEditFormData({ ...editFormData, last_name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+              </div>
+
+              {/* Class, Academic Year & Lead Source */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Applying Class
+                  </label>
+                  <select
+                    value={editFormData.school_class_id}
+                    onChange={(e) => setEditFormData({ ...editFormData, school_class_id: e.target.value })}
+                    className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500 cursor-pointer"
+                  >
+                    <option value="">Select Grade</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Academic Session
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.academic_year}
+                    onChange={(e) => setEditFormData({ ...editFormData, academic_year: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Lead Source
+                  </label>
+                  <select
+                    value={editFormData.lead_source}
+                    onChange={(e) => setEditFormData({ ...editFormData, lead_source: e.target.value })}
+                    className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500 cursor-pointer"
+                  >
+                    <option value="Walk-in">Walk-in Inquiry</option>
+                    <option value="Website">Website Portal</option>
+                    <option value="Referral">Alumni / Referral</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Phone">Phone Inquiry</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Gender & DOB */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Date of Birth
+                  </label>
+                  <input
+                    type="date"
+                    value={editFormData.date_of_birth}
+                    onChange={(e) => setEditFormData({ ...editFormData, date_of_birth: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Gender
+                  </label>
+                  <select
+                    value={editFormData.gender}
+                    onChange={(e) => setEditFormData({ ...editFormData, gender: e.target.value })}
+                    className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500 cursor-pointer"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Guardian Info */}
+              <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                  Parent / Guardian Details
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Guardian Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editFormData.guardian_name}
+                      onChange={(e) => setEditFormData({ ...editFormData, guardian_name: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Relationship
+                    </label>
+                    <select
+                      value={editFormData.guardian_relation}
+                      onChange={(e) => setEditFormData({ ...editFormData, guardian_relation: e.target.value })}
+                      className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500 cursor-pointer"
+                    >
+                      <option value="Father">Father</option>
+                      <option value="Mother">Mother</option>
+                      <option value="Guardian">Guardian</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Contact Mobile <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={editFormData.guardian_phone}
+                      onChange={(e) => setEditFormData({ ...editFormData, guardian_phone: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={editFormData.guardian_email}
+                      onChange={(e) => setEditFormData({ ...editFormData, guardian_email: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Residential Address
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={editFormData.address}
+                    onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+              </div>
+
+              {/* Transport & Previous Schooling */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Previous School
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.previous_school}
+                    onChange={(e) => setEditFormData({ ...editFormData, previous_school: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Previous Academic Score
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.previous_score}
+                    onChange={(e) => setEditFormData({ ...editFormData, previous_score: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl border border-slate-200 bg-white">
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editFormData.with_transport}
+                    onChange={(e) => setEditFormData({ ...editFormData, with_transport: e.target.checked })}
+                    className="w-4 h-4 rounded text-primary-600 focus:ring-0 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <LuBus className="w-3.5 h-3.5 text-amber-600" />
+                    Opt for School Bus / Vehicle Route Transport
+                  </span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Officer Remarks / Notes
+                </label>
+                <textarea
+                  rows={2}
+                  value={editFormData.remarks}
+                  onChange={(e) => setEditFormData({ ...editFormData, remarks: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-primary-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setEditingApplicant(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-6 py-2 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {savingEdit ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
+                  <span>{savingEdit ? 'Saving Changes...' : 'Save Changes'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
