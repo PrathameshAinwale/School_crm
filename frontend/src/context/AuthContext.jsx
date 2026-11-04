@@ -97,6 +97,16 @@ export function AuthProvider({ children }) {
     return res;
   };
 
+  const updateProfile = async (data) => {
+    const res = await authService.updateProfile(data);
+    if (res.success && res.user) {
+      const updatedUser = { ...user, ...res.user };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+    return res;
+  };
+
   const [linkedSchoolAccounts, setLinkedSchoolAccounts] = useState(() => {
     try {
       const stored = localStorage.getItem('linked_school_accounts');
@@ -287,6 +297,7 @@ export function AuthProvider({ children }) {
         login,
         logout,
         changePassword,
+        updateProfile,
         linkedSchoolAccounts,
         addSchoolAccount,
         switchSchoolAccount,

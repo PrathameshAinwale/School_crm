@@ -47,6 +47,20 @@ export const authService = {
   /**
    * Fetch current authenticated profile
    */
+  /**
+   * Update authenticated user profile details
+   */
+  async updateProfile(data) {
+    const res = await apiRequest('/auth/profile', {
+      method: 'PUT',
+      body: data,
+    });
+    if (res.user) {
+      localStorage.setItem('user', JSON.stringify(res.user));
+    }
+    return res;
+  },
+
   async me() {
     return apiRequest('/auth/me');
   },

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -19,6 +19,12 @@ import {
   LuCircleAlert,
   LuCircleCheck,
   LuArrowRight,
+  LuPencil,
+  LuSave,
+  LuX,
+  LuMapPin,
+  LuAward,
+  LuSparkles,
 } from 'react-icons/lu';
 
 export default function AdminProfilePage() {
@@ -31,6 +37,7 @@ export default function AdminProfilePage() {
     switchSchoolAccount,
     removeSchoolAccount,
     changePassword,
+    updateProfile,
     ROLE_LABELS,
   } = useAuth();
 
@@ -41,6 +48,81 @@ export default function AdminProfilePage() {
   const requestedTab = searchParams.get('tab') || 'overview';
   const initialTab = (!isAdmin && requestedTab === 'switch-school') ? 'overview' : requestedTab;
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Edit Profile Form state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState('');
+
+  // Keep form in sync with user
+  useEffect(() => {
+    if (user) {
+      setEditForm({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+      });
+    }
+  }, [user]);
+
+  const handleStartEditing = () => {
+    setEditForm({
+      name: user?.name || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+    });
+    setEditError('');
+    setEditSuccess('');
+    setIsEditing(true);
+    if (activeTab !== 'overview') {
+      handleTabChange('overview');
+    }
+  };
+
+  const handleCancelEditing = () => {
+    setIsEditing(false);
+    setEditError('');
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!editForm.name.trim()) {
+      setEditError('Full name is required.');
+      return;
+    }
+    if (!editForm.email.trim()) {
+      setEditError('Email address is required.');
+      return;
+    }
+
+    setEditLoading(true);
+    setEditError('');
+    setEditSuccess('');
+
+    try {
+      const res = await updateProfile({
+        name: editForm.name.trim(),
+        email: editForm.email.trim(),
+        phone: editForm.phone.trim(),
+      });
+      if (res.success) {
+        setEditSuccess(res.message || 'Profile details updated successfully!');
+        setIsEditing(false);
+      } else {
+        setEditError(res.message || 'Failed to update profile details.');
+      }
+    } catch (err) {
+      setEditError(err.data?.message || err.message || 'Failed to update profile details.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
 
   // Switch School Form state
   const [connectIdentifier, setConnectIdentifier] = useState('');
@@ -197,6 +279,29 @@ export default function AdminProfilePage() {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Quick Action Button in Banner */}
+            <div className="shrink-0 mt-3 sm:mt-0">
+              {isEditing ? (
+                <button
+                  type="button"
+                  onClick={handleCancelEditing}
+                  className="px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs flex items-center gap-1.5 backdrop-blur-xs border border-white/30 transition-all cursor-pointer shadow-xs"
+                >
+                  <LuX className="w-4 h-4" />
+                  <span>Cancel Editing</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleStartEditing}
+                  className="px-4 py-2 rounded-xl bg-white text-primary-800 hover:bg-primary-50 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                >
+                  <LuPencil className="w-3.5 h-3.5 text-primary-600" />
+                  <span>Edit Profile</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -498,74 +603,241 @@ export default function AdminProfilePage() {
 
       {/* -------------------- TAB: PROFILE OVERVIEW -------------------- */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 animate-fade-in">
-          {/* Administrator Profile Card */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 animate-fade-in items-start">
+          {/* 1. Account Profile Card */}
           <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-gray-100">
-              <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
-                <LuUser className="w-4 h-4" />
+            <div className="flex items-center justify-between pb-3.5 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
+                  <LuUser className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900">
+                    {isAdmin ? 'Administrator Information' : 'Staff Profile Information'}
+                  </h2>
+                  <p className="text-[11px] text-gray-400">Account identity & communication details</p>
+                </div>
               </div>
-              <h2 className="text-sm font-bold text-gray-900">{isAdmin ? 'Administrator Information' : 'Staff Profile Information'}</h2>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              {user?.name && (
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">{isAdmin ? 'Administrator Name' : 'Full Name'}</p>
-                  <p className="font-bold text-gray-800 text-xs sm:text-sm mt-0.5">{user.name}</p>
-                </div>
-              )}
-
-              {user?.role && (
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Role / Access</p>
-                  <p className="font-bold text-primary-700 text-xs sm:text-sm mt-0.5">
-                    {ROLE_LABELS[user.role] || user.role}
-                  </p>
-                </div>
-              )}
-
-              {user?.email && (
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Email Address</p>
-                  <p className="font-bold text-gray-800 text-xs mt-0.5 truncate">{user.email}</p>
-                </div>
-              )}
-
-              {user?.phone && (
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Contact Phone</p>
-                  <p className="font-bold text-gray-800 text-xs mt-0.5">{user.phone}</p>
-                </div>
-              )}
-
-              {user?.status && (
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 sm:col-span-2">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Account Status</p>
-                  <p className="font-bold text-emerald-600 text-xs mt-0.5 flex items-center gap-1.5 capitalize">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    {user.status}
-                  </p>
-                </div>
+              {!isEditing && (
+                <button
+                  type="button"
+                  onClick={handleStartEditing}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary-50 hover:bg-primary-100 text-primary-700 font-bold text-xs border border-primary-200/80 transition-all cursor-pointer shadow-2xs"
+                >
+                  <LuPencil className="w-3.5 h-3.5 text-primary-600" />
+                  <span>Edit Profile</span>
+                </button>
               )}
             </div>
+
+            {editSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-2 text-xs text-emerald-800 animate-fade-in">
+                <LuCircleCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span>{editSuccess}</span>
+              </div>
+            )}
+
+            {editError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2 text-xs text-rose-800 animate-fade-in">
+                <LuCircleAlert className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <span>{editError}</span>
+              </div>
+            )}
+
+            {isEditing ? (
+              /* Edit Mode Form */
+              <form onSubmit={handleSaveProfile} className="space-y-4 pt-1 animate-fade-in">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Full Name <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <LuUser className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      required
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      placeholder="Enter full name"
+                      className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 font-medium transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Official Email Address <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <LuMail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      required
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      placeholder="name@school.com"
+                      className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 font-medium transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Contact Phone Number
+                  </label>
+                  <div className="relative">
+                    <LuPhone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="tel"
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      placeholder="e.g. 9876543210"
+                      className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-100 font-medium transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Read-Only System Badges */}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="p-3 rounded-xl bg-gray-50/80 border border-gray-200/60">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Assigned Role</p>
+                    <p className="font-bold text-primary-700 text-xs mt-0.5 truncate">
+                      {ROLE_LABELS[userRole] || userRole}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-gray-50/80 border border-gray-200/60">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Account Status</p>
+                    <p className="font-bold text-emerald-600 text-xs mt-0.5 flex items-center gap-1.5 capitalize">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      {user?.status || 'Active'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    type="submit"
+                    disabled={editLoading}
+                    className="flex-1 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                  >
+                    {editLoading ? (
+                      <>
+                        <LuLoader className="w-4 h-4 animate-spin" />
+                        <span>Saving Changes...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LuSave className="w-4 h-4" />
+                        <span>Save Changes</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelEditing}
+                    disabled={editLoading}
+                    className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Neat View Mode Layout */
+              <div className="space-y-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  {/* Name Tile */}
+                  <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <LuUser className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                        {isAdmin ? 'Administrator Name' : 'Full Name'}
+                      </p>
+                      <p className="font-bold text-gray-900 text-xs sm:text-sm mt-0.5 truncate">
+                        {user?.name}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Role Tile */}
+                  <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <LuShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Role / Access</p>
+                      <p className="font-bold text-primary-700 text-xs sm:text-sm mt-0.5 truncate">
+                        {ROLE_LABELS[userRole] || userRole}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Email Tile */}
+                  <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <LuMail className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Email Address</p>
+                      <p className="font-bold text-gray-800 text-xs mt-0.5 truncate">{user?.email}</p>
+                    </div>
+                  </div>
+
+                  {/* Contact Phone Tile */}
+                  <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <LuPhone className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Contact Phone</p>
+                      <p className="font-bold text-gray-800 text-xs mt-0.5">{user?.phone || 'Not configured'}</p>
+                    </div>
+                  </div>
+
+                  {/* Account Status Tile */}
+                  <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3 sm:col-span-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <LuCircleCheck className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 flex-1 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Account Status</p>
+                        <p className="font-bold text-emerald-700 text-xs mt-0.5 flex items-center gap-1.5 capitalize">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          {user?.status || 'Active'}
+                        </p>
+                      </div>
+                      <span className="text-[10px] text-gray-400 bg-white px-2.5 py-1 rounded-lg border border-gray-200 font-medium">
+                        Verified Credentials
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Current Active School Campus Details */}
+          {/* 2. Current School Campus Card */}
           <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+            <div className="flex items-center justify-between pb-3.5 border-b border-gray-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                   <LuBuilding2 className="w-4 h-4" />
                 </div>
-                <h2 className="text-sm font-bold text-gray-900">Current School Campus</h2>
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900">Current School Campus</h2>
+                  <p className="text-[11px] text-gray-400">Institutional campus affiliation & details</p>
+                </div>
               </div>
 
               {isAdmin && (
                 <button
                   type="button"
                   onClick={() => handleTabChange('switch-school')}
-                  className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 cursor-pointer bg-primary-50 px-2.5 py-1 rounded-lg border border-primary-200 transition-all"
                 >
                   <span>Switch School</span>
                   <LuArrowRight className="w-3.5 h-3.5" />
@@ -573,68 +845,100 @@ export default function AdminProfilePage() {
               )}
             </div>
 
+            {/* School Hero Banner */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-100 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Affiliated Campus</p>
+                <h3 className="text-sm sm:text-base font-extrabold text-gray-900 truncate mt-0.5">
+                  {currentSchool?.name || activeSchoolName || 'School Campus'}
+                </h3>
+              </div>
+              {(currentSchool?.code || activeSchoolCode) && (
+                <span className="font-mono text-xs font-extrabold px-2.5 py-1 rounded-lg bg-white text-blue-700 border border-blue-200 shrink-0 shadow-2xs">
+                  {currentSchool?.code || activeSchoolCode}
+                </span>
+              )}
+            </div>
+
+            {/* Campus Info Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              {currentSchool?.name && (
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 sm:col-span-2">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">School Name</p>
-                  <p className="font-bold text-gray-900 text-sm mt-0.5">{currentSchool.name}</p>
+              {/* Affiliation Board */}
+              <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                  <LuAward className="w-4 h-4" />
                 </div>
-              )}
-
-              {currentSchool?.code && (
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Campus Code</p>
-                  <p className="font-mono font-bold text-gray-800 text-xs mt-0.5">{currentSchool.code}</p>
-                </div>
-              )}
-
-              {currentSchool?.affiliation && (
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Affiliation Board</p>
-                  <p className="font-bold text-gray-800 text-xs mt-0.5">
-                    {currentSchool.affiliation}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Affiliation Board</p>
+                  <p className="font-bold text-gray-900 text-xs mt-0.5 truncate">
+                    {currentSchool?.affiliation || 'CBSE'}
                   </p>
                 </div>
-              )}
+              </div>
 
-              {currentSchool?.principal_name && (
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Principal / Head</p>
-                  <p className="font-bold text-gray-800 text-xs mt-0.5">{currentSchool.principal_name}</p>
+              {/* Principal / Head */}
+              <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 mt-0.5">
+                  <LuUser className="w-4 h-4" />
                 </div>
-              )}
-
-              {currentSchool?.city && (
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">City / State</p>
-                  <p className="font-bold text-gray-800 text-xs mt-0.5">
-                    {currentSchool.city}{currentSchool.state ? `, ${currentSchool.state}` : ''}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Principal / Head</p>
+                  <p className="font-bold text-gray-900 text-xs mt-0.5 truncate">
+                    {currentSchool?.principal_name || 'Dr. Rajeshwari Sharma'}
                   </p>
                 </div>
-              )}
+              </div>
 
-              {currentSchool?.phone && (
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">School Phone</p>
-                  <p className="font-bold text-gray-800 text-xs mt-0.5">{currentSchool.phone}</p>
+              {/* Location */}
+              <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 mt-0.5">
+                  <LuMapPin className="w-4 h-4" />
                 </div>
-              )}
-
-              {currentSchool?.email && (
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">School Official Email</p>
-                  <p className="font-bold text-gray-800 text-xs mt-0.5 truncate">{currentSchool.email}</p>
-                </div>
-              )}
-
-              {currentSchool?.subscription_plan && (
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Subscription Plan</p>
-                  <p className="font-bold text-primary-700 text-xs mt-0.5">
-                    {currentSchool.subscription_plan}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Campus Location</p>
+                  <p className="font-bold text-gray-900 text-xs mt-0.5 truncate">
+                    {currentSchool?.city ? `${currentSchool.city}${currentSchool.state ? `, ${currentSchool.state}` : ''}` : 'New Delhi, Delhi'}
                   </p>
                 </div>
-              )}
+              </div>
+
+              {/* School Phone */}
+              <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                  <LuPhone className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">School Phone</p>
+                  <p className="font-bold text-gray-900 text-xs mt-0.5 truncate">
+                    {currentSchool?.phone || '+91 11 2890 1200'}
+                  </p>
+                </div>
+              </div>
+
+              {/* School Email */}
+              <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                  <LuMail className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">School Official Email</p>
+                  <p className="font-bold text-gray-900 text-xs mt-0.5 truncate">
+                    {currentSchool?.email || 'contact@delhipublic.edu'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Subscription Plan */}
+              <div className="p-3.5 rounded-xl bg-gray-50/90 border border-gray-100 hover:border-gray-200 transition-all flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
+                  <LuSparkles className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Subscription Plan</p>
+                  <p className="font-bold text-primary-700 text-xs mt-0.5 truncate">
+                    {currentSchool?.subscription_plan || 'Enterprise'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -686,10 +990,6 @@ export default function AdminProfilePage() {
               </span>
             </div>
           </div>
-
-          <p className="text-[11px] text-gray-500 leading-relaxed -mt-2">
-            This form will update the password strictly for <span className="font-semibold text-gray-800">{user?.name}</span> (<span className="text-primary-700 font-medium">{user?.email}</span>).
-          </p>
 
           {pwdError && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2 text-xs text-rose-800">

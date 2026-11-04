@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -204,6 +205,77 @@ class AuthController extends Controller
                 'password_changed_at' => $user->password_changed_at,
                 'teacher' => $user->teacher,
                 'student' => $user->student,
+            ],
+        ]);
+    }
+
+    /**
+     * Update authenticated user profile details (Name, Email, Phone).
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'phone' => 'nullable|string|max:25',
+        ]);
+
+        $user->name = trim($validated['name']);
+        $user->email = trim(strtolower($validated['email']));
+        if (array_key_exists('phone', $validated)) {
+            $user->phone = !empty($validated['phone']) ? trim($validated['phone']) : null;
+        }
+        $user->save();
+
+        // If user is a teacher, keep teacher record in sync
+        if ($user->teacher) {
+            $nameParts = explode(' ', $user->name, 2);
+            $user->teacher->update([
+                'first_name' => $nameParts[0],
+                'last_name' => $nameParts[1] ?? '',
+                'email' => $user->email,
+                'phone' => $user->phone,
+            ]);
+        }
+
+        $user->load('school');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile details updated successfully!',
+            'user' => [
+                'id' => $user->id,
+                'school_id' => $user->school_id,
+                'school' => $user->school ? [
+                    'id' => $user->school->id,
+                    'name' => $user->school->name,
+                    'code' => $user->school->code,
+                    'affiliation' => $user->school->affiliation,
+                    'city' => $user->school->city,
+                    'state' => $user->school->state,
+                    'phone' => $user->school->phone,
+                    'email' => $user->school->email,
+                    'principal_name' => $user->school->principal_name,
+                    'subscription_plan' => $user->school->subscription_plan,
+                    'status' => $user->school->status,
+                ] : null,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'role' => $user->role,
+                'status' => $user->status,
+                'created_at' => $user->created_at ? $user->created_at->toIso8601String() : null,
+                'avatar' => $user->avatar,
+                'must_change_password' => (bool) $user->must_change_password,
+                'password_changed_at' => $user->password_changed_at,
             ],
         ]);
     }

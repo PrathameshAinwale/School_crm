@@ -108,6 +108,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school', 'throttle:api
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
+    Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/auth/me', [AuthController::class, 'updateProfile']);
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);
