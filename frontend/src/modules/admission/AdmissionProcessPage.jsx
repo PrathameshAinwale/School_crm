@@ -353,20 +353,8 @@ export default function AdmissionProcessPage() {
     );
   }, [applicant, stageFormData.admission_fee_status]);
 
-  // Guarded Tab Switcher
+  // Tab Switcher
   const handleTabClick = (tabKey) => {
-    if (tabKey === 'offer' && !isInterviewCompleted) {
-      showToast('⚠️ Interview must be completed before provisional offer can be activated.');
-      return;
-    }
-    if (tabKey === 'fee' && !isFeeUnlocked) {
-      showToast('⚠️ Complete all previous steps (Documents, Interview, and Offer) before activating Fee Payment.');
-      return;
-    }
-    if (tabKey === 'enroll' && !isFeePaid) {
-      showToast('⚠️ Admission confirmation fee must be collected and settled before final enrollment.');
-      return;
-    }
     setActiveTab(tabKey);
   };
 
@@ -789,12 +777,6 @@ export default function AdmissionProcessPage() {
               const isCurrent = currentNorm === stg.id;
               const isPassed = currentStageIndex > idx || applicant.status === 'Enrolled';
 
-              // Check if stage is locked
-              let isStageLocked = false;
-              if (stg.id === 'Offer Extended' && !isInterviewCompleted) isStageLocked = true;
-              if (stg.id === 'Fee Paid' && !isFeeUnlocked) isStageLocked = true;
-              if (stg.id === 'Enrolled' && !isFeePaid) isStageLocked = true;
-
               return (
                 <div key={stg.id} className="flex items-center gap-2 flex-1">
                   <button
@@ -807,9 +789,9 @@ export default function AdmissionProcessPage() {
                       else if (stg.id === 'Fee Paid') handleTabClick('fee');
                       else if (stg.id === 'Enrolled') handleTabClick('enroll');
                     }}
-                    className={`flex items-center gap-2.5 text-left transition-all ${
-                      isStageLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer opacity-85 hover:opacity-100'
-                    } ${isCurrent ? 'scale-105' : ''}`}
+                    className={`flex items-center gap-2.5 text-left transition-all cursor-pointer opacity-85 hover:opacity-100 ${
+                      isCurrent ? 'scale-105' : ''
+                    }`}
                   >
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 transition-colors ${
@@ -817,15 +799,11 @@ export default function AdmissionProcessPage() {
                           ? 'bg-primary-600 text-white shadow-md shadow-primary-500/30 ring-2 ring-primary-300'
                           : isPassed
                           ? 'bg-emerald-600 text-white'
-                          : isStageLocked
-                          ? 'bg-slate-100 text-slate-400 border border-slate-200'
                           : 'bg-slate-200 text-slate-600'
                       }`}
                     >
                       {isPassed ? (
                         <LuCheck className="w-4 h-4" />
-                      ) : isStageLocked ? (
-                        <LuLock className="w-3.5 h-3.5" />
                       ) : (
                         stg.step
                       )}
@@ -1609,13 +1587,28 @@ export default function AdmissionProcessPage() {
 
             <button
               type="button"
-              disabled={submitting}
+              disabled={submitting || (!isInterviewCompleted && stageFormData.interview_result === 'Pending')}
               onClick={() => {
                 handleSaveStageData('Offer Extended', 'offer');
               }}
-              className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl shadow-md shadow-primary-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
+              title={
+                !isInterviewCompleted && stageFormData.interview_result === 'Pending'
+                  ? 'Complete candidate interview or select recommendation before extending offer'
+                  : 'Approve & Extend Step 4: Provisional Offer Letter'
+              }
+              className={`px-6 py-2.5 font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 ${
+                !isInterviewCompleted && stageFormData.interview_result === 'Pending'
+                  ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none'
+                  : 'bg-primary-600 hover:bg-primary-700 text-white shadow-primary-500/20 cursor-pointer'
+              }`}
             >
-              {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuAward className="w-4 h-4" />}
+              {submitting ? (
+                <LuLoader className="w-4 h-4 animate-spin" />
+              ) : !isInterviewCompleted && stageFormData.interview_result === 'Pending' ? (
+                <LuLock className="w-4 h-4 text-slate-400" />
+              ) : (
+                <LuAward className="w-4 h-4" />
+              )}
               <span>Approve & Extend Step 4: Provisional Offer Letter &rarr;</span>
             </button>
           </div>
@@ -1626,26 +1619,6 @@ export default function AdmissionProcessPage() {
       {/* TAB 4: PROVISIONAL OFFER LETTER (STEP 4) */}
       {/* ========================================================================= */}
       {activeTab === 'offer' && (
-        !isInterviewCompleted ? (
-          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center shadow-xs space-y-4">
-            <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto border border-amber-200">
-              <LuLock className="w-7 h-7" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-800">Provisional Offer is Locked</h3>
-              <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
-                The candidate interview and assessment evaluation (Step 3) must be marked as <strong>Completed</strong> or <strong>Recommended</strong> before generating a provisional admission offer.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveTab('assessment')}
-              className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
-            >
-              <span>Go to Step 3: Assessment & Interview &rarr;</span>
-            </button>
-          </div>
-        ) : (
         <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
@@ -1724,53 +1697,38 @@ export default function AdmissionProcessPage() {
 
             <button
               type="button"
-              disabled={submitting}
+              disabled={submitting || !isInterviewCompleted}
               onClick={() => {
                 handleSaveStageData('Fee Paid', 'fee');
               }}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
+              title={
+                !isInterviewCompleted
+                  ? 'Complete candidate interview (Step 3) before advancing to Fee Payment'
+                  : 'Proceed to Step 5: Admission Fee Payment'
+              }
+              className={`px-6 py-2.5 font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 ${
+                !isInterviewCompleted
+                  ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 cursor-pointer'
+              }`}
             >
-              {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCreditCard className="w-4 h-4" />}
+              {submitting ? (
+                <LuLoader className="w-4 h-4 animate-spin" />
+              ) : !isInterviewCompleted ? (
+                <LuLock className="w-4 h-4 text-slate-400" />
+              ) : (
+                <LuCreditCard className="w-4 h-4" />
+              )}
               <span>Proceed to Step 5: Admission Fee Payment &rarr;</span>
             </button>
           </div>
         </div>
-        )
-      )}{/* TAB 5: ADMISSION FEE PAYMENT (STEP 5) */}
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: FEE PAYMENT (STEP 5) */}
       {/* ========================================================================= */}
       {activeTab === 'fee' && (
-        !isFeeUnlocked ? (
-          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center shadow-xs space-y-4">
-            <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto border border-amber-200">
-              <LuLock className="w-7 h-7" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-800">Fee Payment is Locked</h3>
-              <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
-                All previous steps (Basic Details, Document Scrutiny, Interview completion, and Provisional Offer issuance) must be completed before the fee payment module is activated.
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-2 pt-1">
-              {!isInterviewCompleted ? (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('assessment')}
-                  className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <span>Complete Step 3: Interview &rarr;</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('offer')}
-                  className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <span>Extend Step 4: Provisional Offer &rarr;</span>
-                </button>
-              )}
-            </div>
-          </div>
-        ) : (
         <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
@@ -1987,7 +1945,7 @@ export default function AdmissionProcessPage() {
 
             <button
               type="button"
-              disabled={submitting}
+              disabled={submitting || !isInterviewCompleted || stageFormData.admission_fee_status !== 'Paid'}
               onClick={() => {
                 const updatedData = {
                   ...stageFormData,
@@ -1997,14 +1955,30 @@ export default function AdmissionProcessPage() {
                 setStageFormData(updatedData);
                 handleSaveStageData('Fee Paid', 'enroll');
               }}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
+              title={
+                !isInterviewCompleted
+                  ? 'Candidate interview (Step 3) must be completed first'
+                  : stageFormData.admission_fee_status !== 'Paid'
+                  ? 'Mark admission fee as collected & settled above to unlock final enrollment'
+                  : 'Confirm Fee & Proceed to Final Enrollment'
+              }
+              className={`px-6 py-2.5 font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 ${
+                !isInterviewCompleted || stageFormData.admission_fee_status !== 'Paid'
+                  ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 cursor-pointer'
+              }`}
             >
-              {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuGraduationCap className="w-4 h-4" />}
+              {submitting ? (
+                <LuLoader className="w-4 h-4 animate-spin" />
+              ) : !isInterviewCompleted || stageFormData.admission_fee_status !== 'Paid' ? (
+                <LuLock className="w-4 h-4 text-slate-400" />
+              ) : (
+                <LuGraduationCap className="w-4 h-4" />
+              )}
               <span>Confirm Fee & Proceed to Final Enrollment (Step 6) &rarr;</span>
             </button>
           </div>
         </div>
-        )
       )}{/* TAB 6: CONFIRMED CLASSROOM ENROLLMENT (STEP 6) */}
       {/* ========================================================================= */}
       {activeTab === 'enroll' && (
@@ -2184,10 +2158,25 @@ export default function AdmissionProcessPage() {
 
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="px-7 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-xs rounded-xl shadow-md shadow-emerald-500/25 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  disabled={submitting || !isFeePaid}
+                  title={
+                    !isFeePaid
+                      ? 'Admission confirmation fee must be collected & settled before enrollment'
+                      : 'Confirm Enrollment & Generate Parent Credentials'
+                  }
+                  className={`px-7 py-2.5 font-black text-xs rounded-xl shadow-md transition flex items-center gap-2 ${
+                    !isFeePaid
+                      ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none'
+                      : 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-emerald-500/25 cursor-pointer'
+                  }`}
                 >
-                  {submitting ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuGraduationCap className="w-4 h-4" />}
+                  {submitting ? (
+                    <LuLoader className="w-4 h-4 animate-spin" />
+                  ) : !isFeePaid ? (
+                    <LuLock className="w-4 h-4 text-slate-400" />
+                  ) : (
+                    <LuGraduationCap className="w-4 h-4" />
+                  )}
                   <span>Confirm Enrollment & Generate Parent Credentials</span>
                 </button>
               </div>
