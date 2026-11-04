@@ -250,7 +250,11 @@ class AdmissionController extends Controller
             $admission->test_status = $request->test_status;
         }
         if ($request->filled('interview_date')) {
-            $admission->interview_date = $request->interview_date;
+            $formattedDate = str_replace('T', ' ', $request->interview_date);
+            if (strlen($formattedDate) === 16) {
+                $formattedDate .= ':00';
+            }
+            $admission->interview_date = $formattedDate;
         }
         if ($request->filled('interview_interviewer')) {
             $admission->interview_interviewer = $request->interview_interviewer;

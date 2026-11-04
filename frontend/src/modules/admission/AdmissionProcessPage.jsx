@@ -62,6 +62,20 @@ const formatAppliedDate = (dateStr) => {
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return 'Date to be specified';
+  const d = new Date(dateStr.replace(' ', 'T'));
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-IN', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 const isInterviewDayPassed = (dateStr) => {
   if (!dateStr) return false;
   const d = new Date(dateStr.replace(' ', 'T'));
@@ -149,8 +163,8 @@ export default function AdmissionProcessPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const loadApplicant = async () => {
-    setLoading(true);
+  const loadApplicant = async (isInitial = false) => {
+    if (isInitial) setLoading(true);
     try {
       const [res, clsRes] = await Promise.all([
         adminService.getAdmission(id),
@@ -225,14 +239,16 @@ export default function AdmissionProcessPage() {
           with_transport: app.with_transport !== undefined ? Boolean(app.with_transport) : false,
         });
 
-        // Set default active tab based on pipeline progression
-        const norm = normalizeStage(initialStatus);
-        if (norm === 'Inquiry') setActiveTab('docs');
-        else if (norm === 'Document Review') setActiveTab('docs');
-        else if (norm === 'Assessment/Interview') setActiveTab('assessment');
-        else if (norm === 'Offer Extended') setActiveTab('offer');
-        else if (norm === 'Fee Paid') setActiveTab('enroll');
-        else if (norm === 'Enrolled') setActiveTab('enroll');
+        // Set default active tab only on initial page load
+        if (isInitial) {
+          const norm = normalizeStage(initialStatus);
+          if (norm === 'Inquiry') setActiveTab('docs');
+          else if (norm === 'Document Review') setActiveTab('docs');
+          else if (norm === 'Assessment/Interview') setActiveTab('assessment');
+          else if (norm === 'Offer Extended') setActiveTab('offer');
+          else if (norm === 'Fee Paid') setActiveTab('enroll');
+          else if (norm === 'Enrolled') setActiveTab('enroll');
+        }
       } else {
         showToast('Application not found.');
         navigate('/admission');
@@ -245,13 +261,19 @@ export default function AdmissionProcessPage() {
       console.error('Failed to load application:', err);
       showToast('Error loading applicant details.');
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
   useEffect(() => {
     if (id) {
-      loadApplicant();
+      loadApplicant(true);
+
+      const handleFocus = () => {
+        loadApplicant(false);
+      };
+      window.addEventListener('focus', handleFocus);
+      return () => window.removeEventListener('focus', handleFocus);
     }
   }, [id]);
 
@@ -318,7 +340,7 @@ export default function AdmissionProcessPage() {
   const isInterviewCompleted = useMemo(() => {
     if (!applicant) return false;
     const result = stageFormData.interview_result || applicant.interview_result;
-    if (result === 'Completed' || result === 'Recommended') return true;
+    if (['Completed', 'Recommended', 'Passed', 'Approved', 'Selected'].includes(result)) return true;
     if (isInterviewDayPassed(stageFormData.interview_date || applicant.interview_date)) return true;
     const norm = normalizeStage(applicant.status);
     return ['Offer Extended', 'Fee Paid', 'Enrolled'].includes(norm) || currentStageIndex >= 3;
@@ -364,8 +386,13 @@ export default function AdmissionProcessPage() {
     setSubmitting(true);
     try {
       const stageToSet = targetStage || stageFormData.status || applicant.status;
+      const formattedInterviewDate = stageFormData.interview_date
+        ? stageFormData.interview_date.replace('T', ' ') + (stageFormData.interview_date.length === 16 ? ':00' : '')
+        : undefined;
+
       const payload = {
         ...stageFormData,
+        interview_date: formattedInterviewDate,
         status: stageToSet,
       };
 
@@ -379,6 +406,79 @@ export default function AdmissionProcessPage() {
       }
     } catch (err) {
       showToast(err.data?.message || err.message || 'Failed to update process stage.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Schedule or Update Interview Slot directly from this page
+  const handleScheduleInterviewSlot = async () => {
+    if (!stageFormData.interview_date) {
+      showToast('⚠️ Please select an Interview Date & Time first.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const formattedDate = stageFormData.interview_date.replace('T', ' ') +
+        (stageFormData.interview_date.length === 16 ? ':00' : '');
+
+      const payload = {
+        ...stageFormData,
+        interview_date: formattedDate,
+        interview_interviewer: stageFormData.interview_interviewer || 'Principal & Interview Panel',
+        interview_result: stageFormData.interview_result || 'Pending',
+        status: 'Assessment/Interview',
+        remarks: `Interview slot scheduled for ${formattedDate}`,
+      };
+
+      const res = await adminService.updateAdmissionStatus(applicant.id, payload);
+      if (res.success && res.data) {
+        setApplicant(res.data);
+        setStageFormData((prev) => ({
+          ...prev,
+          interview_date: stageFormData.interview_date,
+          status: 'Assessment/Interview',
+        }));
+        showToast(`📅 Interview slot scheduled for ${formatDateTime(formattedDate)}! Viewable in Interview Calendar.`);
+      }
+    } catch (err) {
+      showToast(err.data?.message || err.message || 'Failed to schedule interview slot.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Mark Interview as Completed directly from this page
+  const handleMarkInterviewCompleted = async () => {
+    if (!applicant) return;
+    setSubmitting(true);
+    try {
+      const updatedDate = stageFormData.interview_date
+        ? stageFormData.interview_date.replace('T', ' ') + (stageFormData.interview_date.length === 16 ? ':00' : '')
+        : (applicant.interview_date ? applicant.interview_date : new Date().toISOString().substring(0, 19).replace('T', ' '));
+
+      const payload = {
+        ...stageFormData,
+        interview_date: updatedDate,
+        interview_result: 'Completed',
+        status: ['Inquiry', 'Document Review'].includes(applicant.status)
+          ? 'Assessment/Interview'
+          : applicant.status,
+        remarks: 'Interview marked as completed by admission panel.',
+      };
+
+      const res = await adminService.updateAdmissionStatus(applicant.id, payload);
+      if (res.success && res.data) {
+        setApplicant(res.data);
+        setStageFormData((prev) => ({
+          ...prev,
+          interview_result: 'Completed',
+          interview_date: updatedDate.replace(' ', 'T').substring(0, 16),
+        }));
+        showToast('✓ Interview marked as completed! Step 4: Provisional Offer is now unlocked.');
+      }
+    } catch (err) {
+      showToast(err.data?.message || err.message || 'Failed to update interview status.');
     } finally {
       setSubmitting(false);
     }
@@ -1511,13 +1611,76 @@ export default function AdmissionProcessPage() {
                   <LuUserCheck className="w-5 h-5 text-primary-600" />
                   <h3 className="font-bold text-sm text-slate-800">Panel & Parent Interview</h3>
                 </div>
-                <span className="text-[11px] font-bold text-slate-500">Interaction</span>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to="/admission/interviews"
+                    className="text-[11px] font-bold text-primary-600 hover:text-primary-800 transition inline-flex items-center gap-1 cursor-pointer"
+                    title="Open Full Interview Calendar"
+                  >
+                    <LuCalendar className="w-3.5 h-3.5" />
+                    <span>Interview Calendar &rarr;</span>
+                  </Link>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Status Banner */}
+              {isInterviewCompleted ? (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs animate-fade-in shadow-2xs">
+                  <div className="flex items-center gap-2.5">
+                    <LuCircleCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <div>
+                      <span className="font-bold text-emerald-900 block">
+                        Interview Completed & Evaluated ✓
+                      </span>
+                      <span className="text-[11px] text-emerald-700">
+                        Outcome: <strong>{stageFormData.interview_result || applicant?.interview_result || 'Completed'}</strong>
+                        {(stageFormData.interview_date || applicant?.interview_date) ? ` • Date: ${formatDateTime(stageFormData.interview_date || applicant.interview_date)}` : ''}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[11px] rounded-lg shrink-0 self-start sm:self-auto">
+                    Next Step Unlocked
+                  </span>
+                </div>
+              ) : (stageFormData.interview_date || applicant?.interview_date) ? (
+                <div className="p-3 bg-primary-50 border border-primary-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs animate-fade-in shadow-2xs">
+                  <div className="flex items-center gap-2.5">
+                    <LuCalendar className="w-5 h-5 text-primary-600 shrink-0" />
+                    <div>
+                      <span className="font-bold text-primary-900 block">
+                        Interview Slot Scheduled
+                      </span>
+                      <span className="text-[11px] text-primary-700">
+                        {formatDateTime(stageFormData.interview_date || applicant.interview_date)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={handleMarkInterviewCompleted}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-[11px] rounded-lg transition inline-flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
+                      title="Mark interview conducted & completed"
+                    >
+                      <LuCircleCheck className="w-3.5 h-3.5" />
+                      <span>Mark Completed</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <LuClock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Select interview date and panel below to schedule candidate assessment.</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Interview Date & Time
+                    Interview Date & Time <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="datetime-local"
@@ -1528,14 +1691,14 @@ export default function AdmissionProcessPage() {
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Recommendation
+                    Recommendation / Outcome
                   </label>
                   <select
                     value={stageFormData.interview_result}
                     onChange={(e) => setStageFormData({ ...stageFormData, interview_result: e.target.value })}
                     className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500 cursor-pointer"
                   >
-                    <option value="Pending">Pending</option>
+                    <option value="Pending">Pending / Scheduled</option>
                     <option value="Completed">Completed / Conducted</option>
                     <option value="Recommended">Recommended for Admission</option>
                     <option value="On Hold">On Hold / Second Round</option>
@@ -1550,7 +1713,7 @@ export default function AdmissionProcessPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Principal & Academic Coordinator"
+                  placeholder="e.g. Principal Dr. Sharma & Vice Principal"
                   value={stageFormData.interview_interviewer}
                   onChange={(e) => setStageFormData({ ...stageFormData, interview_interviewer: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500"
@@ -1569,40 +1732,77 @@ export default function AdmissionProcessPage() {
                   className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-primary-500"
                 />
               </div>
+
+              {/* Action Buttons inside Card */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-slate-200/60">
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={handleScheduleInterviewSlot}
+                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <LuCalendar className="w-3.5 h-3.5" />
+                  <span>{applicant?.interview_date ? 'Update Interview Schedule' : 'Schedule Interview Slot'}</span>
+                </button>
+
+                {!isInterviewCompleted && (stageFormData.interview_date || applicant?.interview_date) && (
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={handleMarkInterviewCompleted}
+                    className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 font-bold text-xs rounded-xl transition inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <LuCircleCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Mark Interview as Completed</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Bottom Advancement Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-200">
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => handleSaveStageData('Assessment/Interview')}
-              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
-            >
-              {submitting ? 'Saving...' : 'Save Assessment Scores'}
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => handleSaveStageData('Assessment/Interview')}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                {submitting ? 'Saving...' : 'Save Assessment Scores'}
+              </button>
+
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleScheduleInterviewSlot}
+                className="px-4 py-2.5 bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 font-bold text-xs rounded-xl transition inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <LuCalendar className="w-3.5 h-3.5 text-primary-600" />
+                <span>Schedule Interview</span>
+              </button>
+            </div>
 
             <button
               type="button"
-              disabled={submitting || (!isInterviewCompleted && stageFormData.interview_result === 'Pending')}
+              disabled={submitting || !isInterviewCompleted}
               onClick={() => {
                 handleSaveStageData('Offer Extended', 'offer');
               }}
               title={
-                !isInterviewCompleted && stageFormData.interview_result === 'Pending'
+                !isInterviewCompleted
                   ? 'Complete candidate interview or select recommendation before extending offer'
                   : 'Approve & Extend Step 4: Provisional Offer Letter'
               }
               className={`px-6 py-2.5 font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 ${
-                !isInterviewCompleted && stageFormData.interview_result === 'Pending'
+                !isInterviewCompleted
                   ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none'
                   : 'bg-primary-600 hover:bg-primary-700 text-white shadow-primary-500/20 cursor-pointer'
               }`}
             >
               {submitting ? (
                 <LuLoader className="w-4 h-4 animate-spin" />
-              ) : !isInterviewCompleted && stageFormData.interview_result === 'Pending' ? (
+              ) : !isInterviewCompleted ? (
                 <LuLock className="w-4 h-4 text-slate-400" />
               ) : (
                 <LuAward className="w-4 h-4" />
