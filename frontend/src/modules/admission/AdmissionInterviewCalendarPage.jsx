@@ -3,6 +3,7 @@ import { adminService } from '../../services/adminService';
 import { useAuth } from '../../context/AuthContext';
 import {
   LuCalendarDays,
+  LuTriangleAlert,
   LuPlus,
   LuSearch,
   LuClock,
@@ -42,6 +43,7 @@ export default function AdmissionInterviewCalendarPage() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [updatingId, setUpdatingId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
   // New Interview Form
@@ -70,6 +72,16 @@ export default function AdmissionInterviewCalendarPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+    // Check if the scheduled interview day has passed (prior to today)
+  const isInterviewDayPassed = (dateStr) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr.replace(' ', 'T'));
+    if (isNaN(d.getTime())) return false;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    return d < todayStart;
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -79,11 +91,22 @@ export default function AdmissionInterviewCalendarPage() {
       ]);
 
       if (admRes?.success && admRes?.data) {
-        const items = Array.isArray(admRes.data.data)
+        const rawItems = Array.isArray(admRes.data.data)
           ? admRes.data.data
           : Array.isArray(admRes.data)
           ? admRes.data
           : [];
+        // Auto-mark passed interview day as 'Completed' if still pending or unset
+        const items = rawItems.map((app) => {
+          if (
+            app.interview_date &&
+            isInterviewDayPassed(app.interview_date) &&
+            (!app.interview_result || app.interview_result === 'Pending')
+          ) {
+            return { ...app, interview_result: 'Completed' };
+          }
+          return app;
+        });
         setPipeline(items);
       }
 
@@ -106,6 +129,17 @@ export default function AdmissionInterviewCalendarPage() {
   const scheduledInterviews = useMemo(() => {
     return pipeline
       .filter((app) => app.interview_date || app.status === 'Assessment/Interview')
+      .map((app) => {
+        // Automatically mark as completed if interview day has passed
+        if (
+          app.interview_date &&
+          isInterviewDayPassed(app.interview_date) &&
+          (!app.interview_result || app.interview_result === 'Pending')
+        ) {
+          return { ...app, interview_result: 'Completed' };
+        }
+        return app;
+      })
       .filter((app) => {
         if (selectedClass !== 'ALL' && String(app.school_class_id) !== String(selectedClass)) {
           return false;
@@ -138,6 +172,9 @@ export default function AdmissionInterviewCalendarPage() {
 
   // KPI Calculations
   const totalScheduled = scheduledInterviews.length;
+  const completedCount = scheduledInterviews.filter(
+    (i) => i.interview_result === 'Completed'
+  ).length;
   const recommendedCount = scheduledInterviews.filter(
     (i) => i.interview_result === 'Recommended'
   ).length;
@@ -151,21 +188,35 @@ export default function AdmissionInterviewCalendarPage() {
 
   // Open Schedule Modal
   const handleOpenSchedule = (presetApplicantId = '') => {
-    // Default tomorrow at 10:00 AM
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(10, 0, 0, 0);
-    const dateStr = tomorrow.toISOString().substring(0, 16);
+    const targetId = presetApplicantId || (availableCandidates[0]?.id || '');
+    const targetCandidate = pipeline.find((c) => String(c.id) === String(targetId));
 
-    setScheduleForm({
-      admission_id: presetApplicantId || (availableCandidates[0]?.id || ''),
-      interview_date: dateStr,
-      interview_interviewer: 'Principal Dr. Sharma & Admission Panel',
-      venue: "Principal's Office (Room 101)",
-      test_score: '',
-      interview_notes: '',
-      advance_stage: true,
-    });
+    if (targetCandidate && targetCandidate.interview_date) {
+      setScheduleForm({
+        admission_id: targetId,
+        interview_date: targetCandidate.interview_date.replace(' ', 'T').substring(0, 16),
+        interview_interviewer: targetCandidate.interview_interviewer || 'Principal Dr. Sharma & Admission Panel',
+        venue: "Principal's Office (Room 101)",
+        test_score: targetCandidate.test_score || '',
+        interview_notes: targetCandidate.interview_notes || '',
+        advance_stage: true,
+      });
+    } else {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+      const dateStr = tomorrow.toISOString().substring(0, 16);
+
+      setScheduleForm({
+        admission_id: targetId,
+        interview_date: dateStr,
+        interview_interviewer: 'Principal Dr. Sharma & Admission Panel',
+        venue: "Principal's Office (Room 101)",
+        test_score: '',
+        interview_notes: '',
+        advance_stage: true,
+      });
+    }
     setShowScheduleModal(true);
   };
 
@@ -203,6 +254,29 @@ export default function AdmissionInterviewCalendarPage() {
       showToast(err.data?.message || err.message || 'Failed to schedule interview slot.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Explicitly mark an interview as completed
+  const handleMarkCompleted = async (item) => {
+    setUpdatingId(item.id);
+    try {
+      await adminService.updateAdmissionStatus(item.id, {
+        interview_result: 'Completed',
+        remarks: 'Interview marked as completed by admission panel.',
+      });
+      showToast(`Interview for ${item.first_name} ${item.last_name || ''} marked as completed!`);
+      // Update local state immediately
+      setPipeline((prev) =>
+        prev.map((app) =>
+          app.id === item.id ? { ...app, interview_result: 'Completed' } : app
+        )
+      );
+    } catch (err) {
+      console.error('Failed to mark interview as completed:', err);
+      showToast(err.data?.message || err.message || 'Failed to update interview status.');
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -268,6 +342,11 @@ export default function AdmissionInterviewCalendarPage() {
   const getResultBadge = (result) => {
     const res = result || 'Pending';
     switch (res) {
+      case 'Completed':
+        return {
+          label: 'Completed',
+          cls: 'bg-blue-50 text-blue-700 border border-blue-200',
+        };
       case 'Recommended':
         return {
           label: 'Recommended',
@@ -295,6 +374,20 @@ export default function AdmissionInterviewCalendarPage() {
         };
     }
   };
+
+  // Track selected candidate for schedule warning
+  const selectedCandidateForSchedule = useMemo(() => {
+    if (!scheduleForm.admission_id) return null;
+    return pipeline.find((c) => String(c.id) === String(scheduleForm.admission_id));
+  }, [scheduleForm.admission_id, pipeline]);
+
+  const alreadyScheduledInfo = useMemo(() => {
+    if (!selectedCandidateForSchedule) return null;
+    if (selectedCandidateForSchedule.interview_date) {
+      return selectedCandidateForSchedule;
+    }
+    return null;
+  }, [selectedCandidateForSchedule]);
 
   // Calendar calculations for Month View
   const year = currentDate.getFullYear();
@@ -420,12 +513,12 @@ export default function AdmissionInterviewCalendarPage() {
 
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200/80 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-500">Recommended</p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{recommendedCount}</p>
-            <p className="text-[11px] text-emerald-600 font-medium mt-0.5">Cleared for admission offer</p>
+            <p className="text-xs font-semibold text-slate-500">Conducted / Completed</p>
+            <p className="text-xl sm:text-2xl font-bold text-blue-700 mt-1">{completedCount}</p>
+            <p className="text-[11px] text-blue-600 font-medium mt-0.5">Interview finished/passed</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <LuAward className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <LuCircleCheck className="w-5 h-5" />
           </div>
         </div>
 
@@ -476,6 +569,7 @@ export default function AdmissionInterviewCalendarPage() {
             className="w-full sm:w-auto px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-primary-500 font-medium cursor-pointer"
           >
             <option value="ALL">All Results</option>
+            <option value="Completed">Completed</option>
             <option value="Recommended">Recommended</option>
             <option value="Pending">Pending Evaluation</option>
             <option value="On Hold">On Hold</option>
@@ -721,6 +815,28 @@ export default function AdmissionInterviewCalendarPage() {
 
                   {!isPrincipal && (
                     <div className="flex items-center gap-2">
+                      {item.interview_result === 'Completed' ? (
+                        <span className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-2xs">
+                          <LuCircleCheck className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Interview Completed</span>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={updatingId === item.id}
+                          onClick={() => handleMarkCompleted(item)}
+                          className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
+                          title="Mark this interview as completed"
+                        >
+                          {updatingId === item.id ? (
+                            <LuLoader className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <LuCircleCheck className="w-3.5 h-3.5 text-blue-600" />
+                          )}
+                          <span>Mark Completed</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => handleOpenEvaluation(item)}
@@ -778,12 +894,48 @@ export default function AdmissionInterviewCalendarPage() {
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500 font-semibold cursor-pointer"
                 >
                   <option value="">-- Choose Candidate --</option>
-                  {availableCandidates.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.first_name} {c.last_name || ''} ({c.application_number}) — {c.school_class?.name || 'Class ' + c.school_class_id} [{c.status}]
-                    </option>
-                  ))}
+                  {availableCandidates.map((c) => {
+                    const hasSchedule = Boolean(c.interview_date);
+                    return (
+                      <option key={c.id} value={c.id}>
+                        {c.first_name} {c.last_name || ''} ({c.application_number}) — {c.school_class?.name || 'Class ' + c.school_class_id}
+                        {hasSchedule ? ` [⚠️ Already Scheduled: ${c.interview_date ? c.interview_date.substring(0, 10) : ''}]` : ` [${c.status}]`}
+                      </option>
+                    );
+                  })}
                 </select>
+
+                {/* Warning: Interview Already Scheduled */}
+                {alreadyScheduledInfo && (
+                  <div className="p-3.5 mt-2 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-3 text-amber-900 animate-fade-in shadow-2xs">
+                    <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <LuTriangleAlert className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <div className="text-xs space-y-1 flex-1">
+                      <div className="flex items-center justify-between">
+                        <strong className="text-amber-900 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+                          Warning: Interview Already Scheduled
+                        </strong>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200/70 text-amber-900">
+                          Slot Booked
+                        </span>
+                      </div>
+                      <p className="text-amber-800 text-[11px] leading-relaxed">
+                        An interview for <strong>{alreadyScheduledInfo.first_name} {alreadyScheduledInfo.last_name || ''}</strong> ({alreadyScheduledInfo.application_number}) is already scheduled for:
+                      </p>
+                      <div className="bg-white/80 p-2 rounded-lg border border-amber-200/80 text-[11px] font-semibold text-amber-950 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span>📅 {formatDateTime(alreadyScheduledInfo.interview_date)}</span>
+                        {alreadyScheduledInfo.interview_interviewer && (
+                          <span>👤 {alreadyScheduledInfo.interview_interviewer}</span>
+                        )}
+                        <span>📊 Status: {alreadyScheduledInfo.interview_result || 'Pending'}</span>
+                      </div>
+                      <p className="text-[10px] text-amber-700 font-semibold">
+                        ⚠️ Notice: Submitting this form will update / reschedule the applicant&apos;s existing interview slot.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -925,6 +1077,7 @@ export default function AdmissionInterviewCalendarPage() {
                   onChange={(e) => setEvaluationForm({ ...evaluationForm, interview_result: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary-500 font-bold cursor-pointer"
                 >
+                  <option value="Completed">Completed / Conducted</option>
                   <option value="Recommended">Recommended for Admission</option>
                   <option value="Pending">Pending Evaluation / In Review</option>
                   <option value="On Hold">On Hold (Further Review)</option>
@@ -990,14 +1143,23 @@ export default function AdmissionInterviewCalendarPage() {
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setSelectedInterview(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
-                >
-                  Cancel
-                </button>
+              <div className="flex items-center justify-between gap-2.5 pt-3 border-t border-slate-100">
+                {evaluationForm.interview_result !== 'Completed' ? (
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={async () => {
+                      if (selectedInterview) {
+                        await handleMarkCompleted(selectedInterview);
+                        setSelectedInterview(null);
+                      }
+                    }}
+                    className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <LuCircleCheck className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Quick Mark Completed</span>
+                  </button>
+                ) : <div />}
                 <button
                   type="submit"
                   disabled={submitting}

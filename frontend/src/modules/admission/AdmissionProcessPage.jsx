@@ -194,7 +194,16 @@ export default function AdmissionProcessPage() {
           interview_date: app.interview_date ? app.interview_date.replace(' ', 'T').substring(0, 16) : '',
           interview_interviewer: app.interview_interviewer || 'Principal & Interview Panel',
           interview_notes: app.interview_notes || '',
-          interview_result: app.interview_result || 'Pending',
+          interview_result: (() => {
+            if (app.interview_result && app.interview_result !== 'Pending') return app.interview_result;
+            if (app.interview_date) {
+              const d = new Date(app.interview_date.replace(' ', 'T'));
+              const todayStart = new Date();
+              todayStart.setHours(0, 0, 0, 0);
+              if (d < todayStart) return 'Completed';
+            }
+            return app.interview_result || 'Pending';
+          })(),
           offer_date: app.offer_date ? app.offer_date.substring(0, 10) : new Date().toISOString().substring(0, 10),
           offer_valid_until: app.offer_valid_until ? app.offer_valid_until.substring(0, 10) : '',
           admission_fee: app.admission_fee || 35000,
@@ -1438,6 +1447,7 @@ export default function AdmissionProcessPage() {
                     className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-primary-500 cursor-pointer"
                   >
                     <option value="Pending">Pending</option>
+                    <option value="Completed">Completed / Conducted</option>
                     <option value="Recommended">Recommended for Admission</option>
                     <option value="On Hold">On Hold / Second Round</option>
                     <option value="Not Recommended">Not Recommended</option>

@@ -20,6 +20,16 @@ class AdmissionController extends Controller
      */
     public function index(Request $request)
     {
+        // Automatically mark interviews as 'Completed' if the interview day has passed and result is pending/unspecified
+        Admission::whereNotNull('interview_date')
+            ->where('interview_date', '<', now()->startOfDay())
+            ->where(function ($q) {
+                $q->whereNull('interview_result')
+                  ->orWhere('interview_result', 'Pending')
+                  ->orWhere('interview_result', '');
+            })
+            ->update(['interview_result' => 'Completed']);
+
         $query = Admission::with(['schoolClass', 'enrolledStudent']);
 
         if ($request->filled('search')) {
@@ -180,6 +190,14 @@ class AdmissionController extends Controller
     public function show($id)
     {
         $admission = Admission::with(['schoolClass', 'enrolledStudent'])->findOrFail($id);
+
+        // Auto-mark passed interview day as completed if still pending
+        if ($admission->interview_date && $admission->interview_date->lt(now()->startOfDay())) {
+            if (empty($admission->interview_result) || $admission->interview_result === 'Pending') {
+                $admission->interview_result = 'Completed';
+                $admission->save();
+            }
+        }
 
         return response()->json([
             'success' => true,

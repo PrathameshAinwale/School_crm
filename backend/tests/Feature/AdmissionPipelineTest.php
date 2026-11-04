@@ -199,4 +199,55 @@ class AdmissionPipelineTest extends TestCase
         $this->assertEquals('Kavya', $student->first_name);
         $this->assertEquals('108', $student->roll_number);
     }
+
+    public function test_passed_interview_day_is_automatically_marked_completed(): void
+    {
+        Sanctum::actingAs($this->adminUser);
+
+        // Create applicant with an interview scheduled 2 days ago in Pending status
+        $pastAdmission = Admission::create([
+            'school_id' => $this->school->id,
+            'application_number' => 'ADM-TEST-PAST',
+            'first_name' => 'Aarav',
+            'last_name' => 'Verma',
+            'school_class_id' => $this->schoolClass->id,
+            'academic_year' => '2026-2027',
+            'guardian_name' => 'Rajesh Verma',
+            'guardian_phone' => '9876543210',
+            'status' => 'Assessment/Interview',
+            'interview_date' => now()->subDays(2)->format('Y-m-d H:i:s'),
+            'interview_result' => 'Pending',
+        ]);
+
+        // When listing admissions, past interview should automatically be updated to 'Completed'
+        $response = $this->withHeader('X-School-Id', (string)$this->school->id)
+            ->getJson('/api/v1/admin/admissions');
+
+        $response->assertStatus(200);
+        $this->assertEquals('Completed', $pastAdmission->fresh()->interview_result);
+
+        // Also test manual update to 'Completed'
+        $manualAdmission = Admission::create([
+            'school_id' => $this->school->id,
+            'application_number' => 'ADM-TEST-MANUAL',
+            'first_name' => 'Mira',
+            'last_name' => 'Sen',
+            'school_class_id' => $this->schoolClass->id,
+            'academic_year' => '2026-2027',
+            'guardian_name' => 'Anil Sen',
+            'guardian_phone' => '9876543211',
+            'status' => 'Assessment/Interview',
+            'interview_date' => now()->addDays(2)->format('Y-m-d H:i:s'),
+            'interview_result' => 'Pending',
+        ]);
+
+        $patchResp = $this->withHeader('X-School-Id', (string)$this->school->id)
+            ->patchJson("/api/v1/admin/admissions/{$manualAdmission->id}/status", [
+                'status' => 'Assessment/Interview',
+                'interview_result' => 'Completed',
+            ]);
+
+        $patchResp->assertStatus(200);
+        $this->assertEquals('Completed', $manualAdmission->fresh()->interview_result);
+    }
 }
