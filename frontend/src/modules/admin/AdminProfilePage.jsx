@@ -287,19 +287,19 @@ export default function AdminProfilePage() {
                 <button
                   type="button"
                   onClick={handleCancelEditing}
-                  className="px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs flex items-center gap-1.5 backdrop-blur-xs border border-white/30 transition-all cursor-pointer shadow-xs"
+                  className="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md border border-white/30 transition-all cursor-pointer shadow-sm"
                 >
-                  <LuX className="w-4 h-4" />
-                  <span>Cancel Editing</span>
+                  <LuX className="w-4 h-4 text-white" />
+                  <span className="text-white font-bold">Cancel Editing</span>
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={handleStartEditing}
-                  className="px-4 py-2 rounded-xl bg-white text-primary-800 hover:bg-primary-50 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md border border-white"
                 >
-                  <LuPencil className="w-3.5 h-3.5 text-primary-600" />
-                  <span>Edit Profile</span>
+                  <LuPencil className="w-3.5 h-3.5 text-blue-600" />
+                  <span className="text-slate-900 font-bold text-xs">Edit Profile</span>
                 </button>
               )}
             </div>
