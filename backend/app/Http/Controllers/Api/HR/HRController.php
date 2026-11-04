@@ -192,7 +192,6 @@ class HRController extends Controller
         $typeMap = array_merge([
             'CL' => 'Casual Leave',
             'SL' => 'Medical Leave',
-            'ML' => 'Maternity/Paternity',
             'DL' => 'Duty Leave',
             'EL' => 'Earned Leave',
         ], $dbTypes);

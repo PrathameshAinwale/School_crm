@@ -8,7 +8,6 @@ import {
   LuFileText,
   LuUmbrella,
   LuHeart,
-  LuBaby,
   LuPlus,
   LuLoader,
   LuCalendar,
@@ -58,14 +57,14 @@ export default function TeacherLeaveBalancePage() {
       bar: 'bg-rose-500',
     },
     {
-      code: 'ML',
-      type: 'Maternity/Paternity',
-      total: 90,
+      code: 'EL',
+      type: 'Earned Leave (EL)',
+      total: 15,
       used: 0,
-      remaining: 90,
-      color: 'text-purple-600',
-      bg: 'bg-purple-50',
-      bar: 'bg-purple-500',
+      remaining: 15,
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
+      bar: 'bg-blue-500',
     },
   ]);
 
@@ -74,7 +73,6 @@ export default function TeacherLeaveBalancePage() {
   const iconMap = {
     CL: LuUmbrella,
     SL: LuHeart,
-    ML: LuBaby,
     EL: LuCalendar,
     DL: LuFileText,
   };

@@ -192,7 +192,6 @@ export default function TeacherApplyLeavePage() {
                 <>
                   <option value="CL">Casual Leave (CL) - Standard</option>
                   <option value="SL">Sick Leave (SL) - Medical</option>
-                  <option value="ML">Maternity / Paternity Leave</option>
                 </>
               )}
             </select>

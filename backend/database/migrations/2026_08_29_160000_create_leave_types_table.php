@@ -51,17 +51,6 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
-                'name' => 'Maternity / Paternity (ML)',
-                'code' => 'ML',
-                'total_days' => 90,
-                'description' => 'Parental leave for maternity or paternity support during child birth.',
-                'color' => 'purple',
-                'is_active' => true,
-                'requires_attachment' => false,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
                 'name' => 'Earned Leave (EL)',
                 'code' => 'EL',
                 'total_days' => 15,

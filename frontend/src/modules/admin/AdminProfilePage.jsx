@@ -280,29 +280,6 @@ export default function AdminProfilePage() {
                 </div>
               </div>
             </div>
-
-            {/* Quick Action Button in Banner */}
-            <div className="shrink-0 mt-3 sm:mt-0">
-              {isEditing ? (
-                <button
-                  type="button"
-                  onClick={handleCancelEditing}
-                  className="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md border border-white/30 transition-all cursor-pointer shadow-sm"
-                >
-                  <LuX className="w-4 h-4 text-white" />
-                  <span className="text-white font-bold">Cancel Editing</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleStartEditing}
-                  className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md border border-white"
-                >
-                  <LuPencil className="w-3.5 h-3.5 text-blue-600" />
-                  <span className="text-slate-900 font-bold text-xs">Edit Profile</span>
-                </button>
-              )}
-            </div>
           </div>
         </div>
 
@@ -985,8 +962,10 @@ export default function AdminProfilePage() {
             )}
           </form>
         </div>
-      )}
-
+      )}
+
+
+
       {/* -------------------- TAB: PASSWORD & SECURITY -------------------- */}
       {activeTab === 'security' && (
         <div className="max-w-xl mx-auto bg-white rounded-2xl border border-gray-200 p-5 sm:p-7 shadow-xs space-y-5 animate-fade-in">
@@ -1129,12 +1108,12 @@ export default function AdminProfilePage() {
               {pwdLoading ? (
                 <>
                   <LuLoader className="w-4 h-4 animate-spin" />
-                  <span>Updating Password for ${user?.name || 'Account'}...</span>
+                  <span>Updating Password for {user?.name || 'Account'}...</span>
                 </>
               ) : (
                 <>
                   <LuShieldCheck className="w-4 h-4" />
-                  <span>Update Password for ${user?.name ? user.name.split(' ')[0] : 'Account'}</span>
+                  <span>Update Password for {user?.name ? user.name.split(' ')[0] : 'Account'}</span>
                 </>
               )}
             </button>

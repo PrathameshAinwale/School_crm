@@ -393,7 +393,7 @@ class TeacherSelfController extends Controller
             $quotas = [
                 'CL' => ['id' => 1, 'name' => 'Casual Leave (CL)', 'code' => 'CL', 'total' => 12, 'color' => 'text-amber-600', 'bg' => 'bg-amber-50', 'bar' => 'bg-amber-500', 'border' => 'border-amber-200', 'requires_attachment' => false],
                 'SL' => ['id' => 2, 'name' => 'Sick Leave (SL)', 'code' => 'SL', 'total' => 10, 'color' => 'text-rose-600', 'bg' => 'bg-rose-50', 'bar' => 'bg-rose-500', 'border' => 'border-rose-200', 'requires_attachment' => true],
-                'ML' => ['id' => 3, 'name' => 'Maternity/Paternity (ML)', 'code' => 'ML', 'total' => 90, 'color' => 'text-purple-600', 'bg' => 'bg-purple-50', 'bar' => 'bg-purple-500', 'border' => 'border-purple-200', 'requires_attachment' => false],
+                'EL' => ['id' => 4, 'name' => 'Earned Leave (EL)', 'code' => 'EL', 'total' => 15, 'color' => 'text-blue-600', 'bg' => 'bg-blue-50', 'bar' => 'bg-blue-500', 'border' => 'border-blue-200', 'requires_attachment' => false],
             ];
         }
 
@@ -481,7 +481,7 @@ class TeacherSelfController extends Controller
     {
         $validCodes = LeaveType::where('is_active', true)->pluck('code')->map(fn($c) => strtoupper(trim($c)))->toArray();
         if (empty($validCodes)) {
-            $validCodes = ['CL', 'SL', 'ML', 'EL'];
+            $validCodes = ['CL', 'SL', 'EL'];
         }
 
         $request->validate([
