@@ -145,24 +145,13 @@ const navigation = {
       ],
     },
     {
-      label: 'Library & Media',
-      type: 'group',
-      icon: LuBookOpen,
-      children: [
-        { label: 'Books Catalog', path: '/library/books', icon: LuBookOpen },
-        { label: 'Circulation Desk', path: '/library/circulation', icon: LuArrowRightLeft },
-        { label: 'Overdue Tracker', path: '/library/overdue', icon: LuCircleAlert },
-        { label: 'Digital E-Library', path: '/library/elibrary', icon: LuLayers },
-        { label: 'School Resources', path: '/school-resources', icon: LuBoxes },
-      ],
-    },
-    {
       label: 'Fleet & Logistics',
       type: 'group',
       icon: LuBuilding2,
       children: [
         { label: 'School Vehicles', path: '/school-vehicles', icon: LuBus },
         { label: 'Bus Route Builder', path: '/bus-route-builder', icon: LuRoute },
+        { label: 'School Resources', path: '/school-resources', icon: LuBoxes },
       ],
     },
     {
@@ -174,19 +163,6 @@ const navigation = {
         { label: 'Student Fees', path: '/accounts/fees', icon: LuBanknote },
         { label: 'School Expenses', path: '/accounts/expenses', icon: LuFileSpreadsheet },
         { label: 'Salary Disbursements', path: '/accounts/salary-disbursements', icon: LuWallet },
-      ],
-    },
-    {
-      label: 'HR & Staff Operations',
-      type: 'group',
-      icon: LuUserCog,
-      children: [
-        { label: 'Staff Salaries', path: '/salary', icon: LuBanknote },
-        { label: 'Staff Attendance', path: '/hr/staff-attendance', icon: LuTimer },
-        { label: 'Staff Leaves', path: '/hr/staff-leaves', icon: LuClipboardList },
-        { label: 'Leave Types & Quotas', path: '/hr/leave-types', icon: LuSettings },
-        { label: 'Faculty Trainings', path: '/hr/trainings', icon: LuPresentation },
-        { label: 'School Events', path: '/school-events', icon: LuMegaphone },
       ],
     },
     {
