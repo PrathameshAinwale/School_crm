@@ -12,7 +12,6 @@ import {
   LuWallet,
   LuFileText,
   LuBell,
-  LuMessageSquare,
   LuClock,
   LuReceipt,
   LuAward,
@@ -26,7 +25,6 @@ import {
   LuPresentation,
   LuMegaphone,
   LuFileSpreadsheet,
-  LuTrendingUp,
   LuFolderDown,
   LuMessageSquareQuote,
   LuLayers,
@@ -122,15 +120,6 @@ const navigation = {
       label: 'Dashboard',
       path: '/dashboard',
       icon: LuLayoutDashboard,
-    },
-    {
-      label: 'Executive & Desk',
-      type: 'group',
-      icon: LuTrendingUp,
-      children: [
-        { label: 'Principal Executive View', path: '/principal/dashboard', icon: LuTrendingUp },
-        { label: 'Communication', path: '/admin/communication', icon: LuMessageSquare },
-      ],
     },
     {
       label: 'Academic & Students',
