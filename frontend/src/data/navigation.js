@@ -155,17 +155,6 @@ const navigation = {
       ],
     },
     {
-      label: 'Finance & Accounts',
-      type: 'group',
-      icon: LuWallet,
-      children: [
-        { label: 'Fee Structure', path: '/admin/fee-structure', icon: LuReceipt },
-        { label: 'Student Fees', path: '/accounts/fees', icon: LuBanknote },
-        { label: 'School Expenses', path: '/accounts/expenses', icon: LuFileSpreadsheet },
-        { label: 'Salary Disbursements', path: '/accounts/salary-disbursements', icon: LuWallet },
-      ],
-    },
-    {
       label: 'Campus & Activities',
       type: 'group',
       icon: LuCalendarDays,
