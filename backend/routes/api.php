@@ -555,6 +555,63 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school', 'throttle:api
         Route::post('/certify', [UdisePlusController::class, 'certifySubmission']);
     });
 
+    // -------------------------------------------------------------
+    // SPORTS & ATHLETICS MODULE ROUTES
+    // -------------------------------------------------------------
+    Route::prefix('sports')->middleware('role:sports_incharge,admin,super_admin,principal,teacher')->group(function () {
+        Route::get('/dashboard', [SportsController::class, 'dashboard']);
+
+        // Sports Disciplines
+        Route::get('/disciplines', [SportsController::class, 'sportsList']);
+        Route::get('/activities', [SportsController::class, 'sportsList']);
+        Route::post('/disciplines', [SportsController::class, 'storeSport']);
+        Route::put('/disciplines/{id}', [SportsController::class, 'updateSport'])->whereNumber('id');
+        Route::delete('/disciplines/{id}', [SportsController::class, 'destroySport'])->whereNumber('id');
+
+        // Competitions & Tournaments
+        Route::get('/competitions', [SportsController::class, 'competitionsList']);
+        Route::post('/competitions', [SportsController::class, 'storeCompetition']);
+        Route::put('/competitions/{id}', [SportsController::class, 'updateCompetition'])->whereNumber('id');
+        Route::delete('/competitions/{id}', [SportsController::class, 'destroyCompetition'])->whereNumber('id');
+
+        // Participants & Student Attendance
+        Route::get('/participants', [SportsController::class, 'participantsList']);
+        Route::post('/participants', [SportsController::class, 'enrollParticipant']);
+        Route::patch('/participants/{id}/attendance', [SportsController::class, 'updateParticipantAttendance'])->whereNumber('id');
+        Route::patch('/participants/{id}/achievement', [SportsController::class, 'recordAchievement'])->whereNumber('id');
+        Route::delete('/participants/{id}', [SportsController::class, 'destroyParticipant'])->whereNumber('id');
+        Route::get('/available-students', [SportsController::class, 'availableStudents']);
+
+        // Profile
+        Route::get('/profile', [SportsController::class, 'profile']);
+        Route::put('/profile', [SportsController::class, 'updateProfile']);
+
+        // Facilities & Grounds
+        Route::get('/facilities', [SportsController::class, 'facilitiesList']);
+        Route::post('/facilities', [SportsController::class, 'storeFacility']);
+        Route::put('/facilities/{id}', [SportsController::class, 'updateFacility'])->whereNumber('id');
+        Route::delete('/facilities/{id}', [SportsController::class, 'destroyFacility'])->whereNumber('id');
+
+        // Training & Practice Schedules
+        Route::get('/schedules', [SportsController::class, 'schedulesList']);
+        Route::post('/schedules', [SportsController::class, 'storeSchedule']);
+        Route::put('/schedules/{id}', [SportsController::class, 'updateSchedule'])->whereNumber('id');
+        Route::delete('/schedules/{id}', [SportsController::class, 'destroySchedule'])->whereNumber('id');
+
+        // Equipment & Inventory
+        Route::get('/equipment', [SportsController::class, 'equipmentList']);
+        Route::post('/equipment', [SportsController::class, 'storeEquipment']);
+        Route::put('/equipment/{id}', [SportsController::class, 'updateEquipment'])->whereNumber('id');
+        Route::delete('/equipment/{id}', [SportsController::class, 'destroyEquipment'])->whereNumber('id');
+        Route::post('/equipment/issue', [SportsController::class, 'issueEquipment']);
+        Route::post('/equipment/issues/{id}/return', [SportsController::class, 'returnEquipment'])->whereNumber('id');
+
+        // Athletic Fitness & Health Assessments
+        Route::get('/fitness', [SportsController::class, 'fitnessAssessmentsList']);
+        Route::post('/fitness', [SportsController::class, 'storeFitnessAssessment']);
+        Route::delete('/fitness/{id}', [SportsController::class, 'destroyFitnessAssessment'])->whereNumber('id');
+    });
+
     // MULTI-SCHOOL / MULTI-BRANCH CAMPUS SWITCHER
     Route::get('/schools/branches', [BranchController::class, 'branches']);
     Route::post('/schools/switch-branch', [BranchController::class, 'switchBranch'])

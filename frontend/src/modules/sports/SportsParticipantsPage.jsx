@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { sportsService } from '../../services/sportsService';
+import { adminService } from '../../services/adminService';
 import {
   LuUsers,
   LuUserPlus,
@@ -27,6 +28,9 @@ export default function SportsParticipantsPage() {
   const [competitions, setCompetitions] = useState([]);
   const [disciplines, setDisciplines] = useState([]);
   const [availableStudents, setAvailableStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [modalClassId, setModalClassId] = useState('');
+  const [modalSectionId, setModalSectionId] = useState('');
   const [summary, setSummary] = useState({
     total: 0,
     attending: 0,
@@ -114,13 +118,68 @@ export default function SportsParticipantsPage() {
   useEffect(() => {
     loadParticipantsData();
     if (searchParams.get('action') === 'enroll') {
-      setEnrollModal(true);
+      handleOpenEnrollModal();
     }
   }, [selectedComp, selectedSport, selectedStatus]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     loadParticipantsData();
+  };
+
+  // Available divisions for selected class in modal
+  const selectedClassObj = classes.find((c) => String(c.id) === String(modalClassId));
+  const availableDivisions = selectedClassObj?.sections || [];
+
+  // Filter students based on selected Class and Division
+  const filteredStudents = availableStudents.filter((s) => {
+    if (modalClassId && String(s.class_id) !== String(modalClassId)) return false;
+    if (modalSectionId && String(s.section_id) !== String(modalSectionId)) return false;
+    return true;
+  });
+
+  const selectedStudentObj = availableStudents.find((s) => String(s.id) === String(enrollForm.student_id));
+
+  const handleModalClassChange = (classId) => {
+    setModalClassId(classId);
+    setModalSectionId('');
+    const matching = availableStudents.filter((s) => !classId || String(s.class_id) === String(classId));
+    setEnrollForm((prev) => ({
+      ...prev,
+      student_id: matching[0]?.id || '',
+    }));
+  };
+
+  const handleModalSectionChange = (sectionId) => {
+    setModalSectionId(sectionId);
+    const matching = availableStudents.filter(
+      (s) =>
+        (!modalClassId || String(s.class_id) === String(modalClassId)) &&
+        (!sectionId || String(s.section_id) === String(sectionId))
+    );
+    setEnrollForm((prev) => ({
+      ...prev,
+      student_id: matching[0]?.id || '',
+    }));
+  };
+
+  const handleOpenEnrollModal = () => {
+    const firstClass = classes.find((c) => availableStudents.some((s) => String(s.class_id) === String(c.id))) || classes[0];
+    const initialClassId = firstClass ? String(firstClass.id) : '';
+    setModalClassId(initialClassId);
+    setModalSectionId('');
+
+    const matchingStudents = availableStudents.filter((s) => !initialClassId || String(s.class_id) === initialClassId);
+    setEnrollForm({
+      student_id: matchingStudents[0]?.id || '',
+      sport_id: disciplines[0]?.id || '',
+      competition_id: selectedComp !== 'all' ? selectedComp : '',
+      jersey_number: '',
+      role: 'Player',
+      attendance_status: 'Attending',
+      performance_notes: '',
+    });
+    setEnrollModal(true);
   };
 
   // Quick toggle attendance status
@@ -219,7 +278,7 @@ export default function SportsParticipantsPage() {
         </div>
 
         <button
-          onClick={() => setEnrollModal(true)}
+          onClick={handleOpenEnrollModal}
           className="px-3.5 py-2 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto"
         >
           <LuUserPlus className="w-3.5 h-3.5" />
@@ -489,22 +548,79 @@ export default function SportsParticipantsPage() {
             </div>
 
             <form onSubmit={handleEnrollSubmit} className="space-y-3.5 text-xs">
+              {/* 1. Class and Division (Div) Selection */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Select Class <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={modalClassId}
+                    onChange={(e) => handleModalClassChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-none focus:border-primary-500 transition-colors cursor-pointer"
+                    required
+                  >
+                    <option value="">-- Choose Class --</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Select Div (Section)
+                  </label>
+                  <select
+                    value={modalSectionId}
+                    onChange={(e) => handleModalSectionChange(e.target.value)}
+                    disabled={!modalClassId || availableDivisions.length === 0}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-none focus:border-primary-500 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <option value="">{availableDivisions.length === 0 ? 'All / No Div' : 'All Divisions'}</option>
+                    {availableDivisions.map((sec) => (
+                      <option key={sec.id} value={sec.id}>
+                        Div {sec.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* 2. Student in that Division */}
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Select Enrolled Student <span className="text-red-500">*</span>
+                  Student Name <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={enrollForm.student_id}
                   onChange={(e) => setEnrollForm({ ...enrollForm, student_id: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-none focus:border-primary-500 transition-colors cursor-pointer"
                   required
                 >
-                  {availableStudents.map((s) => (
+                  <option value="">
+                    {filteredStudents.length === 0
+                      ? modalClassId
+                        ? 'No students found in this class/div'
+                        : '-- Select Class first --'
+                      : '-- Select Student Name --'}
+                  </option>
+                  {filteredStudents.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name} (Roll: {s.roll_number || '—'}, {s.class_section})
+                      {s.name} (Roll: {s.roll_number || '—'}{s.admission_number ? `, Adm: ${s.admission_number}` : ''})
                     </option>
                   ))}
                 </select>
+                {selectedStudentObj && (
+                  <div className="mt-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-800 flex items-center justify-between">
+                    <span>
+                      <strong className="font-bold">{selectedStudentObj.name}</strong> • Roll #{selectedStudentObj.roll_number || '—'}
+                    </span>
+                    <span className="font-semibold text-emerald-700">{selectedStudentObj.class_section}</span>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

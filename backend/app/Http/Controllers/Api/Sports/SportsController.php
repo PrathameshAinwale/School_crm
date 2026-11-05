@@ -12,6 +12,7 @@ use App\Models\SportsEquipment;
 use App\Models\SportsEquipmentIssue;
 use App\Models\SportsFitnessAssessment;
 use App\Models\Student;
+use App\Models\SchoolClass;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -477,20 +478,60 @@ class SportsController extends Controller
      */
     public function availableStudents(Request $request)
     {
-        $students = Student::with(['user', 'schoolClass', 'section'])
-            ->where('status', 'active')
-            ->orderBy('first_name', 'asc')
+        $user = Auth::user();
+        $schoolId = $request->header('X-School-Id') ?: ($user ? $user->school_id : null);
+
+        $query = Student::with(['user', 'schoolClass', 'section'])
+            ->where(function ($q) {
+                $q->where('status', 'active')->orWhereNull('status');
+            });
+
+        if ($schoolId) {
+            $query->where('school_id', $schoolId);
+        }
+
+        if ($request->filled('class_id')) {
+            $query->where('school_class_id', $request->class_id);
+        }
+
+        if ($request->filled('section_id')) {
+            $query->where('section_id', $request->section_id);
+        }
+
+        $students = $query->orderBy('first_name', 'asc')
             ->get()
             ->map(function ($s) {
                 $name = trim("{$s->first_name} {$s->last_name}");
-                $classSection = $s->schoolClass ? ($s->schoolClass->name . ($s->section ? '-' . $s->section->name : '')) : 'N/A';
+                $className = $s->schoolClass ? $s->schoolClass->name : '';
+                $sectionName = $s->section ? $s->section->name : '';
                 return [
                     'id' => $s->id,
                     'name' => $name,
                     'admission_number' => $s->admission_number,
                     'roll_number' => $s->roll_number,
-                    'class_section' => $classSection,
+                    'class_id' => $s->school_class_id,
+                    'class_name' => $className,
+                    'section_id' => $s->section_id,
+                    'section_name' => $sectionName,
+                    'class_section' => $className ? ($className . ($sectionName ? '-' . $sectionName : '')) : 'N/A',
                     'gender' => $s->gender,
+                ];
+            });
+
+        $classes = SchoolClass::with('sections')
+            ->when($schoolId, fn($q) => $q->where('school_id', $schoolId))
+            ->orderBy('id', 'asc')
+            ->get()
+            ->map(function ($c) {
+                return [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                    'sections' => $c->sections->map(function ($sec) {
+                        return [
+                            'id' => $sec->id,
+                            'name' => $sec->name,
+                        ];
+                    }),
                 ];
             });
 
@@ -498,6 +539,7 @@ class SportsController extends Controller
             'success' => true,
             'data' => [
                 'students' => $students,
+                'classes' => $classes,
             ],
         ]);
     }
