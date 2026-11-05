@@ -506,20 +506,20 @@ export default function AdminResourcesPage() {
               <h3 className="font-bold text-xs text-slate-800">Faculty Maintenance & Damage Reports</h3>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              {['ALL', 'Pending', 'Approved', 'In Repair', 'Resolved', 'Rejected'].map((st) => (
-                <button
-                  key={st}
-                  onClick={() => setRequestStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                    requestStatusFilter === st
-                      ? 'bg-cyan-50 text-cyan-700 border border-cyan-300'
-                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
-                  }`}
-                >
-                  {st}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <LuFilter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <select
+                value={requestStatusFilter}
+                onChange={(e) => setRequestStatusFilter(e.target.value)}
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-cyan-500 cursor-pointer min-w-[160px]"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="In Repair">In Repair</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Rejected">Rejected</option>
+              </select>
             </div>
           </div>
 
