@@ -80,9 +80,6 @@ jobs:
     name: Package & Deploy Backend
     runs-on: ubuntu-latest
     needs: pre-deploy-validation
-    environment:
-      name: production
-      url: https://archcampus.archenterprises.co.in
 
     steps:
       - name: Checkout Code
@@ -124,19 +121,21 @@ jobs:
             echo "❌ ERROR: PROD_FTP_HOST secret is not configured in GitHub Secrets!"
             MISSING=1
           else
-            echo "✅ PROD_FTP_HOST is set."
+            echo "✅ PROD_FTP_HOST is set to: ${{ secrets.PROD_FTP_HOST }}"
           fi
           if [ -z "${{ secrets.PROD_FTP_USERNAME }}" ]; then
             echo "❌ ERROR: PROD_FTP_USERNAME secret is not configured in GitHub Secrets!"
             MISSING=1
           else
-            echo "✅ PROD_FTP_USERNAME is set."
+            FTP_USER="${{ secrets.PROD_FTP_USERNAME }}"
+            echo "✅ PROD_FTP_USERNAME is set: '${FTP_USER:0:4}...${FTP_USER: -4}' (length: ${#FTP_USER} chars)"
           fi
           if [ -z "${{ secrets.PROD_FTP_PASSWORD }}" ]; then
             echo "❌ ERROR: PROD_FTP_PASSWORD secret is not configured in GitHub Secrets!"
             MISSING=1
           else
-            echo "✅ PROD_FTP_PASSWORD is set."
+            FTP_PASS="${{ secrets.PROD_FTP_PASSWORD }}"
+            echo "✅ PROD_FTP_PASSWORD is set (length: ${#FTP_PASS} chars)"
           fi
           if [ "$MISSING" -eq 1 ]; then
             echo "Please ensure PROD_FTP_HOST, PROD_FTP_USERNAME, and PROD_FTP_PASSWORD are defined in GitHub Secrets."
@@ -181,9 +180,6 @@ jobs:
     name: Build & Deploy Frontend
     runs-on: ubuntu-latest
     needs: deploy-backend
-    environment:
-      name: production
-      url: https://archcampus.archenterprises.co.in
 
     steps:
       - name: Checkout Code
