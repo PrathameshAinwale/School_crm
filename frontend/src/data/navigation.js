@@ -85,8 +85,11 @@ const navigation = {
       type: 'group',
       icon: LuAward,
       children: [
+        { label: 'Scoresheet Entry', path: '/scoresheet', icon: LuFileSpreadsheet },
         { label: 'Examinations', path: '/examinations', icon: LuGraduationCap },
         { label: 'Academic Results', path: '/results', icon: LuAward },
+        { label: 'Student Report Cards', path: '/report-cards', icon: LuFileSpreadsheet },
+        { label: 'Student Marksheets', path: '/marksheets', icon: LuAward },
       ],
     },
     {
@@ -130,7 +133,8 @@ const navigation = {
         { label: 'Student Admissions', path: '/admission', icon: LuUserPlus },
         { label: 'Manage Teachers', path: '/manage-teachers', icon: LuUsers },
         { label: 'Attendance Register', path: '/attendance', icon: LuClipboardList },
-        { label: 'School Timetable', path: '/timetable', icon: LuClock },
+        { label: 'Class Subjects', path: '/admin/subjects', icon: LuBookOpen },
+        { label: 'Fee Structure', path: '/admin/fee-structure', icon: LuReceipt },
       ],
     },
     {
@@ -138,6 +142,7 @@ const navigation = {
       type: 'group',
       icon: LuAward,
       children: [
+        { label: 'Scoresheet Entry', path: '/scoresheet', icon: LuFileSpreadsheet },
         { label: 'Examinations', path: '/examinations', icon: LuGraduationCap },
         { label: 'Academic Results', path: '/results', icon: LuAward },
         { label: 'Student Report Cards', path: '/report-cards', icon: LuFileSpreadsheet },
@@ -240,15 +245,6 @@ const navigation = {
         { label: 'Class Results', path: '/results', icon: LuAward },
         { label: 'Student Report Cards', path: '/report-cards', icon: LuFileSpreadsheet },
         { label: 'Student Marksheets', path: '/marksheets', icon: LuAward },
-      ],
-    },
-    {
-      label: 'Library & E-Learning',
-      type: 'group',
-      icon: LuLayers,
-      children: [
-        { label: 'Books Catalog', path: '/library/books', icon: LuBookOpen },
-        { label: 'Digital E-Library', path: '/library/elibrary', icon: LuLayers },
       ],
     },
     {

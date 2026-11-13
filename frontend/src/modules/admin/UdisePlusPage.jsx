@@ -27,7 +27,7 @@ import {
 } from 'react-icons/lu';
 
 export default function UdisePlusPage() {
-  const [academicYear, setAcademicYear] = useState('2024-2025');
+  const [academicYear, setAcademicYear] = useState('2026-2027');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
@@ -249,8 +249,9 @@ export default function UdisePlusPage() {
             onChange={(e) => setAcademicYear(e.target.value)}
             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none"
           >
-            <option value="2024-2025">AY 2024-2025</option>
+            <option value="2026-2027">AY 2026-2027</option>
             <option value="2025-2026">AY 2025-2026</option>
+            <option value="2024-2025">AY 2024-2025</option>
           </select>
 
           <button

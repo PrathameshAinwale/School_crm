@@ -335,8 +335,15 @@ export default function AdminStudentsPage() {
     return dbClassMap.get(name.toLowerCase().trim()) || { id: name, name };
   });
 
+  // Students without a valid assigned class
+  const unassignedStudents = allStudents.filter((s) => {
+    const sClassName = s.school_class?.name || (s.school_class_id ? (typeof s.school_class_id === 'string' ? s.school_class_id : `Class ${s.school_class_id}`) : '');
+    return !sClassName || !s.school_class_id;
+  });
+
   // Robust matching helper to count students for a given class & division
   const getStudentCount = (className, divisionName = null) => {
+    if (className === 'Unassigned') return unassignedStudents.length;
     const cleanClassName = String(className).toLowerCase().replace('class ', '').trim();
 
     return allStudents.filter((s) => {
@@ -359,6 +366,24 @@ export default function AdminStudentsPage() {
   // Filter students for the active view
   const currentRoster = allStudents.filter((s) => {
     if (!activeClass) return false;
+
+    if (activeClass === 'Unassigned') {
+      const sClassName = s.school_class?.name || (s.school_class_id ? (typeof s.school_class_id === 'string' ? s.school_class_id : `Class ${s.school_class_id}`) : '');
+      const isUnassigned = !sClassName || !s.school_class_id;
+      if (!isUnassigned) return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const name = `${s.first_name || ''} ${s.last_name || ''}`.toLowerCase();
+        const roll = String(s.roll_number || '').toLowerCase();
+        const adm = String(s.admission_number || '').toLowerCase();
+        const phone = String(s.guardian_phone || '').toLowerCase();
+        const father = String(s.father_name || s.guardian_name || '').toLowerCase();
+        const mother = String(s.mother_name || '').toLowerCase();
+        return name.includes(q) || roll.includes(q) || adm.includes(q) || phone.includes(q) || father.includes(q) || mother.includes(q);
+      }
+      return true;
+    }
 
     const cleanActiveClass = String(activeClass).toLowerCase().replace('class ', '').trim();
     const sClassName = s.school_class?.name || (s.school_class_id ? (typeof s.school_class_id === 'string' ? s.school_class_id : `Class ${s.school_class_id}`) : '');
@@ -514,7 +539,6 @@ export default function AdminStudentsPage() {
                 <LuBuilding2 className="w-4 h-4 text-emerald-600" />
                 <span>Select Academic Class</span>
               </h2>
-              <span className="text-xs text-slate-400">Click any class card to view division rosters</span>
             </div>
 
             {loading ? (
@@ -547,6 +571,29 @@ export default function AdminStudentsPage() {
                     </div>
                   );
                 })}
+
+                {unassignedStudents.length > 0 && (
+                  <div
+                    onClick={() => {
+                      setActiveClass('Unassigned');
+                      setActiveDivision('All');
+                    }}
+                    className="bg-amber-50/70 p-4 sm:p-5 rounded-2xl border-2 border-dashed border-amber-300 hover:border-amber-400 hover:bg-amber-100/60 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between text-center relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-amber-400"></div>
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-base mx-auto mb-3 group-hover:scale-110 transition-transform">
+                      ⚠️
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-amber-900 group-hover:text-amber-800 transition-colors">
+                        Unassigned Class
+                      </h3>
+                      <p className="text-xs text-amber-700 mt-1">
+                        <strong className="font-mono text-sm font-bold text-amber-800">{unassignedStudents.length}</strong> Pending Allocation
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -555,7 +602,7 @@ export default function AdminStudentsPage() {
 
       {/* LEVEL 2: DIVISION CARDS (WHEN A CLASS IS SELECTED) */}
       {
-        activeClass && !activeDivision && (
+        activeClass && activeClass !== 'Unassigned' && !activeDivision && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
@@ -617,7 +664,7 @@ export default function AdminStudentsPage() {
 
       {/* LEVEL 3: STUDENTS ROSTER (WHEN A DIVISION IS SELECTED) */}
       {
-        activeClass && activeDivision && (
+        activeClass && (activeDivision || activeClass === 'Unassigned') && (
           <div className="space-y-4">
             {/* Top Filter & Search */}
             <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
@@ -702,10 +749,15 @@ export default function AdminStudentsPage() {
                                   <p className="font-bold text-slate-900 leading-tight">
                                     {student.first_name} {student.last_name || ''}
                                   </p>
-                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                     <span className="text-[10px] text-slate-400 font-semibold">
                                       Roll: {student.roll_number || 'N/A'}
                                     </span>
+                                    {(!student.school_class_id && !student.school_class?.name) && (
+                                      <span className="px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-800 text-[9px] font-bold border border-amber-300">
+                                        No Class Assigned
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>

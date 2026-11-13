@@ -20,7 +20,7 @@ function checkCallFrequency(endpoint, method) {
 
 const API_BASE_URL = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.') || window.location.port === '5173'))
   ? 'http://127.0.0.1:8000/api/v1'
-  : (import.meta.env.VITE_API_URL || 'https://powderblue-trout-993647.hostingersite.com/api/v1');
+  : (import.meta.env.VITE_API_URL || 'https://archcampus.archenterprises.co.in/api/v1');
 
 // In-flight request deduplication map: key -> Promise
 const inFlightRequests = new Map();

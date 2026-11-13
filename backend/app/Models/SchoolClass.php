@@ -43,4 +43,16 @@ class SchoolClass extends Model
     {
         return $this->hasOne(FeeStructure::class, 'school_class_id');
     }
+
+    public function classSubjects()
+    {
+        return $this->hasMany(ClassSubject::class, 'school_class_id');
+    }
+
+    public function subjects()
+    {
+        return $this->belongsToMany(Subject::class, 'class_subjects', 'school_class_id', 'subject_id')
+            ->withPivot(['id', 'teacher_id', 'periods_per_week', 'max_marks', 'passing_marks', 'is_elective'])
+            ->withTimestamps();
+    }
 }

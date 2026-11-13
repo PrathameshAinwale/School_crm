@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { marksheetService } from '../../services/marksheetService';
 import {
   LuAward,
@@ -24,12 +25,13 @@ import {
   LuBookOpen,
   LuFileCheck,
   LuShieldCheck,
+  LuPlus,
 } from 'react-icons/lu';
 
 export default function MarksheetPage() {
   // Filter Workflow States
-  const [academicYears, setAcademicYears] = useState(['2024-2025', '2025-2026', '2026-2027']);
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState('2024-2025');
+  const [academicYears, setAcademicYears] = useState(['2026-2027', '2025-2026', '2024-2025']);
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState('2026-2027');
 
   const [examinations, setExaminations] = useState([]);
   const [selectedExamId, setSelectedExamId] = useState('');
@@ -260,14 +262,7 @@ export default function MarksheetPage() {
               <h1 className="text-xl sm:text-2xl font-black text-slate-800 leading-tight">
                 Student Marksheet Generation Module
               </h1>
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold inline-flex items-center gap-1">
-                <LuShieldCheck className="w-3.5 h-3.5" />
-                Official Statement of Marks
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Generate authentic A4 Statement of Marks, scholastic theory & practical breakdowns, CBSE grades, division honors, and bulk ZIP archives.
-            </p>
+            </div>    
           </div>
         </div>
 
@@ -507,9 +502,20 @@ export default function MarksheetPage() {
         </div>
       ) : filteredMarksheets.length === 0 ? (
         <div className="py-16 text-center bg-white rounded-2xl border border-slate-200 shadow-xs">
-          <LuAward className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-blue-100">
+            <LuAward className="w-7 h-7" />
+          </div>
           <h3 className="text-base font-bold text-slate-800">No Marksheets Found</h3>
-          <p className="text-sm text-slate-500 mt-1">Try selecting a different Academic Year, Examination, or Class from the workflow bar above.</p>
+          <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-4">
+            Only students whose marks have been entered in the Scoresheet appear here. Enter student marks to generate official marksheets.
+          </p>
+          <Link
+            to="/scoresheet"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl transition cursor-pointer inline-flex items-center gap-2 shadow-md shadow-blue-600/20"
+          >
+            <LuPlus className="w-4 h-4" />
+            <span>Enter Marks in Scoresheet</span>
+          </Link>
         </div>
       ) : viewMode === 'grid' ? (
         /* Certificate Cards Grid View (Clean Light Theme) */
@@ -522,7 +528,8 @@ export default function MarksheetPage() {
             return (
               <div
                 key={item.student.id}
-                className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition overflow-hidden flex flex-col justify-between"
+                onClick={() => setPreviewStudentMarksheet(item)}
+                className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-blue-300 transition-all overflow-hidden flex flex-col justify-between cursor-pointer group"
               >
                 {/* Certificate Card Header */}
                 <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/60">
@@ -623,15 +630,10 @@ export default function MarksheetPage() {
                 {/* Action Footer */}
                 <div className="p-3.5 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between gap-2">
                   <button
-                    onClick={() => setPreviewStudentMarksheet(item)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-xs transition cursor-pointer"
-                  >
-                    <LuEye className="w-3.5 h-3.5 text-blue-600" />
-                    Preview
-                  </button>
-
-                  <button
-                    onClick={() => handleDownloadSinglePdf(item)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadSinglePdf(item);
+                    }}
                     disabled={downloadingSingleId === item.student.id}
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer"
                   >
@@ -640,11 +642,14 @@ export default function MarksheetPage() {
                     ) : (
                       <LuDownload className="w-3.5 h-3.5" />
                     )}
-                    PDF
+                    <span>Download PDF</span>
                   </button>
 
                   <button
-                    onClick={() => handleOpenEditMarks(item)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenEditMarks(item);
+                    }}
                     title="Edit Theory/Practical Marks"
                     className="p-2 bg-white hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 shadow-xs transition cursor-pointer"
                   >

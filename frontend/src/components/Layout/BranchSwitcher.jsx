@@ -127,8 +127,8 @@ export default function BranchSwitcher() {
     }
   };
 
-  // If user is not authorized to switch schools (teachers, students, etc.)
-  if (!canSwitchSchools) {
+  // If user is not authorized or only 1 school exists in DB, render single school badge without switcher dropdown
+  if (!canSwitchSchools || branches.length <= 1) {
     if (!activeSchoolName) return null;
     return (
       <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-700">
@@ -144,7 +144,7 @@ export default function BranchSwitcher() {
   }
 
   // Count total distinct schools accessible
-  const totalConnected = Math.max(1, linkedSchoolAccounts.length);
+  const totalConnected = branches.length || 1;
 
   return (
     <>
@@ -193,27 +193,25 @@ export default function BranchSwitcher() {
               </span>
             </div>
 
-            {/* List of Connected Schools */}
+            {/* List of Database School Branches */}
             <div className="max-h-72 overflow-y-auto py-1 space-y-1">
-              {linkedSchoolAccounts.map((account) => {
-                const isSelected =
-                  account.school_id === activeSchoolId ||
-                  (account.email === user?.email && account.id === user?.id);
+              {branches.map((branch) => {
+                const isSelected = String(branch.id) === String(activeSchoolId);
 
                 return (
                   <div
-                    key={`${account.id}-${account.school_id || account.email}`}
+                    key={branch.id}
                     className={`group relative flex items-center justify-between p-2.5 rounded-xl transition-all cursor-pointer border ${
                       isSelected
                         ? 'bg-primary-50/80 border-primary-200 text-primary-900 shadow-xs'
                         : 'border-transparent hover:bg-gray-50 text-gray-700'
                     }`}
-                    onClick={() => handleSelectLinkedAccount(account)}
+                    onClick={() => handleSelectBranch(branch)}
                   >
                     <div className="min-w-0 flex-1 pr-2">
                       <div className="flex items-center gap-1.5">
                         <p className="truncate text-xs font-bold text-gray-800">
-                          {account.school?.name || 'School Campus'}
+                          {branch.name}
                         </p>
                         {isSelected && (
                           <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full flex items-center gap-0.5 shrink-0">
@@ -224,17 +222,13 @@ export default function BranchSwitcher() {
                       </div>
 
                       <div className="flex items-center gap-1.5 text-[10px] text-gray-400 mt-0.5 truncate">
-                        {account.school?.code && (
+                        {branch.code && (
                           <span className="font-semibold text-gray-500">
-                            {account.school.code}
+                            {branch.code}
                           </span>
                         )}
-                        {account.school?.city && <span>• {account.school.city}</span>}
-                        {account.email && (
-                          <span className="truncate max-w-[120px]">
-                            • {account.email}
-                          </span>
-                        )}
+                        {branch.city && <span>• {branch.city}</span>}
+                        {branch.affiliation && <span>• {branch.affiliation}</span>}
                       </div>
                     </div>
 
@@ -248,26 +242,11 @@ export default function BranchSwitcher() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleSelectLinkedAccount(account);
+                            handleSelectBranch(branch);
                           }}
                           className="px-2 py-1 rounded-lg bg-gray-100 hover:bg-primary-600 hover:text-white text-[10px] font-bold text-gray-600 transition-colors cursor-pointer"
                         >
                           Switch
-                        </button>
-                      )}
-
-                      {/* Remove / Unlink option for secondary accounts */}
-                      {!isSelected && linkedSchoolAccounts.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeSchoolAccount(account.id || account.email);
-                          }}
-                          title={t('branches.unlink_school', 'Disconnect School')}
-                          className="p-1 rounded-lg text-gray-300 hover:text-rose-600 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
-                        >
-                          <LuTrash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>

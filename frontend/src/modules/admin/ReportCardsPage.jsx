@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { reportCardService } from '../../services/reportCardService';
 import {
   LuFileSpreadsheet,
@@ -27,12 +28,13 @@ import {
   LuUser,
   LuClock,
   LuShieldCheck,
+  LuPlus,
 } from 'react-icons/lu';
 
 export default function ReportCardsPage() {
   // Filter Workflow States
-  const [academicYears, setAcademicYears] = useState(['2024-2025', '2025-2026', '2026-2027']);
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState('2024-2025');
+  const [academicYears, setAcademicYears] = useState(['2026-2027', '2025-2026', '2024-2025']);
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState('2026-2027');
 
   const [examinations, setExaminations] = useState([]);
   const [selectedExamId, setSelectedExamId] = useState('');
@@ -324,11 +326,11 @@ export default function ReportCardsPage() {
     return (
       <div className="print-full-a4 bg-white border-2 border-slate-900/40 rounded-xl shadow-lg p-5 sm:p-6 max-w-[840px] w-full text-slate-800 font-sans space-y-3 relative box-border">
         {/* School Institutional Header */}
-        <div className="border-b-2 border-emerald-900/30 pb-3 flex items-center justify-between gap-3">
+        <div className="border-b-2 border-blue-900/30 pb-3 flex items-center justify-between gap-3">
           {/* Crest / Emblem */}
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-800 via-teal-900 to-emerald-950 text-white flex flex-col items-center justify-center shadow-md p-1.5 text-center shrink-0 border border-emerald-700/60">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-900 via-indigo-950 to-blue-950 text-white flex flex-col items-center justify-center shadow-md p-1.5 text-center shrink-0 border border-blue-800/60">
             <LuAward className="w-6 h-6 text-amber-300" />
-            <span className="text-[7px] font-black uppercase tracking-widest text-emerald-100 mt-0.5">ESTD. 1998</span>
+            <span className="text-[7px] font-black uppercase tracking-widest text-blue-100 mt-0.5">ESTD. 1998</span>
           </div>
 
           {/* Institution Details */}
@@ -336,7 +338,7 @@ export default function ReportCardsPage() {
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-serif uppercase leading-tight">
               {schoolInfo?.name || 'DELHI PUBLIC ACADEMY'}
             </h2>
-            <p className="text-[10.5px] font-bold text-emerald-800 mt-0.5 tracking-wide uppercase">
+            <p className="text-[10.5px] font-bold text-blue-900 mt-0.5 tracking-wide uppercase">
               SENIOR SECONDARY SCHOOL &bull; {schoolInfo?.affiliation || 'CBSE AFFILIATED'}
             </p>
             <p className="text-[9.5px] text-slate-500 font-medium">
@@ -347,13 +349,13 @@ export default function ReportCardsPage() {
             </p>
             <div className="mt-1.5 inline-flex items-center gap-2 px-3.5 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-extrabold uppercase tracking-widest shadow-2xs">
               <span>ANNUAL STUDENT PROGRESS & CUMULATIVE REPORT</span>
-              <span className="text-amber-300 font-bold">&bull; SESSION {exam?.academic_year || '2024-2025'}</span>
+              <span className="text-amber-300 font-bold">&bull; SESSION {exam?.academic_year || '2026-2027'}</span>
             </div>
           </div>
 
           {/* Student Passport Photo Box */}
           <div className="w-18 h-22 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center p-1 text-center shrink-0 shadow-inner">
-            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-center font-black text-xs">
+            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-800 border border-blue-200 flex items-center justify-center font-black text-xs">
               {s.first_name?.[0]}{s.last_name?.[0] || ''}
             </div>
             <span className="text-[7.5px] font-bold text-slate-400 uppercase tracking-tighter mt-1 leading-tight">
@@ -438,7 +440,7 @@ export default function ReportCardsPage() {
             </div>
             <div className="sm:pl-2 pt-1.5 sm:pt-1.5">
               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Attendance Record</span>
-              <strong className="text-emerald-700 font-black block">
+              <strong className="text-blue-900 font-black block">
                 {summary.attendance_percentage}% ({summary.present_days}/{summary.working_days} d)
               </strong>
             </div>
@@ -496,10 +498,10 @@ export default function ReportCardsPage() {
                 <td colSpan="2" className="py-1.5 px-2.5 text-center text-[9px] text-slate-500 font-medium">
                   Aggregate Scholastic Performance
                 </td>
-                <td className="py-1.5 px-2.5 text-center text-emerald-950 font-black text-sm bg-emerald-100/70">
+                <td className="py-1.5 px-2.5 text-center text-blue-950 font-black text-sm bg-blue-100/70">
                   {formatMark(summary.total_marks_obtained || 0)}
                 </td>
-                <td className="py-1.5 px-2.5 text-center text-emerald-950 font-black text-xs">
+                <td className="py-1.5 px-2.5 text-center text-blue-950 font-black text-xs">
                   {summary.overall_grade}
                 </td>
               </tr>
@@ -541,9 +543,9 @@ export default function ReportCardsPage() {
               {formatMark(summary.total_marks_obtained)} / {formatMark(summary.total_max_marks)}
             </strong>
           </div>
-          <div className="p-2 bg-emerald-50/70 border border-emerald-200 rounded-lg">
-            <span className="text-[9px] font-bold text-emerald-700 block uppercase tracking-wider">Percentage</span>
-            <strong className="text-xs font-black text-emerald-800 mt-0.5 block">
+          <div className="p-2 bg-blue-50/70 border border-blue-200 rounded-lg">
+            <span className="text-[9px] font-bold text-blue-700 block uppercase tracking-wider">Percentage</span>
+            <strong className="text-xs font-black text-blue-900 mt-0.5 block">
               {summary.percentage}%
             </strong>
           </div>
@@ -587,7 +589,7 @@ export default function ReportCardsPage() {
           </div>
           <div className="flex items-start gap-1.5 pt-1 border-t border-slate-200/60">
             <strong className="text-slate-800 shrink-0 font-bold text-[11px]">Principal Remarks:</strong>
-            <span className="font-semibold text-emerald-850 text-[11px]">
+            <span className="font-semibold text-slate-800 text-[11px]">
               {summary.principal_remarks || 'Promoted with commendable effort. Keep aiming for higher scholastic excellence.'}
             </span>
           </div>
@@ -606,10 +608,10 @@ export default function ReportCardsPage() {
 
           {/* Seal Stamp */}
           <div className="flex flex-col items-center">
-            <div className="w-14 h-14 rounded-full border-2 border-dashed border-emerald-800/70 bg-emerald-50/40 flex flex-col items-center justify-center text-center p-0.5 rotate-[-6deg] shadow-2xs">
-              <span className="text-[5.5px] font-black uppercase tracking-wider text-emerald-950 leading-tight">DELHI PUBLIC ACADEMY</span>
-              <LuShieldCheck className="w-3.5 h-3.5 text-emerald-800 my-0.2" />
-              <span className="text-[5px] font-black uppercase tracking-tight text-emerald-900">OFFICIAL SEAL</span>
+            <div className="w-14 h-14 rounded-full border-2 border-dashed border-blue-900/70 bg-blue-50/40 flex flex-col items-center justify-center text-center p-0.5 rotate-[-6deg] shadow-2xs">
+              <span className="text-[5.5px] font-black uppercase tracking-wider text-blue-950 leading-tight">DELHI PUBLIC ACADEMY</span>
+              <LuShieldCheck className="w-3.5 h-3.5 text-blue-800 my-0.2" />
+              <span className="text-[5px] font-black uppercase tracking-tight text-blue-900">OFFICIAL SEAL</span>
             </div>
             <span className="text-[9.5px] font-bold uppercase text-slate-700 mt-0.5 block">Institutional Seal</span>
           </div>
@@ -704,7 +706,7 @@ export default function ReportCardsPage() {
       {/* Toast Alert */}
       {toastMessage && (
         <div className="no-print fixed bottom-5 right-5 z-50 bg-white text-slate-800 px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 text-xs font-semibold animate-scale-up border border-slate-200">
-          <LuCircleCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+          <LuCircleCheck className="w-4 h-4 text-blue-600 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -712,7 +714,7 @@ export default function ReportCardsPage() {
       {/* TOP BANNER HEADER (Clean Light Theme matching School CRM) */}
       <div className="no-print bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-blue-700 text-white flex items-center justify-center shadow-md shadow-blue-600/20 shrink-0">
             <LuFileSpreadsheet className="w-6 h-6" />
           </div>
           <div>
@@ -720,10 +722,6 @@ export default function ReportCardsPage() {
               <h1 className="text-xl sm:text-2xl font-black text-slate-800 leading-tight">
                 Student Report Cards & Evaluation Engine
               </h1>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold inline-flex items-center gap-1">
-                <LuShieldCheck className="w-3.5 h-3.5" />
-                Automated Grading
-              </span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
               Generate, preview, print and download official A4 PDF report cards student-wise, class-wise & division-wise.
@@ -738,7 +736,7 @@ export default function ReportCardsPage() {
             className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl transition cursor-pointer border border-slate-200"
             title="Refresh Report Cards"
           >
-            <LuRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-600' : ''}`} />
+            <LuRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-600' : ''}`} />
           </button>
 
           <button
@@ -747,14 +745,14 @@ export default function ReportCardsPage() {
             className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
             title="Download all report cards as ZIP"
           >
-            {downloadingZip ? <LuLoader className="w-4 h-4 animate-spin text-emerald-600" /> : <LuDownload className="w-4 h-4 text-emerald-600" />}
+            {downloadingZip ? <LuLoader className="w-4 h-4 animate-spin text-blue-600" /> : <LuDownload className="w-4 h-4 text-blue-600" />}
             <span>Download All (ZIP)</span>
           </button>
 
           <button
             onClick={() => handlePrint(null)}
             disabled={reportCards.length === 0}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
             <LuPrinter className="w-4 h-4" />
             <span>Print All Cards</span>
@@ -766,26 +764,23 @@ export default function ReportCardsPage() {
       <div className="no-print bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center font-black text-xs">
+            <span className="w-6 h-6 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center font-black text-xs">
               1
             </span>
             <h3 className="font-extrabold text-sm text-slate-800">Select Evaluation Criteria</h3>
           </div>
-          <span className="text-xs text-slate-400 font-medium hidden sm:inline">
-            Workflow: Academic Year → Examination → Class → Division → Generate
-          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3.5 items-end">
           {/* 1. Academic Year */}
           <div>
             <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <LuCalendar className="w-3.5 h-3.5 text-emerald-600" /> Academic Year
+              <LuCalendar className="w-3.5 h-3.5 text-blue-600" /> Academic Year
             </label>
             <select
               value={selectedAcademicYear}
               onChange={(e) => setSelectedAcademicYear(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-emerald-500 cursor-pointer transition"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500 cursor-pointer transition"
             >
               {academicYears.map((yr) => (
                 <option key={yr} value={yr}>{yr}</option>
@@ -796,12 +791,12 @@ export default function ReportCardsPage() {
           {/* 2. Examination */}
           <div>
             <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <LuAward className="w-3.5 h-3.5 text-emerald-600" /> Examination
+              <LuAward className="w-3.5 h-3.5 text-blue-600" /> Examination
             </label>
             <select
               value={selectedExamId}
               onChange={(e) => setSelectedExamId(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-emerald-500 cursor-pointer transition"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500 cursor-pointer transition"
             >
               {examinations.map((ex) => (
                 <option key={ex.id} value={ex.id}>
@@ -814,12 +809,12 @@ export default function ReportCardsPage() {
           {/* 3. Class */}
           <div>
             <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <LuBuilding2 className="w-3.5 h-3.5 text-emerald-600" /> Academic Class
+              <LuBuilding2 className="w-3.5 h-3.5 text-blue-600" /> Academic Class
             </label>
             <select
               value={selectedClassId}
               onChange={(e) => setSelectedClassId(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-emerald-500 cursor-pointer transition"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500 cursor-pointer transition"
             >
               <option value="all">All Classes (Entire School)</option>
               {classes.map((cls) => (
@@ -831,13 +826,13 @@ export default function ReportCardsPage() {
           {/* 4. Division */}
           <div>
             <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <LuLayers className="w-3.5 h-3.5 text-emerald-600" /> Division / Section
+              <LuLayers className="w-3.5 h-3.5 text-blue-600" /> Division / Section
             </label>
             <select
               value={selectedDivisionId}
               onChange={(e) => setSelectedDivisionId(e.target.value)}
               disabled={selectedClassId === 'all'}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-emerald-500 cursor-pointer disabled:opacity-50 transition"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500 cursor-pointer disabled:opacity-50 transition"
             >
               <option value="all">All Divisions</option>
               {divisions.map((div) => (
@@ -851,7 +846,7 @@ export default function ReportCardsPage() {
             <button
               onClick={() => handleGenerate()}
               disabled={loading}
-              className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 h-[38px]"
+              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-600/20 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 h-[38px]"
             >
               {loading ? (
                 <>
@@ -886,12 +881,12 @@ export default function ReportCardsPage() {
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Class Average</span>
-              <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+              <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
                 <LuTrendingUp className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-emerald-700">{stats.class_average}%</div>
-            <span className="text-[11px] text-emerald-700 font-bold mt-1">
+            <div className="text-2xl font-black text-blue-700">{stats.class_average}%</div>
+            <span className="text-[11px] text-blue-700 font-bold mt-1">
               Grade {stats.class_average >= 80 ? 'A' : 'B+'} Level
             </span>
           </div>
@@ -962,7 +957,7 @@ export default function ReportCardsPage() {
               placeholder="Search by student name, roll number, admission number..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-emerald-500 font-medium transition"
+              className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium transition"
             />
             {searchQuery && (
               <button
@@ -1024,22 +1019,22 @@ export default function ReportCardsPage() {
       {/* STUDENT REPORT CARDS GRID / TABLE (Clean Light Theme) */}
       {filteredReportCards.length === 0 ? (
         <div className="no-print bg-white rounded-2xl p-12 text-center border border-slate-200/90 shadow-xs">
-          <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-emerald-100">
+          <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-blue-100">
             <LuFileSpreadsheet className="w-7 h-7" />
           </div>
-          <h3 className="font-bold text-slate-800 text-sm">No Report Cards Found</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 mb-4">
+          <h3 className="font-bold text-slate-800 text-sm">No Student Report Cards Found</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
             {searchQuery
               ? `No student matches "${searchQuery}". Clear your search query.`
-              : 'Click "Generate Report Cards" above to calculate and render evaluations for this class.'}
+              : 'Only students whose marks have been entered in the Scoresheet appear here. Enter student marks to generate report cards.'}
           </p>
-          <button
-            onClick={() => handleGenerate()}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition cursor-pointer inline-flex items-center gap-2 shadow-xs"
+          <Link
+            to="/scoresheet"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl transition cursor-pointer inline-flex items-center gap-2 shadow-md shadow-blue-600/20"
           >
-            <LuSparkles className="w-4 h-4" />
-            <span>Generate Now</span>
-          </button>
+            <LuPlus className="w-4 h-4" />
+            <span>Enter Marks in Scoresheet</span>
+          </Link>
         </div>
       ) : viewMode === 'grid' ? (
         /* PROFESSIONAL GRID VIEW OF REPORT CARDS (100% Light Theme) */
@@ -1053,17 +1048,18 @@ export default function ReportCardsPage() {
             return (
               <div
                 key={s.id}
-                className="bg-white rounded-2xl border border-slate-200/90 hover:border-emerald-300 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between group"
+                onClick={() => setPreviewStudentCard(item)}
+                className="bg-white rounded-2xl border border-slate-200/90 hover:border-blue-300 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between group cursor-pointer"
               >
                 {/* Clean Light Card Header */}
                 <div className="p-4 sm:p-4.5 border-b border-slate-100 bg-slate-50/60">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-black text-sm flex items-center justify-center shrink-0 shadow-2xs">
+                      <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 border border-blue-200/80 font-black text-sm flex items-center justify-center shrink-0 shadow-2xs">
                         {s.first_name?.[0]}{s.last_name?.[0] || ''}
                       </div>
                       <div className="min-w-0">
-                        <h4 className="font-extrabold text-sm text-slate-900 leading-tight truncate group-hover:text-emerald-700 transition-colors">
+                        <h4 className="font-extrabold text-sm text-slate-900 leading-tight truncate group-hover:text-blue-700 transition-colors">
                           {s.first_name} {s.last_name || ''}
                         </h4>
                         <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -1107,12 +1103,12 @@ export default function ReportCardsPage() {
                       <span className="text-[10px] text-slate-400">/ {summary.total_max_marks}</span>
                     </div>
 
-                    <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
-                      <span className="text-[10px] font-bold text-emerald-700 uppercase block tracking-wider">Percentage</span>
-                      <span className="text-sm font-extrabold text-emerald-800 mt-0.5 block">
+                    <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-200/80">
+                      <span className="text-[10px] font-bold text-blue-700 uppercase block tracking-wider">Percentage</span>
+                      <span className="text-sm font-extrabold text-blue-800 mt-0.5 block">
                         {summary.percentage}%
                       </span>
-                      <span className="text-[10px] text-emerald-700 font-bold">Grade {summary.overall_grade}</span>
+                      <span className="text-[10px] text-blue-700 font-bold">Grade {summary.overall_grade}</span>
                     </div>
 
                     <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
@@ -1133,7 +1129,7 @@ export default function ReportCardsPage() {
                     <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
-                          isDistinction ? 'bg-indigo-600' : 'bg-emerald-600'
+                          isDistinction ? 'bg-indigo-600' : 'bg-blue-600'
                         }`}
                         style={{ width: `${Math.min(100, summary.percentage)}%` }}
                       />
@@ -1166,7 +1162,7 @@ export default function ReportCardsPage() {
                   </div>
 
                   {/* Teacher Remarks Callout */}
-                  <div className="p-2.5 rounded-xl bg-slate-50 border-l-2 border-emerald-500 text-[11px] text-slate-600 italic line-clamp-2">
+                  <div className="p-2.5 rounded-xl bg-slate-50 border-l-2 border-blue-500 text-[11px] text-slate-600 italic line-clamp-2">
                     "{summary.teacher_remarks}"
                   </div>
                 </div>
@@ -1174,24 +1170,22 @@ export default function ReportCardsPage() {
                 {/* Card Action Footer */}
                 <div className="p-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-1.5">
                   <button
-                    onClick={() => setPreviewStudentCard(item)}
-                    className="flex-1 py-1.5 px-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
-                  >
-                    <LuEye className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Preview</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleDownloadSinglePdf(item)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadSinglePdf(item);
+                    }}
                     disabled={downloadingSingleId === s.id}
-                    className="flex-1 py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 shadow-2xs"
+                    className="flex-1 py-1.5 px-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-lg transition flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 shadow-2xs"
                   >
                     {downloadingSingleId === s.id ? <LuLoader className="w-3.5 h-3.5 animate-spin" /> : <LuDownload className="w-3.5 h-3.5" />}
-                    <span>PDF</span>
+                    <span>Download PDF</span>
                   </button>
 
                   <button
-                    onClick={() => handlePrint(item)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrint(item);
+                    }}
                     className="p-1.5 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-lg transition cursor-pointer"
                     title="Quick Print"
                   >
@@ -1199,7 +1193,10 @@ export default function ReportCardsPage() {
                   </button>
 
                   <button
-                    onClick={() => openEditMarksModal(item)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditMarksModal(item);
+                    }}
                     className="p-1.5 bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 rounded-lg transition cursor-pointer"
                     title="Edit Marks & Remarks"
                   >
@@ -1237,7 +1234,7 @@ export default function ReportCardsPage() {
                     <tr key={s.id} className="hover:bg-slate-50/60 transition">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
-                          <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-xs flex items-center justify-center shrink-0">
+                          <span className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 font-bold text-xs flex items-center justify-center shrink-0">
                             {s.roll_number || '•'}
                           </span>
                           <div>
@@ -1260,7 +1257,7 @@ export default function ReportCardsPage() {
                       </td>
 
                       <td className="px-4 py-3 text-center">
-                        <span className="font-extrabold text-emerald-700 text-xs">
+                        <span className="font-extrabold text-blue-700 text-xs">
                           {summary.percentage}%
                         </span>
                       </td>
@@ -1295,7 +1292,7 @@ export default function ReportCardsPage() {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => setPreviewStudentCard(item)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer"
                             title="Preview Full Report Card"
                           >
                             <LuEye className="w-4 h-4" />
@@ -1339,15 +1336,15 @@ export default function ReportCardsPage() {
             {/* Modal Header */}
             <div className="bg-slate-50 border-b border-slate-200 p-4 text-slate-800 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-center font-bold shadow-2xs">
-                  <LuAward className="w-5 h-5 text-emerald-700" />
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 flex items-center justify-center font-bold shadow-2xs">
+                  <LuAward className="w-5 h-5 text-blue-700" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-extrabold text-base leading-tight text-slate-900">
                       Report Card: {previewStudentCard.student.first_name} {previewStudentCard.student.last_name || ''}
                     </h3>
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold">
                       CBSE A4 Standard
                     </span>
                   </div>
@@ -1360,7 +1357,7 @@ export default function ReportCardsPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleDownloadSinglePdf(previewStudentCard)}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-blue-600/20 cursor-pointer"
                 >
                   <LuDownload className="w-4 h-4" />
                   <span>Download PDF</span>
@@ -1435,7 +1432,7 @@ export default function ReportCardsPage() {
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full my-4 overflow-hidden animate-scale-up">
             <div className="bg-slate-50 border-b border-slate-200 p-4 text-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center">
                   <LuPencil className="w-4 h-4" />
                 </div>
                 <div>
@@ -1478,7 +1475,7 @@ export default function ReportCardsPage() {
                             max="80"
                             value={row.theory_marks}
                             onChange={(e) => handleMarkChange(idx, 'theory_marks', e.target.value)}
-                            className="w-16 px-2 py-1 bg-slate-50 border border-slate-300 rounded text-center font-bold focus:bg-white focus:border-emerald-500 focus:outline-none"
+                            className="w-16 px-2 py-1 bg-slate-50 border border-slate-300 rounded text-center font-bold focus:bg-white focus:border-blue-500 focus:outline-none"
                           />
                         </td>
                         <td className="p-2.5 text-center">
@@ -1488,13 +1485,13 @@ export default function ReportCardsPage() {
                             max="20"
                             value={row.practical_marks}
                             onChange={(e) => handleMarkChange(idx, 'practical_marks', e.target.value)}
-                            className="w-16 px-2 py-1 bg-slate-50 border border-slate-300 rounded text-center font-bold focus:bg-white focus:border-emerald-500 focus:outline-none"
+                            className="w-16 px-2 py-1 bg-slate-50 border border-slate-300 rounded text-center font-bold focus:bg-white focus:border-blue-500 focus:outline-none"
                           />
                         </td>
                         <td className="p-2.5 text-center font-black text-slate-900 text-sm">
                           {row.marks_obtained}
                         </td>
-                        <td className="p-2.5 text-center font-black text-emerald-800 text-sm">
+                        <td className="p-2.5 text-center font-black text-blue-800 text-sm">
                           {row.grade}
                         </td>
                       </tr>
@@ -1511,7 +1508,7 @@ export default function ReportCardsPage() {
                   rows="2"
                   value={editingStudentMarks.teacher_remarks}
                   onChange={(e) => setEditingStudentMarks({ ...editingStudentMarks, teacher_remarks: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-emerald-500 focus:outline-none text-xs text-slate-800"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-blue-500 focus:outline-none text-xs text-slate-800"
                 />
               </div>
 
@@ -1523,7 +1520,7 @@ export default function ReportCardsPage() {
                   type="text"
                   value={editingStudentMarks.principal_remarks}
                   onChange={(e) => setEditingStudentMarks({ ...editingStudentMarks, principal_remarks: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-emerald-500 focus:outline-none text-xs text-slate-800"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-blue-500 focus:outline-none text-xs text-slate-800"
                 />
               </div>
 
@@ -1538,7 +1535,7 @@ export default function ReportCardsPage() {
                 <button
                   type="submit"
                   disabled={submittingMarks}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-600/20 cursor-pointer disabled:opacity-50"
                 >
                   {submittingMarks ? <LuLoader className="w-4 h-4 animate-spin" /> : <LuCheck className="w-4 h-4" />}
                   <span>Save Marks</span>

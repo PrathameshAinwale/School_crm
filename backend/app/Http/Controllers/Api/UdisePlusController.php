@@ -25,7 +25,7 @@ class UdisePlusController extends Controller
     public function dashboard(Request $request)
     {
         $school = School::first();
-        $academicYear = $request->query('academic_year', '2024-2025');
+        $academicYear = $request->query('academic_year', '2026-2027');
 
         $profile = UdiseSchoolProfile::where('school_id', $school->id)
             ->where('academic_year', $academicYear)
@@ -165,7 +165,7 @@ class UdisePlusController extends Controller
     public function getSchoolProfile(Request $request)
     {
         $school = School::first();
-        $academicYear = $request->query('academic_year', '2024-2025');
+        $academicYear = $request->query('academic_year', '2026-2027');
 
         $profile = UdiseSchoolProfile::where('school_id', $school->id)
             ->where('academic_year', $academicYear)
@@ -183,7 +183,7 @@ class UdisePlusController extends Controller
     public function updateSchoolProfile(Request $request)
     {
         $school = School::first();
-        $academicYear = $request->input('academic_year', '2024-2025');
+        $academicYear = $request->input('academic_year', '2026-2027');
 
         $profile = UdiseSchoolProfile::updateOrCreate(
             ['school_id' => $school->id, 'academic_year' => $academicYear],
@@ -203,7 +203,7 @@ class UdisePlusController extends Controller
     public function getSchoolFacilities(Request $request)
     {
         $school = School::first();
-        $academicYear = $request->query('academic_year', '2024-2025');
+        $academicYear = $request->query('academic_year', '2026-2027');
 
         $facility = UdiseSchoolFacility::where('school_id', $school->id)
             ->where('academic_year', $academicYear)
@@ -218,7 +218,7 @@ class UdisePlusController extends Controller
     public function updateSchoolFacilities(Request $request)
     {
         $school = School::first();
-        $academicYear = $request->input('academic_year', '2024-2025');
+        $academicYear = $request->input('academic_year', '2026-2027');
 
         $facility = UdiseSchoolFacility::updateOrCreate(
             ['school_id' => $school->id, 'academic_year' => $academicYear],
@@ -377,7 +377,7 @@ class UdisePlusController extends Controller
     public function exportJson(Request $request)
     {
         $school = School::first();
-        $academicYear = $request->query('academic_year', '2024-2025');
+        $academicYear = $request->query('academic_year', '2026-2027');
 
         $profile = UdiseSchoolProfile::where('school_id', $school->id)->where('academic_year', $academicYear)->first();
         $facility = UdiseSchoolFacility::where('school_id', $school->id)->where('academic_year', $academicYear)->first();
@@ -544,7 +544,7 @@ class UdisePlusController extends Controller
     public function exportDcfPdf(Request $request)
     {
         $school = School::first();
-        $academicYear = $request->query('academic_year', '2024-2025');
+        $academicYear = $request->query('academic_year', '2026-2027');
 
         $profile = UdiseSchoolProfile::where('school_id', $school->id)->where('academic_year', $academicYear)->first();
         $facility = UdiseSchoolFacility::where('school_id', $school->id)->where('academic_year', $academicYear)->first();
@@ -575,7 +575,7 @@ class UdisePlusController extends Controller
     public function certifySubmission(Request $request)
     {
         $school = School::first();
-        $academicYear = $request->input('academic_year', '2024-2025');
+        $academicYear = $request->input('academic_year', '2026-2027');
 
         $submission = UdiseSubmission::updateOrCreate(
             ['school_id' => $school->id, 'academic_year' => $academicYear],

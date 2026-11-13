@@ -65,6 +65,26 @@ class Student extends Model
         return $this->hasMany(StudentAttendance::class, 'student_id');
     }
 
+    public function subjectEnrollments()
+    {
+        return $this->hasMany(StudentSubjectEnrollment::class, 'student_id');
+    }
+
+    public function classSubjects()
+    {
+        return $this->hasMany(ClassSubject::class, 'school_class_id', 'school_class_id');
+    }
+
+    public function getReflectedSubjectsAttribute()
+    {
+        if (!$this->school_class_id) {
+            return collect();
+        }
+        return ClassSubject::with(['subject', 'teacher'])
+            ->where('school_class_id', $this->school_class_id)
+            ->get();
+    }
+
     public function fees()
     {
         return $this->hasMany(StudentFee::class, 'student_id');

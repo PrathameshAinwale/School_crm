@@ -29,6 +29,11 @@ class ExamReportController extends Controller
         $query = StudentReportSummary::where('school_id', $schoolId)
             ->where('exam_term_id', $request->exam_term_id)
             ->where('school_class_id', $request->school_class_id)
+            ->where('total_max_marks', '>', 0)
+            ->where(function ($sub) {
+                $sub->where('total_obtained_marks', '>', 0)
+                    ->orWhere('result_status', '!=', 'RESULT_PENDING');
+            })
             ->with(['student', 'section']);
 
         if ($request->filled('section_id')) {
@@ -70,6 +75,11 @@ class ExamReportController extends Controller
         $query = StudentReportSummary::where('school_id', $schoolId)
             ->where('exam_term_id', $request->term_id)
             ->where('school_class_id', $request->school_class_id)
+            ->where('total_max_marks', '>', 0)
+            ->where(function ($sub) {
+                $sub->where('total_obtained_marks', '>', 0)
+                    ->orWhere('result_status', '!=', 'RESULT_PENDING');
+            })
             ->with(['student', 'schoolClass', 'section']);
 
         if ($request->filled('section_id')) {

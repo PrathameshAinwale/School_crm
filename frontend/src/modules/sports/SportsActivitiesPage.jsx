@@ -95,11 +95,12 @@ export default function SportsActivitiesPage() {
         sportsService.getDisciplines(),
       ]);
 
-      if (compRes?.success) setCompetitions(compRes.data.competitions || []);
+      if (compRes?.success) setCompetitions(Array.isArray(compRes.data) ? compRes.data : (compRes.data?.competitions || []));
       if (discRes?.success) {
-        setDisciplines(discRes.data.sports || []);
-        if (discRes.data.sports?.length > 0 && !compForm.sport_id) {
-          setCompForm((prev) => ({ ...prev, sport_id: discRes.data.sports[0].id }));
+        const sportList = Array.isArray(discRes.data) ? discRes.data : (discRes.data?.sports || []);
+        setDisciplines(sportList);
+        if (sportList.length > 0 && !compForm.sport_id) {
+          setCompForm((prev) => ({ ...prev, sport_id: sportList[0].id }));
         }
       }
     } catch (err) {

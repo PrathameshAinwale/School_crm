@@ -89,23 +89,27 @@ export default function SportsParticipantsPage() {
       ]);
 
       if (partsRes?.success) {
-        setParticipants(partsRes.data.participants || []);
+        setParticipants(Array.isArray(partsRes.data) ? partsRes.data : (partsRes.data?.participants || []));
         if (partsRes.data.summary) {
           setSummary(partsRes.data.summary);
         }
       }
 
-      if (compsRes?.success) setCompetitions(compsRes.data.competitions || []);
+      if (compsRes?.success) setCompetitions(Array.isArray(compsRes.data) ? compsRes.data : (compsRes.data?.competitions || []));
       if (discsRes?.success) {
-        setDisciplines(discsRes.data.sports || []);
-        if (discsRes.data.sports?.length > 0 && !enrollForm.sport_id) {
-          setEnrollForm((prev) => ({ ...prev, sport_id: discsRes.data.sports[0].id }));
+        const sportList = Array.isArray(discsRes.data) ? discsRes.data : (discsRes.data?.sports || []);
+        setDisciplines(sportList);
+        if (sportList.length > 0 && !enrollForm.sport_id) {
+          setEnrollForm((prev) => ({ ...prev, sport_id: sportList[0].id }));
         }
       }
       if (stdsRes?.success) {
-        setAvailableStudents(stdsRes.data.students || []);
-        if (stdsRes.data.students?.length > 0 && !enrollForm.student_id) {
-          setEnrollForm((prev) => ({ ...prev, student_id: stdsRes.data.students[0].id }));
+        const studentList = Array.isArray(stdsRes.data) ? stdsRes.data : (stdsRes.data?.students || []);
+        const classList = stdsRes.data?.classes || [];
+        setAvailableStudents(studentList);
+        setClasses(classList);
+        if (studentList.length > 0 && !enrollForm.student_id) {
+          setEnrollForm((prev) => ({ ...prev, student_id: studentList[0].id }));
         }
       }
     } catch (err) {

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Admin\StudentController;
 use App\Http\Controllers\Api\Admin\TeacherController;
 use App\Http\Controllers\Api\Admin\VehicleController;
 use App\Http\Controllers\Api\Admin\FeeStructureController;
+use App\Http\Controllers\Api\Admin\ClassSubjectController;
 use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\NotificationController;
@@ -198,6 +199,13 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school', 'throttle:api
         Route::post('fee-structures/{id}/sync-students', [FeeStructureController::class, 'syncStudents'])->whereNumber('id');
         Route::delete('fee-structures/{id}', [FeeStructureController::class, 'destroy'])->whereNumber('id');
 
+        // Class Subjects & Curriculum Roster
+        Route::get('class-subjects', [ClassSubjectController::class, 'index']);
+        Route::post('class-subjects', [ClassSubjectController::class, 'store']);
+        Route::put('class-subjects/{id}', [ClassSubjectController::class, 'update'])->whereNumber('id');
+        Route::delete('class-subjects/{id}', [ClassSubjectController::class, 'destroy'])->whereNumber('id');
+        Route::post('class-subjects/{classId}/sync-students', [ClassSubjectController::class, 'syncStudents'])->whereNumber('classId');
+
         // Academic Years Management
         Route::post('academic-years', [AcademicYearController::class, 'store']);
         Route::put('academic-years/{id}', [AcademicYearController::class, 'update'])->whereNumber('id');
@@ -262,7 +270,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school', 'throttle:api
 
     // Teacher & Staff Self Operations
     Route::prefix('teacher')->middleware(
-        'role:teacher,admin,hr,librarian,accountant,staff,sports_incharge,admission_officer'
+        'role:teacher,admin,principal,super_admin,hr,librarian,accountant,staff,sports_incharge,admission_officer'
     )->group(function () {
 
         // Teacher Dashboard
@@ -300,6 +308,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school', 'throttle:api
 
         // Scoresheets & Remarks
         Route::get('/scoresheets/assigned', [ScoresheetController::class, 'assignedPapers']);
+        Route::get('/scoresheets/student-entry-data', [ScoresheetController::class, 'studentEntryData']);
+        Route::get('/scoresheets/student-marks/{term_id}/{student_id}', [ScoresheetController::class, 'getStudentMarks']);
+        Route::post('/scoresheets/save-student-marks', [ScoresheetController::class, 'saveStudentMarks']);
         Route::get('/scoresheets/{exam_id}', [ScoresheetController::class, 'examRoster']);
         Route::post('/scoresheets/{exam_id}/save-draft', [ScoresheetController::class, 'saveDraft']);
         Route::post('/scoresheets/{exam_id}/submit', [ScoresheetController::class, 'submitMarks']);
@@ -321,6 +332,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school', 'throttle:api
 
         // Dashboard
         Route::get('/dashboard', [StudentDashboardController::class, 'index']);
+        Route::get('/subjects', [ClassSubjectController::class, 'mySubjects']);
 
         // Profile
         Route::get('/profile', [StudentController::class, 'profile']);
@@ -578,6 +590,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'resolve.school', 'throttle:api
         Route::get('/participants', [SportsController::class, 'participantsList']);
         Route::post('/participants', [SportsController::class, 'enrollParticipant']);
         Route::patch('/participants/{id}/attendance', [SportsController::class, 'updateParticipantAttendance'])->whereNumber('id');
+        Route::post('/achievements', [SportsController::class, 'storeAchievement']);
         Route::patch('/participants/{id}/achievement', [SportsController::class, 'recordAchievement'])->whereNumber('id');
         Route::delete('/participants/{id}', [SportsController::class, 'destroyParticipant'])->whereNumber('id');
         Route::get('/available-students', [SportsController::class, 'availableStudents']);

@@ -81,6 +81,7 @@ import BusRouteBuilderPage from './modules/admin/BusRouteBuilderPage';
 import AdminResourcesPage from './modules/admin/AdminResourcesPage';
 import AdminEventsCalendarPage from './modules/admin/AdminEventsCalendarPage';
 import AdminFeeStructurePage from './modules/admin/AdminFeeStructurePage';
+import AdminClassSubjectsPage from './modules/admin/AdminClassSubjectsPage';
 
 // Library, Transport, Reports & UDISE+
 import LibraryManagementPage from './modules/library/LibraryManagementPage';
@@ -925,7 +926,23 @@ function AppRoutes() {
           }
         />
 
-        <Route path="subjects" element={<Placeholder />} />
+        <Route
+          path="admin/subjects"
+          element={
+            <RoleRoute allowedRoles={['admin', 'principal', 'super_admin']} moduleName="Class Subjects">
+              <AdminClassSubjectsPage />
+            </RoleRoute>
+          }
+        />
+
+        <Route
+          path="subjects"
+          element={
+            <RoleRoute allowedRoles={['admin', 'principal', 'super_admin']} moduleName="Class Subjects">
+              <AdminClassSubjectsPage />
+            </RoleRoute>
+          }
+        />
 
         {/* Central Library Management Routes */}
         <Route
@@ -1067,7 +1084,7 @@ function AppRoutes() {
         <Route
           path="scoresheet"
           element={
-            <RoleRoute allowedRoles={['teacher', 'admin']} moduleName="Scoresheet Entry">
+            <RoleRoute allowedRoles={['teacher', 'admin', 'principal', 'super_admin']} moduleName="Scoresheet Entry">
               <TeacherScoresheetPage />
             </RoleRoute>
           }

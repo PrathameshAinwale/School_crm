@@ -182,8 +182,12 @@ class ExamRankingService
                 }
             }
 
-            // 3. Upsert into student_report_summaries
+            // 3. Upsert into student_report_summaries for evaluated students only
             foreach ($classPerformanceList as $item) {
+                if ($item['total_max_marks'] <= 0 || ($item['total_obtained_marks'] <= 0 && $item['result_status'] === 'RESULT_PENDING')) {
+                    continue;
+                }
+
                 $studentId = $item['student_id'];
                 $classRank = $classRankMap[$studentId] ?? null;
                 $sectionRank = $sectionRankMap[$studentId] ?? null;

@@ -7,7 +7,7 @@ export function generateIdCardsHtml(students, options = {}) {
   const {
     schoolName = 'ARCH CAMPUS',
     schoolTagline = 'School of Excellence & Learning',
-    academicYear = '2024 - 2025',
+    academicYear = '2026 - 2027',
     title = 'Student Identity Cards',
   } = options;
 

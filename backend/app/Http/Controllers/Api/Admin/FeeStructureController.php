@@ -29,6 +29,8 @@ class FeeStructureController extends Controller
             $totalAnnual = $feeStruct ? (float) $feeStruct->total_annual_fee : 0;
             $projectedRevenue = $totalAnnual * $studentsCount;
 
+            $parsed = $this->parseNotesAndFeeHeads($feeStruct);
+
             $installments = $feeStruct ? $feeStruct->installments->map(function ($inst) {
                 return [
                     'id' => $inst->id,
@@ -53,9 +55,10 @@ class FeeStructureController extends Controller
                 'activityFee' => $feeStruct ? (float) $feeStruct->activity_fee : 0,
                 'otherFee' => $feeStruct ? (float) $feeStruct->other_fee : 0,
                 'totalAnnualFee' => $totalAnnual,
+                'feeHeads' => $parsed['feeHeads'],
                 'installmentsCount' => $feeStruct ? $feeStruct->installments_count : count($installments),
                 'projectedRevenue' => $projectedRevenue,
-                'notes' => $feeStruct ? $feeStruct->notes : '',
+                'notes' => $parsed['notes'],
                 'installments' => $installments,
                 'isConfigured' => (bool) $feeStruct,
             ];
@@ -90,6 +93,7 @@ class FeeStructureController extends Controller
     {
         $cls = SchoolClass::with(['feeStructure.installments', 'students'])->findOrFail($classId);
         $feeStruct = $cls->feeStructure;
+        $parsed = $this->parseNotesAndFeeHeads($feeStruct);
 
         $installments = $feeStruct ? $feeStruct->installments->map(function ($inst) {
             return [
@@ -117,8 +121,9 @@ class FeeStructureController extends Controller
                 'activityFee' => $feeStruct ? (float) $feeStruct->activity_fee : 0,
                 'otherFee' => $feeStruct ? (float) $feeStruct->other_fee : 0,
                 'totalAnnualFee' => $feeStruct ? (float) $feeStruct->total_annual_fee : 0,
+                'feeHeads' => $parsed['feeHeads'],
                 'installmentsCount' => $feeStruct ? $feeStruct->installments_count : 4,
-                'notes' => $feeStruct ? $feeStruct->notes : '',
+                'notes' => $parsed['notes'],
                 'installments' => $installments,
             ],
         ]);
@@ -132,7 +137,10 @@ class FeeStructureController extends Controller
         $request->validate([
             'school_class_id' => 'required|exists:school_classes,id',
             'academic_year' => 'nullable|string',
-            'tuition_fee' => 'required|numeric|min:0',
+            'tuition_fee' => 'nullable|numeric|min:0',
+            'fee_heads' => 'nullable|array',
+            'fee_heads.*.title' => 'required_with:fee_heads|string|max:120',
+            'fee_heads.*.amount' => 'required_with:fee_heads|numeric|min:0',
             'transport_fee' => 'nullable|numeric|min:0',
             'lab_library_fee' => 'nullable|numeric|min:0',
             'activity_fee' => 'nullable|numeric|min:0',
@@ -147,12 +155,49 @@ class FeeStructureController extends Controller
 
         $classId = $request->school_class_id;
         $academicYear = $request->input('academic_year', '2026-27');
-        $tuition = (float) $request->tuition_fee;
-        $transport = (float) $request->input('transport_fee', 0);
-        $lab = (float) $request->input('lab_library_fee', 0);
-        $activity = (float) $request->input('activity_fee', 0);
-        $other = (float) $request->input('other_fee', 0);
-        $totalAnnual = $tuition + $transport + $lab + $activity + $other;
+        $feeHeads = $request->input('fee_heads');
+        $notesInput = $request->input('notes', '');
+
+        if (is_array($feeHeads) && count($feeHeads) > 0) {
+            $totalAnnual = 0;
+            $tuition = 0;
+            $transport = 0;
+            $lab = 0;
+            $activity = 0;
+            $other = 0;
+
+            foreach ($feeHeads as $idx => $head) {
+                $amt = (float)($head['amount'] ?? 0);
+                $title = trim($head['title'] ?? '');
+                $titleLower = strtolower($title);
+                $totalAnnual += $amt;
+
+                if ($idx === 0) {
+                    $tuition = $amt;
+                } elseif (str_contains($titleLower, 'transport') || str_contains($titleLower, 'bus') || str_contains($titleLower, 'van')) {
+                    $transport += $amt;
+                } elseif (str_contains($titleLower, 'lab') || str_contains($titleLower, 'library')) {
+                    $lab += $amt;
+                } elseif (str_contains($titleLower, 'sport') || str_contains($titleLower, 'activ') || str_contains($titleLower, 'event')) {
+                    $activity += $amt;
+                } else {
+                    $other += $amt;
+                }
+            }
+
+            $notesToStore = json_encode([
+                'text' => $notesInput,
+                'fee_heads' => $feeHeads,
+            ]);
+        } else {
+            $tuition = (float) ($request->tuition_fee ?? 0);
+            $transport = (float) $request->input('transport_fee', 0);
+            $lab = (float) $request->input('lab_library_fee', 0);
+            $activity = (float) $request->input('activity_fee', 0);
+            $other = (float) $request->input('other_fee', 0);
+            $totalAnnual = $tuition + $transport + $lab + $activity + $other;
+            $notesToStore = $notesInput;
+        }
 
         DB::beginTransaction();
         try {
@@ -167,7 +212,7 @@ class FeeStructureController extends Controller
                     'other_fee' => $other,
                     'total_annual_fee' => $totalAnnual,
                     'installments_count' => count($request->installments),
-                    'notes' => $request->input('notes'),
+                    'notes' => $notesToStore,
                 ]
             );
 
@@ -229,16 +274,29 @@ class FeeStructureController extends Controller
     }
 
     /**
-     * Delete a fee structure.
+     * Delete a fee structure by structure id or school class id.
      */
     public function destroy(Request $request, $id)
     {
-        $feeStruct = FeeStructure::findOrFail($id);
+        $feeStruct = FeeStructure::find($id);
+        if (!$feeStruct) {
+            $feeStruct = FeeStructure::where('school_class_id', $id)->first();
+        }
+
+        if (!$feeStruct) {
+            return response()->json([
+                'success' => true,
+                'message' => 'No active fee structure found to delete.',
+            ]);
+        }
+
+        // Delete associated installments
+        $feeStruct->installments()->delete();
         $feeStruct->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Fee structure reset successfully.',
+            'message' => 'Fee structure deleted and reset successfully.',
         ]);
     }
 
@@ -298,5 +356,53 @@ class FeeStructureController extends Controller
         }
 
         return $count;
+    }
+
+    /**
+     * Parse raw notes field into text notes and custom fee heads.
+     */
+    protected function parseNotesAndFeeHeads(?FeeStructure $feeStruct): array
+    {
+        if (!$feeStruct) {
+            return [
+                'notes' => '',
+                'feeHeads' => [],
+            ];
+        }
+
+        $notesRaw = $feeStruct->notes;
+        $notesText = $notesRaw ?? '';
+        $feeHeads = [];
+
+        if (!empty($notesRaw)) {
+            $decoded = json_decode($notesRaw, true);
+            if (is_array($decoded) && isset($decoded['fee_heads']) && is_array($decoded['fee_heads'])) {
+                $feeHeads = $decoded['fee_heads'];
+                $notesText = $decoded['text'] ?? ($decoded['notes'] ?? '');
+            }
+        }
+
+        if (empty($feeHeads) && $feeStruct->total_annual_fee > 0) {
+            if ((float) $feeStruct->tuition_fee > 0) {
+                $feeHeads[] = ['title' => 'Core Tuition Fee', 'amount' => (float) $feeStruct->tuition_fee];
+            }
+            if ((float) $feeStruct->transport_fee > 0) {
+                $feeHeads[] = ['title' => 'School Transport Fee', 'amount' => (float) $feeStruct->transport_fee];
+            }
+            if ((float) $feeStruct->lab_library_fee > 0) {
+                $feeHeads[] = ['title' => 'Lab & Digital Library', 'amount' => (float) $feeStruct->lab_library_fee];
+            }
+            if ((float) $feeStruct->activity_fee > 0) {
+                $feeHeads[] = ['title' => 'Sports & Activities Fee', 'amount' => (float) $feeStruct->activity_fee];
+            }
+            if ((float) $feeStruct->other_fee > 0) {
+                $feeHeads[] = ['title' => 'Campus & Development Fee', 'amount' => (float) $feeStruct->other_fee];
+            }
+        }
+
+        return [
+            'notes' => $notesText,
+            'feeHeads' => $feeHeads,
+        ];
     }
 }

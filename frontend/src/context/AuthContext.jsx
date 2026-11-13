@@ -107,47 +107,15 @@ export function AuthProvider({ children }) {
     return res;
   };
 
+  // Clear legacy polluted linked_school_accounts from previous testing
   const [linkedSchoolAccounts, setLinkedSchoolAccounts] = useState(() => {
     try {
-      const stored = localStorage.getItem('linked_school_accounts');
-      const list = stored ? JSON.parse(stored) : [];
-      return Array.isArray(list) ? list : [];
+      localStorage.removeItem('linked_school_accounts');
+      return [];
     } catch {
       return [];
     }
   });
-
-  // Keep currently active user and school in linkedSchoolAccounts
-  useEffect(() => {
-    if (user && token && user.school) {
-      setLinkedSchoolAccounts((prev) => {
-        const currentEntry = {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          school_id: user.school_id || user.school.id,
-          school: user.school,
-          token: token,
-          lastActiveAt: new Date().toISOString(),
-        };
-
-        const existingIdx = prev.findIndex(
-          (acc) => acc.email === user.email || (acc.school?.id === currentEntry.school_id && acc.id === user.id)
-        );
-
-        let updated;
-        if (existingIdx >= 0) {
-          updated = [...prev];
-          updated[existingIdx] = { ...updated[existingIdx], ...currentEntry };
-        } else {
-          updated = [currentEntry, ...prev];
-        }
-        localStorage.setItem('linked_school_accounts', JSON.stringify(updated));
-        return updated;
-      });
-    }
-  }, [user, token]);
 
   // Verify and link a new school account using admin email and password
   const addSchoolAccount = async (identifier, password, autoSwitch = true) => {

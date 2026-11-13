@@ -19,7 +19,7 @@ export default function StudentIdCardsModal({
   title = 'Student Identity Cards',
   schoolName = 'ARCH CAMPUS',
   schoolTagline = 'School of Excellence & Learning',
-  academicYear = '2024 - 2025',
+  academicYear = '2026 - 2027',
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudentForSinglePrint, setSelectedStudentForSinglePrint] = useState(null);

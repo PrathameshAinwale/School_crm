@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import {
@@ -15,6 +16,7 @@ import {
   LuCalendar,
   LuFolderArchive,
   LuFilter,
+  LuPencil,
 } from 'react-icons/lu';
 
 const API_BASE_URL =
@@ -530,25 +532,14 @@ export default function ResultsPage() {
               </div>
             </div>
 
-            {/* Export & Bulk Actions */}
+            {/* Export Actions */}
             <div className="flex items-center gap-2">
               <button
                 onClick={handleExportCsv}
-                className="px-3 py-2 text-xs font-semibold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-1.5 transition-colors"
+                className="px-3 py-2 text-xs font-semibold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <LuFileSpreadsheet className="w-4 h-4 text-emerald-600" /> Export CSV
               </button>
-
-              {currentRole === 'admin' && (
-                <button
-                  onClick={handleBulkGenerate}
-                  disabled={bulkGenerating}
-                  className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 flex items-center gap-1.5 transition-colors shadow-xs"
-                >
-                  <LuFolderArchive className="w-4 h-4" />
-                  {bulkGenerating ? 'Generating...' : 'Bulk Report Cards ZIP'}
-                </button>
-              )}
             </div>
           </div>
 
@@ -600,7 +591,7 @@ export default function ResultsPage() {
                     <th className="py-3 px-4">Percentage</th>
                     <th className="py-3 px-4">Grade</th>
                     <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-center">Report Card</th>
+                    <th className="py-3 px-4 text-center w-28">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -634,20 +625,42 @@ export default function ResultsPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <button
-                          onClick={() => handleDownloadPdf(item.exam_term_id, item.student_id)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                          title="Download Student Report Card (PDF)"
-                        >
-                          <LuDownload className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <Link
+                            to="/scoresheet"
+                            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-indigo-600 transition-colors"
+                            title="Edit marks in Scoresheet"
+                          >
+                            <LuPencil className="w-3.5 h-3.5" />
+                          </Link>
+                          <button
+                            onClick={() => handleDownloadPdf(item.exam_term_id, item.student_id)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
+                            title="Download Student Report Card (PDF)"
+                          >
+                            <LuDownload className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                   {classSummaries.length === 0 && (
                     <tr>
-                      <td colSpan={10} className="py-8 text-center text-slate-400">
-                        No examination records found for the selected term and class filters.
+                      <td colSpan={10} className="py-12 text-center">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-2.5">
+                          <LuAward className="w-6 h-6" />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-800">No Student Marks Recorded Yet</h4>
+                        <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+                          Only students whose marks have been entered in the Scoresheet are displayed here in Class Results.
+                        </p>
+                        <Link
+                          to="/scoresheet"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
+                        >
+                          <LuPencil className="w-3.5 h-3.5" />
+                          <span>Go to Scoresheet &amp; Enter Marks</span>
+                        </Link>
                       </td>
                     </tr>
                   )}

@@ -90,12 +90,12 @@ export default function SportsInventoryPage() {
       ]);
 
       if (equipRes?.success) {
-        setEquipment(equipRes.data?.equipment || []);
+        setEquipment(Array.isArray(equipRes.data) ? equipRes.data : (equipRes.data?.equipment || []));
         setRecentIssues(equipRes.data?.recent_issues || []);
         if (equipRes.data?.summary) setSummary(equipRes.data.summary);
       }
-      if (discRes?.success) setDisciplines(discRes.data || []);
-      if (studRes?.success) setAvailableStudents(studRes.data || []);
+      if (discRes?.success) setDisciplines(Array.isArray(discRes.data) ? discRes.data : (discRes.data?.sports || []));
+      if (studRes?.success) setAvailableStudents(Array.isArray(studRes.data) ? studRes.data : (studRes.data?.students || []));
     } catch (err) {
       console.error('Error fetching sports inventory:', err);
     } finally {
@@ -188,7 +188,7 @@ export default function SportsInventoryPage() {
     setIssueForm({
       equipment_id: item.id,
       student_id: availableStudents[0]?.id || '',
-      borrower_name: availableStudents[0]?.full_name || '',
+      borrower_name: availableStudents[0]?.name || availableStudents[0]?.full_name || '',
       borrower_role: 'Student',
       quantity: 1,
       issue_date: new Date().toISOString().split('T')[0],
@@ -587,7 +587,7 @@ export default function SportsInventoryPage() {
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                   >
                     <option value="">General Sports Gear</option>
-                    {disciplines.map((d) => (
+                    {(disciplines || []).map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name}
                       </option>
@@ -751,15 +751,15 @@ export default function SportsInventoryPage() {
                       setIssueForm({
                         ...issueForm,
                         student_id: e.target.value,
-                        borrower_name: st?.full_name || '',
+                        borrower_name: st?.name || st?.full_name || '',
                       });
                     }}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                   >
                     <option value="">Choose Student</option>
-                    {availableStudents.map((st) => (
+                    {(availableStudents || []).map((st) => (
                       <option key={st.id} value={st.id}>
-                        {st.full_name} ({st.admission_number} • {st.class_section})
+                        {st.name || st.full_name} ({st.admission_number || ''} • {st.class_section || ''})
                       </option>
                     ))}
                   </select>

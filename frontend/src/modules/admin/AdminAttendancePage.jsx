@@ -86,9 +86,6 @@ export default function AdminAttendancePage() {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-base sm:text-xl font-bold text-gray-900 leading-tight">Staff Attendance</h1>
-              <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 font-bold text-[10px] sm:text-[11px] border border-gray-200">
-                View Only
-              </span>
             </div>
             <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
               Daily check-ins, leave records & attendance overview

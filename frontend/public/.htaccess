@@ -1,36 +1,47 @@
+# ==============================================================================
+# Hostinger Production Apache Configuration (archcampus.archenterprises.co.in)
+# ==============================================================================
+
+Options +FollowSymLinks -Indexes
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # Handle Authorization Header for API tokens (Sanctum/JWT)
+  # 1. Force HTTPS in Production
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # 2. Block direct access to hidden files (.env, .git, etc.)
+  RewriteRule (^|/)\.(?!well-known) - [F]
+
+  # 3. Preserve HTTP Authorization Header for Sanctum & JWT Bearer Tokens
   RewriteCond %{HTTP:Authorization} .
   RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-  # If file or folder exists physically, serve directly
+  # 4. Route all /api and /api/* requests to the API front-controller bridge
+  RewriteRule ^api(/.*)?$ api/index.php [L,QSA]
+
+  # 5. Serve existing physical files and directories directly
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Route /api to backend if backend/public/index.php exists
-  RewriteCond %{REQUEST_URI} ^/api [NC]
-  RewriteCond %{DOCUMENT_ROOT}/backend/public/index.php -f
-  RewriteRule ^api/(.*)$ backend/public/index.php [L,QSA]
-
-  # Route /api to api/index.php if api/index.php exists
-  RewriteCond %{REQUEST_URI} ^/api [NC]
-  RewriteCond %{DOCUMENT_ROOT}/api/index.php -f
-  RewriteRule ^api/(.*)$ api/index.php [L,QSA]
-
-  # Single Page Application (SPA) - send all other requests to index.html
+  # 6. React Single Page Application (SPA) fallback
   RewriteRule ^ index.html [L]
 </IfModule>
 
-# Enable Gzip compression for faster loading
+# ==============================================================================
+# Performance: Gzip Compression
+# ==============================================================================
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json application/xml
 </IfModule>
 
-# Browser Caching for static assets
+# ==============================================================================
+# Performance: Browser Caching for Static Assets
+# ==============================================================================
 <IfModule mod_expires.c>
   ExpiresActive On
   ExpiresByType image/jpg "access plus 1 month"

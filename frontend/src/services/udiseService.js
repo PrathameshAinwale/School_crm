@@ -90,7 +90,7 @@ export const udiseService = {
   /**
    * Export JSON DCF Payload
    */
-  async exportJson(academicYear = '2024-2025') {
+  async exportJson(academicYear = '2026-2027') {
     const token = localStorage.getItem('auth_token');
     const activeSchoolId = localStorage.getItem('active_school_id');
     const url = `${API_BASE_URL}/udise/export/json?academic_year=${academicYear}`;
@@ -146,7 +146,7 @@ export const udiseService = {
   /**
    * Download DCF Booklet PDF
    */
-  async downloadDcfPdf(academicYear = '2024-2025') {
+  async downloadDcfPdf(academicYear = '2026-2027') {
     const token = localStorage.getItem('auth_token');
     const activeSchoolId = localStorage.getItem('active_school_id');
     const url = `${API_BASE_URL}/udise/export/pdf?academic_year=${academicYear}`;
@@ -174,7 +174,7 @@ export const udiseService = {
   /**
    * Certify Submission
    */
-  certify(academicYear = '2024-2025') {
+  certify(academicYear = '2026-2027') {
     return apiRequest('/udise/certify', {
       method: 'POST',
       body: { academic_year: academicYear },

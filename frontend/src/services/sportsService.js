@@ -78,6 +78,13 @@ export const sportsService = {
     });
   },
 
+  storeAchievement(data) {
+    return apiRequest('/sports/achievements', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   recordAchievement(id, data) {
     return apiRequest(`/sports/participants/${id}/achievement`, {
       method: 'PATCH',

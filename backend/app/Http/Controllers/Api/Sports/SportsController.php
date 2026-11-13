@@ -439,6 +439,55 @@ class SportsController extends Controller
     }
 
     /**
+     * Store or update a Hall of Fame achievement for a student athlete.
+     */
+    public function storeAchievement(Request $request)
+    {
+        $validated = $request->validate([
+            'student_id' => 'required|exists:students,id',
+            'sport_id' => 'required|exists:sports,id',
+            'competition_id' => 'nullable|exists:sports_competitions,id',
+            'achievement' => 'required|string|max:100',
+            'performance_notes' => 'required|string',
+            'jersey_number' => 'nullable|string|max:20',
+            'role' => 'nullable|string|max:50',
+        ]);
+
+        $query = SportsParticipant::where('student_id', $validated['student_id'])
+            ->where('sport_id', $validated['sport_id']);
+
+        if (!empty($validated['competition_id'])) {
+            $query->where('competition_id', $validated['competition_id']);
+        } else {
+            $query->whereNull('competition_id');
+        }
+
+        $participant = $query->first();
+
+        if ($participant) {
+            $participant->update([
+                'achievement' => $validated['achievement'],
+                'performance_notes' => $validated['performance_notes'],
+                'jersey_number' => $validated['jersey_number'] ?? $participant->jersey_number,
+                'role' => $validated['role'] ?? $participant->role,
+            ]);
+        } else {
+            $validated['enrolled_date'] = now()->toDateString();
+            $validated['attendance_status'] = 'Attending';
+            $validated['role'] = $validated['role'] ?? 'Player';
+            $participant = SportsParticipant::create($validated);
+        }
+
+        $participant->load(['student.user', 'student.schoolClass', 'sport', 'competition']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Hall of Fame achievement recorded successfully.',
+            'data' => $participant,
+        ], 201);
+    }
+
+    /**
      * Record an achievement or medal for participant.
      */
     public function recordAchievement(Request $request, $id)
@@ -507,6 +556,7 @@ class SportsController extends Controller
                 return [
                     'id' => $s->id,
                     'name' => $name,
+                    'full_name' => $name,
                     'admission_number' => $s->admission_number,
                     'roll_number' => $s->roll_number,
                     'class_id' => $s->school_class_id,

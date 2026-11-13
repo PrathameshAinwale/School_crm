@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\StudentParent;
 use App\Http\Controllers\Controller;
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
+use App\Models\ClassSubject;
 use App\Models\SchoolCalendarEvent;
 use App\Models\Student;
 use App\Models\StudentAttendance;
@@ -158,35 +159,53 @@ class StudentDashboardController extends Controller
                 ];
             });
         } else {
-            $topSyllabus = collect([
-                [
-                    'subject' => 'Mathematics',
-                    'code' => 'MATH-10',
-                    'progress' => 74,
-                    'totalChapters' => 8,
-                    'completedChapters' => 6,
-                    'currentChapter' => 'Trigonometry & Coordinate Geometry',
-                    'teacher' => 'Dr. Ananya Sen (PGT)',
-                ],
-                [
-                    'subject' => 'Science (Physics & Chem)',
-                    'code' => 'SCI-10',
-                    'progress' => 68,
-                    'totalChapters' => 10,
-                    'completedChapters' => 7,
-                    'currentChapter' => 'Electricity & Magnetic Effects',
-                    'teacher' => 'Mr. Vikram Rathore',
-                ],
-                [
-                    'subject' => 'English Core',
-                    'code' => 'ENG-10',
-                    'progress' => 82,
-                    'totalChapters' => 6,
-                    'completedChapters' => 5,
-                    'currentChapter' => 'Literature Analysis & Formal Writing',
-                    'teacher' => 'Ms. Sunita Rao',
-                ],
-            ]);
+            $classSubjects = $classId
+                ? ClassSubject::with(['subject', 'teacher'])->where('school_class_id', $classId)->get()
+                : collect();
+
+            if ($classSubjects->isNotEmpty()) {
+                $topSyllabus = $classSubjects->take(4)->map(function ($cs) {
+                    return [
+                        'subject' => $cs->subject?->name ?? 'General Subject',
+                        'code' => $cs->subject?->code ?? ('SUB-' . $cs->subject_id),
+                        'progress' => 75,
+                        'totalChapters' => $cs->periods_per_week ?: 6,
+                        'completedChapters' => max(1, ($cs->periods_per_week ?: 6) - 1),
+                        'currentChapter' => $cs->subject?->type === 'practical' ? 'Practical Lab Experiments' : 'Core Syllabus Modules',
+                        'teacher' => $cs->teacher ? trim("{$cs->teacher->first_name} {$cs->teacher->last_name}") : 'Senior Faculty',
+                    ];
+                });
+            } else {
+                $topSyllabus = collect([
+                    [
+                        'subject' => 'Mathematics',
+                        'code' => 'MATH-10',
+                        'progress' => 74,
+                        'totalChapters' => 8,
+                        'completedChapters' => 6,
+                        'currentChapter' => 'Trigonometry & Coordinate Geometry',
+                        'teacher' => 'Dr. Ananya Sen (PGT)',
+                    ],
+                    [
+                        'subject' => 'Science (Physics & Chem)',
+                        'code' => 'SCI-10',
+                        'progress' => 68,
+                        'totalChapters' => 10,
+                        'completedChapters' => 7,
+                        'currentChapter' => 'Electricity & Magnetic Effects',
+                        'teacher' => 'Mr. Vikram Rathore',
+                    ],
+                    [
+                        'subject' => 'English Core',
+                        'code' => 'ENG-10',
+                        'progress' => 82,
+                        'totalChapters' => 6,
+                        'completedChapters' => 5,
+                        'currentChapter' => 'Literature Analysis & Formal Writing',
+                        'teacher' => 'Ms. Sunita Rao',
+                    ],
+                ]);
+            }
         }
 
         // 7. Today's Period Timetable

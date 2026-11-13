@@ -5,7 +5,7 @@ export default function StudentIdCard({
   student,
   schoolName = 'ARCH CAMPUS',
   schoolTagline = 'School of Excellence & Learning',
-  academicYear = '2024 - 2025',
+  academicYear = '2026 - 2027',
   onPrintSingle,
 }) {
   if (!student) return null;

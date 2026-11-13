@@ -71,10 +71,13 @@ export default function SportsFitnessPage() {
       ]);
 
       if (fitRes?.success) {
-        setAssessments(fitRes.data?.assessments || []);
+        setAssessments(Array.isArray(fitRes.data) ? fitRes.data : (fitRes.data?.assessments || []));
         if (fitRes.data?.summary) setSummary(fitRes.data.summary);
       }
-      if (studRes?.success) setAvailableStudents(studRes.data || []);
+      if (studRes?.success) {
+        const studentList = Array.isArray(studRes.data) ? studRes.data : (studRes.data?.students || []);
+        setAvailableStudents(studentList);
+      }
     } catch (err) {
       console.error('Error loading fitness assessments:', err);
     } finally {
@@ -391,9 +394,9 @@ export default function SportsFitnessPage() {
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                 >
                   <option value="">Choose Student</option>
-                  {availableStudents.map((st) => (
+                  {(availableStudents || []).map((st) => (
                     <option key={st.id} value={st.id}>
-                      {st.full_name} ({st.admission_number} • {st.class_section})
+                      {st.name || st.full_name} ({st.admission_number || ''} • {st.class_section || ''})
                     </option>
                   ))}
                 </select>

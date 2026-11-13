@@ -26,11 +26,32 @@ class ReportCardController extends Controller
     {
         $schoolId = $request->get('school_id') ?? 1;
 
-        $academicYears = ['2024-2025', '2025-2026', '2026-2027'];
+        $academicYears = ['2026-2027', '2025-2026', '2024-2025'];
 
         $examinations = Examination::where(function ($q) use ($schoolId) {
             $q->where('school_id', $schoolId)->orWhereNull('school_id');
         })->orderBy('academic_year', 'desc')->orderBy('start_date', 'asc')->get();
+
+        if ($examinations->isEmpty()) {
+            $existingTerms = \App\Models\ExamTerm::all();
+            foreach ($existingTerms as $t) {
+                Examination::firstOrCreate(
+                    ['school_id' => $schoolId, 'name' => $t->name],
+                    [
+                        'academic_year' => '2026-2027',
+                        'code' => $t->code ?: 'TERM-' . $t->id,
+                        'term' => 'Term ' . $t->id,
+                        'max_marks_default' => 100,
+                        'passing_marks_default' => 33,
+                        'status' => 'Completed',
+                        'description' => $t->description,
+                    ]
+                );
+            }
+            $examinations = Examination::where(function ($q) use ($schoolId) {
+                $q->where('school_id', $schoolId)->orWhereNull('school_id');
+            })->orderBy('academic_year', 'desc')->orderBy('start_date', 'asc')->get();
+        }
 
         $classes = SchoolClass::with('sections')->where(function ($q) use ($schoolId) {
             $q->where('school_id', $schoolId)->orWhereNull('school_id');
@@ -58,7 +79,7 @@ class ReportCardController extends Controller
      */
     public function generate(Request $request)
     {
-        $academicYear = $request->input('academic_year', '2024-2025');
+        $academicYear = $request->input('academic_year', '2026-2027');
         $examId = $request->input('examination_id');
         $classId = $request->input('school_class_id');
         $sectionId = $request->input('section_id');
@@ -126,11 +147,6 @@ class ReportCardController extends Controller
 
         $students = $studentsQuery->orderBy('roll_number', 'asc')->get();
 
-        if ($students->isEmpty()) {
-            // Fallback: If no student found for strict filter, fetch all active students
-            $students = Student::with(['schoolClass', 'section'])->where('status', 'Active')->get();
-        }
-
         $subjects = Subject::all();
         if ($subjects->isEmpty()) {
             $subjects = collect([
@@ -147,43 +163,15 @@ class ReportCardController extends Controller
         $totalScores = [];
 
         foreach ($students as $student) {
-            // Fetch or create marks for all subjects
+            // Fetch real marks recorded for this student
             $marks = ExamMark::with('subject')
                 ->where('examination_id', $examination->id)
                 ->where('student_id', $student->id)
                 ->get();
 
-            if ($marks->isEmpty()) {
-                // Auto-generate marks for this student
-                foreach ($subjects as $sIdx => $subject) {
-                    $maxM = 100;
-                    $passM = 35;
-                    $base = 65 + (($student->id * 7 + $sIdx * 11) % 25);
-                    $theory = (int) ($base * 0.8);
-                    $practical = (int) ($base * 0.2);
-                    $obtained = $theory + $practical;
-                    $grade = ExamMark::calculateGrade($obtained, $maxM);
-                    $remark = ExamMark::getRemarkForGrade($grade);
-
-                    ExamMark::create([
-                        'school_id' => $school->id ?? 1,
-                        'examination_id' => $examination->id,
-                        'student_id' => $student->id,
-                        'subject_id' => $subject->id,
-                        'theory_marks' => $theory,
-                        'practical_marks' => $practical,
-                        'marks_obtained' => $obtained,
-                        'max_marks' => $maxM,
-                        'passing_marks' => $passM,
-                        'grade' => $grade,
-                        'remarks' => $remark,
-                    ]);
-                }
-
-                $marks = ExamMark::with('subject')
-                    ->where('examination_id', $examination->id)
-                    ->where('student_id', $student->id)
-                    ->get();
+            // ONLY show students who have marks added in the scoresheet entry page!
+            if ($marks->isEmpty() || $marks->every(fn($m) => $m->marks_obtained === null && empty($m->remarks))) {
+                continue;
             }
 
             // Calculate overall totals
@@ -495,6 +483,50 @@ class ReportCardController extends Controller
                 'principal_remarks' => $validated['principal_remarks'] ?? 'Promoted.',
             ]
         );
+
+        // Synchronize ExamScore and Class Results
+        $term = \App\Models\ExamTerm::where('school_id', $schoolId)
+            ->where('name', $exam->name)
+            ->first() ?? \App\Models\ExamTerm::first();
+
+        if ($term) {
+            foreach ($validated['marks'] as $row) {
+                $obtained = (float)($row['theory_marks'] ?? 0) + (float)($row['practical_marks'] ?? 0);
+                $paperExam = \App\Models\Exam::firstOrCreate(
+                    [
+                        'school_id' => $schoolId,
+                        'academic_year_id' => $term->academic_year_id ?: 1,
+                        'exam_term_id' => $term->id,
+                        'school_class_id' => $student->school_class_id,
+                        'section_id' => $student->section_id ?: 1,
+                        'subject_id' => $row['subject_id'],
+                    ],
+                    [
+                        'exam_date' => now()->toDateString(),
+                        'max_marks' => 100,
+                        'pass_marks' => 33,
+                        'status' => 'submitted',
+                    ]
+                );
+
+                \App\Models\ExamScore::updateOrCreate(
+                    [
+                        'school_id' => $schoolId,
+                        'academic_year_id' => $paperExam->academic_year_id,
+                        'exam_id' => $paperExam->id,
+                        'student_id' => $student->id,
+                    ],
+                    [
+                        'marks_obtained' => $obtained,
+                        'is_passed' => $obtained >= 33,
+                        'grade' => ExamMark::calculateGrade($obtained, 100),
+                        'teacher_remarks' => $validated['teacher_remarks'] ?? null,
+                    ]
+                );
+            }
+
+            \App\Services\Exams\ExamRankingService::computeTermSummariesAndRanks($term);
+        }
 
         return response()->json([
             'success' => true,

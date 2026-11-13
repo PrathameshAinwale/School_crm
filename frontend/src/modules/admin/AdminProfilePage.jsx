@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { adminService } from '../../services/adminService';
 import {
   LuUser,
   LuBuilding2,
@@ -48,6 +49,36 @@ export default function AdminProfilePage() {
   const requestedTab = searchParams.get('tab') || 'overview';
   const initialTab = (!isAdmin && requestedTab === 'switch-school') ? 'overview' : requestedTab;
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Real database branches
+  const [branches, setBranches] = useState([]);
+  const [branchesLoading, setBranchesLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchBranches = async () => {
+      try {
+        setBranchesLoading(true);
+        const res = await adminService.getBranches();
+        if (isMounted && res && res.success) {
+          const list = Array.isArray(res.branches)
+            ? res.branches
+            : Array.isArray(res.data)
+            ? res.data
+            : [];
+          setBranches(list);
+        }
+      } catch (err) {
+        // fallback
+      } finally {
+        if (isMounted) setBranchesLoading(false);
+      }
+    };
+    fetchBranches();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Edit Profile Form state
   const [isEditing, setIsEditing] = useState(false);
@@ -298,7 +329,7 @@ export default function AdminProfilePage() {
             <span>Profile Overview</span>
           </button>
 
-          {isAdmin && (
+          {isAdmin && branches.length > 1 && (
             <button
               type="button"
               onClick={() => handleTabChange('switch-school')}
@@ -311,7 +342,7 @@ export default function AdminProfilePage() {
               <LuLayers className="w-4 h-4 text-primary-600" />
               <span>Switch School</span>
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-primary-100 text-primary-800 font-extrabold">
-                {linkedSchoolAccounts?.length || 0}
+                {branches.length}
               </span>
             </button>
           )}
@@ -333,140 +364,127 @@ export default function AdminProfilePage() {
 
       {/* 3. TAB CONTENT */}
 
-      {/* -------------------- TAB: SWITCH SCHOOL (Requested Feature) -------------------- */}
+      {/* -------------------- TAB: SWITCH SCHOOL -------------------- */}
       {isAdmin && activeTab === 'switch-school' && (
         <div className="space-y-6 animate-fade-in">
-          {/* Info Banner */}
-          <div className="bg-gradient-to-r from-blue-50/80 via-primary-50/60 to-white rounded-2xl p-4 sm:p-5 border border-primary-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                <LuBuilding2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-bold text-gray-900">
-                  Multi-Campus School Switcher
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Link multiple school accounts using their admin email & password. Once added, you can switch between them anytime with a single click without having to enter credentials again.
-                </p>
-              </div>
-            </div>
-
-            <div className="px-3 py-1.5 rounded-xl bg-white border border-primary-200 text-xs font-bold text-primary-700 shrink-0">
-              {linkedSchoolAccounts.length} {linkedSchoolAccounts.length === 1 ? 'School Connected' : 'Schools Connected'}
-            </div>
-          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left 2 Cols: Connected Schools List */}
             <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm sm:text-base font-bold text-gray-800">
-                    Your Connected School Campuses
-                  </h2>
-                  <p className="text-xs text-gray-400">
-                    Click "Switch to this School" to change your active management session.
+
+              {branchesLoading ? (
+                <div className="p-8 bg-white rounded-2xl border border-gray-200 text-center text-xs text-gray-400">
+                  <LuLoader className="w-5 h-5 animate-spin mx-auto text-primary-600 mb-2" />
+                  Loading schools from database...
+                </div>
+              ) : branches.length === 0 ? (
+                <div className="p-8 bg-white rounded-2xl border border-dashed border-gray-200 text-center space-y-2">
+                  <LuBuilding2 className="w-8 h-8 text-gray-300 mx-auto" />
+                  <h3 className="text-xs font-bold text-gray-700">No School Records Found</h3>
+                  <p className="text-[11px] text-gray-400">
+                    No school campuses currently exist in the database.
                   </p>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  {branches.map((branch) => {
+                    const isSelected = String(branch.id) === String(activeSchoolId);
 
-              <div className="space-y-3">
-                {linkedSchoolAccounts.map((account) => {
-                  const isSelected =
-                    account.school_id === activeSchoolId ||
-                    (account.email === user?.email && account.id === user?.id);
-
-                  return (
-                    <div
-                      key={`${account.id}-${account.school_id || account.email}`}
-                      className={`relative bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
-                        isSelected
-                          ? 'border-primary-500 ring-2 ring-primary-100 bg-primary-50/20'
-                          : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                      }`}
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-start gap-3.5">
-                          <div
-                            className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                              isSelected
-                                ? 'bg-primary-600 text-white shadow-xs'
-                                : 'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            <LuBuilding2 className="w-5 h-5" />
-                          </div>
-
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="text-sm sm:text-base font-bold text-gray-900">
-                                {account.school?.name || 'School Campus'}
-                              </h3>
-                              {isSelected && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 flex items-center gap-1 border border-emerald-200">
-                                  <LuCheck className="w-3 h-3" />
-                                  Active Campus
-                                </span>
-                              )}
+                    return (
+                      <div
+                        key={branch.id}
+                        className={`relative bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+                          isSelected
+                            ? 'border-primary-500 ring-2 ring-primary-100 bg-primary-50/20'
+                            : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex items-start gap-3.5">
+                            <div
+                              className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                                isSelected
+                                  ? 'bg-primary-600 text-white shadow-xs'
+                                  : 'bg-gray-100 text-gray-600'
+                              }`}
+                            >
+                              <LuBuilding2 className="w-5 h-5" />
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
-                              <div className="flex items-center gap-1.5 truncate">
-                                <LuMail className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                                <span className="truncate">{account.email}</span>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="text-sm sm:text-base font-bold text-gray-900">
+                                  {branch.name}
+                                </h3>
+                                {isSelected && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 flex items-center gap-1 border border-emerald-200">
+                                    <LuCheck className="w-3 h-3" />
+                                    Active Campus
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 mt-2 text-xs text-gray-500 font-medium">
+                                {branch.code && <span>Code: {branch.code}</span>}
+                                {branch.city && <span>City: {branch.city}</span>}
+                                {branch.affiliation && <span>Board: {branch.affiliation}</span>}
                               </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Action buttons */}
-                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                          {isSelected ? (
-                            <span className="px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 flex items-center gap-1.5">
-                              <LuCheck className="w-3.5 h-3.5" /> Current Active
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={switchingAccountId === account.id}
-                              onClick={() => {
-                                setSwitchingAccountId(account.id);
-                                switchSchoolAccount(account);
-                              }}
-                              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
-                            >
-                              {switchingAccountId === account.id ? (
-                                <>
-                                  <LuLoader className="w-3.5 h-3.5 animate-spin" />
-                                  <span>Switching...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span>Switch to School</span>
-                                  <LuArrowRight className="w-3.5 h-3.5" />
-                                </>
-                              )}
-                            </button>
-                          )}
-
-                          {/* Unlink button (only for secondary schools) */}
-                          {!isSelected && linkedSchoolAccounts.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeSchoolAccount(account.id || account.email)}
-                              title="Disconnect this school from switcher"
-                              className="p-2 rounded-xl text-gray-400 hover:text-rose-600 hover:bg-rose-50 border border-gray-200 hover:border-rose-200 transition-colors cursor-pointer"
-                            >
-                              <LuTrash2 className="w-4 h-4" />
-                            </button>
-                          )}
+                          {/* Action button */}
+                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                            {isSelected ? (
+                              <span className="px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 flex items-center gap-1.5">
+                                <LuCheck className="w-3.5 h-3.5" /> Current Active
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={switchingAccountId === branch.id}
+                                onClick={async () => {
+                                  setSwitchingAccountId(branch.id);
+                                  try {
+                                    const switchRes = await adminService.switchBranch(branch.id);
+                                    if (switchRes?.success) {
+                                      localStorage.setItem('active_school_id', branch.id);
+                                      localStorage.setItem('active_school_name', branch.name);
+                                      window.location.reload();
+                                    }
+                                  } catch (e) {
+                                    console.error('Error switching branch:', e);
+                                  } finally {
+                                    setSwitchingAccountId(null);
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                              >
+                                {switchingAccountId === branch.id ? (
+                                  <>
+                                    <LuLoader className="w-3.5 h-3.5 animate-spin" />
+                                    <span>Switching...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>Switch to School</span>
+                                    <LuArrowRight className="w-3.5 h-3.5" />
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
+                    );
+                  })}
+
+                  {branches.length === 1 && (
+                    <div className="p-4 rounded-xl bg-gray-50/80 border border-gray-200/80 text-xs text-gray-500">
+                      💡 <strong>Single Campus Setup:</strong> There are no other school campuses in your database.
                     </div>
-                  );
-                })}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Right 1 Col: Connect Another School Form */}
@@ -550,10 +568,6 @@ export default function AdminProfilePage() {
                   />
                   <span>Switch to school immediately</span>
                 </label>
-
-                <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-[10px] text-gray-500 leading-relaxed">
-                  Saved schools are securely accessible anytime without entering password again.
-                </div>
 
                 <button
                   type="submit"
@@ -813,7 +827,7 @@ export default function AdminProfilePage() {
                   <div className="flex items-center gap-3 min-w-0">
                     <LuBuilding2 className="w-4 h-4 text-blue-600 shrink-0" />
                     <span className="font-bold text-gray-900 truncate text-xs sm:text-sm">
-                      {currentSchool?.name || activeSchoolName || 'Delhi Public Academy'}
+                      {currentSchool?.name || activeSchoolName || user?.school?.name || 'School Campus'}
                     </span>
                   </div>
                   {(currentSchool?.code || activeSchoolCode) && (
@@ -833,7 +847,7 @@ export default function AdminProfilePage() {
                   <div className="flex items-center gap-3 min-w-0">
                     <LuBuilding2 className="w-4 h-4 text-gray-400 shrink-0" />
                     <span className="font-mono font-bold text-gray-800">
-                      {currentSchool?.code || activeSchoolCode || 'DPS-101'}
+                      {currentSchool?.code || activeSchoolCode || user?.school?.code || '—'}
                     </span>
                   </div>
                 </div>
@@ -848,7 +862,7 @@ export default function AdminProfilePage() {
                   <div className="flex items-center gap-3 min-w-0">
                     <LuAward className="w-4 h-4 text-indigo-600 shrink-0" />
                     <span className="font-bold text-gray-800">
-                      {currentSchool?.affiliation || 'CBSE'}
+                      {currentSchool?.affiliation || user?.school?.affiliation || '—'}
                     </span>
                   </div>
                 </div>
@@ -863,7 +877,7 @@ export default function AdminProfilePage() {
                   <div className="flex items-center gap-3 min-w-0">
                     <LuUser className="w-4 h-4 text-purple-600 shrink-0" />
                     <span className="font-bold text-gray-800">
-                      {currentSchool?.principal_name || 'Dr. Rajeshwari Sharma'}
+                      {currentSchool?.principal_name || user?.school?.principal_name || '—'}
                     </span>
                   </div>
                 </div>
@@ -878,7 +892,7 @@ export default function AdminProfilePage() {
                   <div className="flex items-center gap-3 min-w-0">
                     <LuMapPin className="w-4 h-4 text-rose-600 shrink-0" />
                     <span className="font-bold text-gray-800">
-                      {currentSchool?.city ? `${currentSchool.city}${currentSchool.state ? `, ${currentSchool.state}` : ''}` : 'New Delhi, Delhi'}
+                      {currentSchool?.city ? `${currentSchool.city}${currentSchool.state ? `, ${currentSchool.state}` : ''}` : (user?.school?.city || '—')}
                     </span>
                   </div>
                 </div>
@@ -893,7 +907,7 @@ export default function AdminProfilePage() {
                   <div className="flex items-center gap-3 min-w-0">
                     <LuPhone className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span className="font-bold text-gray-800">
-                      {currentSchool?.phone || '+91 11 2890 1200'}
+                      {currentSchool?.phone || user?.school?.phone || '—'}
                     </span>
                   </div>
                 </div>
@@ -908,7 +922,7 @@ export default function AdminProfilePage() {
                   <div className="flex items-center gap-3 min-w-0">
                     <LuMail className="w-4 h-4 text-blue-600 shrink-0" />
                     <span className="font-bold text-gray-800">
-                      {currentSchool?.email || 'contact@delhipublic.edu'}
+                      {currentSchool?.email || user?.school?.email || '—'}
                     </span>
                   </div>
                 </div>
@@ -923,7 +937,7 @@ export default function AdminProfilePage() {
                   <div className="flex items-center gap-3 min-w-0">
                     <LuSparkles className="w-4 h-4 text-amber-600 shrink-0" />
                     <span className="font-bold text-primary-700">
-                      {currentSchool?.subscription_plan || 'Enterprise'}
+                      {currentSchool?.subscription_plan || 'Standard'}
                     </span>
                   </div>
                 </div>

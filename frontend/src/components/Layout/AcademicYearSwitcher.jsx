@@ -35,7 +35,11 @@ export default function AcademicYearSwitcher() {
           current = list.find((y) => (y.id === parseInt(storedId, 10)));
         }
         if (!current) {
-          current = res.data.current_year || list.find((y) => y.is_current) || list[0] || null;
+          current = list.find((y) => y.name?.includes('2026-2027') || y.code?.includes('2026-27') || y.code?.includes('26-27'))
+            || res.data.current_year
+            || list.find((y) => y.is_current)
+            || list[0]
+            || null;
           if (current) {
             localStorage.setItem('active_academic_year_id', current.id);
           }

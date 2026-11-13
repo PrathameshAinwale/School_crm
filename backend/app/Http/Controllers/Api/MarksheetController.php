@@ -25,11 +25,32 @@ class MarksheetController extends Controller
     {
         $schoolId = $request->get('school_id') ?? 1;
 
-        $academicYears = ['2024-2025', '2025-2026', '2026-2027'];
+        $academicYears = ['2026-2027', '2025-2026', '2024-2025'];
 
         $examinations = Examination::where(function ($q) use ($schoolId) {
             $q->where('school_id', $schoolId)->orWhereNull('school_id');
         })->orderBy('academic_year', 'desc')->orderBy('start_date', 'asc')->get();
+
+        if ($examinations->isEmpty()) {
+            $existingTerms = \App\Models\ExamTerm::all();
+            foreach ($existingTerms as $t) {
+                Examination::firstOrCreate(
+                    ['school_id' => $schoolId, 'name' => $t->name],
+                    [
+                        'academic_year' => '2026-2027',
+                        'code' => $t->code ?: 'TERM-' . $t->id,
+                        'term' => 'Term ' . $t->id,
+                        'max_marks_default' => 100,
+                        'passing_marks_default' => 33,
+                        'status' => 'Completed',
+                        'description' => $t->description,
+                    ]
+                );
+            }
+            $examinations = Examination::where(function ($q) use ($schoolId) {
+                $q->where('school_id', $schoolId)->orWhereNull('school_id');
+            })->orderBy('academic_year', 'desc')->orderBy('start_date', 'asc')->get();
+        }
 
         $classes = SchoolClass::with('sections')->where(function ($q) use ($schoolId) {
             $q->where('school_id', $schoolId)->orWhereNull('school_id');
@@ -55,7 +76,7 @@ class MarksheetController extends Controller
      */
     public function generate(Request $request)
     {
-        $academicYear = $request->input('academic_year', '2024-2025');
+        $academicYear = $request->input('academic_year', '2026-2027');
         $examId = $request->input('examination_id');
         $classId = $request->input('school_class_id');
         $sectionId = $request->input('section_id');
@@ -125,10 +146,6 @@ class MarksheetController extends Controller
 
         $students = $studentsQuery->orderBy('roll_number', 'asc')->get();
 
-        if ($students->isEmpty()) {
-            $students = Student::with(['schoolClass', 'section'])->where('status', 'Active')->get();
-        }
-
         $subjects = Subject::all();
         if ($subjects->isEmpty()) {
             $subjects = collect([
@@ -145,42 +162,15 @@ class MarksheetController extends Controller
         $totalScores = [];
 
         foreach ($students as $student) {
-            // Fetch or populate marks for all subjects
+            // Fetch real marks recorded for this student
             $marks = ExamMark::with('subject')
                 ->where('examination_id', $examination->id)
                 ->where('student_id', $student->id)
                 ->get();
 
-            if ($marks->isEmpty()) {
-                foreach ($subjects as $sIdx => $subject) {
-                    $maxM = 100;
-                    $passM = 33;
-                    $base = 65 + (($student->id * 7 + $sIdx * 11) % 25);
-                    $theory = (int) ($base * 0.8);
-                    $practical = (int) ($base * 0.2);
-                    $obtained = $theory + $practical;
-                    $grade = ExamMark::calculateGrade($obtained, $maxM);
-                    $remark = ExamMark::getRemarkForGrade($grade);
-
-                    ExamMark::create([
-                        'school_id' => $school->id ?? 1,
-                        'examination_id' => $examination->id,
-                        'student_id' => $student->id,
-                        'subject_id' => $subject->id,
-                        'theory_marks' => $theory,
-                        'practical_marks' => $practical,
-                        'marks_obtained' => $obtained,
-                        'max_marks' => $maxM,
-                        'passing_marks' => $passM,
-                        'grade' => $grade,
-                        'remarks' => $remark,
-                    ]);
-                }
-
-                $marks = ExamMark::with('subject')
-                    ->where('examination_id', $examination->id)
-                    ->where('student_id', $student->id)
-                    ->get();
+            // ONLY show students who have marks added in the scoresheet entry page!
+            if ($marks->isEmpty() || $marks->every(fn($m) => $m->marks_obtained === null && empty($m->remarks))) {
+                continue;
             }
 
             // Calculate Detailed Marksheet Breakdown
@@ -280,7 +270,7 @@ class MarksheetController extends Controller
             $presentDays = $totalLogged > 0 ? max(78, $presentLogged) : (int) round($workingDays * ($pct >= 80 ? 0.94 : 0.88));
             $attPct = round(($presentDays / $workingDays) * 100, 1);
 
-            $serialNo = 'MS/' . ($examination->academic_year ?? '2024-2025') . '/' . ($examination->code ?? 'EX') . '/' . str_pad($student->roll_number ?? $student->id, 4, '0', STR_PAD_LEFT);
+            $serialNo = 'MS/' . ($examination->academic_year ?? '2026-2027') . '/' . ($examination->code ?? 'EX') . '/' . str_pad($student->roll_number ?? $student->id, 4, '0', STR_PAD_LEFT);
             $marksInWords = self::numberToWords((int) $totObt);
             $maxInWords = self::numberToWords((int) $totMax);
 
@@ -586,7 +576,7 @@ class MarksheetController extends Controller
         $overallGrade = ExamMark::calculateGrade($totalObtained, $totalMax);
         $resultStatus = $pct >= 85 ? 'DISTINCTION' : ($pct >= 33 ? 'PASSED' : 'FAILED');
 
-        ReportCard::updateOrCreate(
+        $reportCard = ReportCard::updateOrCreate(
             [
                 'examination_id' => $exam->id,
                 'student_id' => $student->id,
@@ -601,6 +591,49 @@ class MarksheetController extends Controller
                 'result_status' => $resultStatus,
             ]
         );
+
+        // Synchronize ExamScore and Class Results
+        $term = \App\Models\ExamTerm::where('school_id', $schoolId)
+            ->where('name', $exam->name)
+            ->first() ?? \App\Models\ExamTerm::first();
+
+        if ($term) {
+            foreach ($validated['marks'] as $row) {
+                $obtained = (float)($row['theory_marks'] ?? 0) + (float)($row['practical_marks'] ?? 0);
+                $paperExam = \App\Models\Exam::firstOrCreate(
+                    [
+                        'school_id' => $schoolId,
+                        'academic_year_id' => $term->academic_year_id ?: 1,
+                        'exam_term_id' => $term->id,
+                        'school_class_id' => $student->school_class_id,
+                        'section_id' => $student->section_id ?: 1,
+                        'subject_id' => $row['subject_id'],
+                    ],
+                    [
+                        'exam_date' => now()->toDateString(),
+                        'max_marks' => 100,
+                        'pass_marks' => 33,
+                        'status' => 'submitted',
+                    ]
+                );
+
+                \App\Models\ExamScore::updateOrCreate(
+                    [
+                        'school_id' => $schoolId,
+                        'academic_year_id' => $paperExam->academic_year_id,
+                        'exam_id' => $paperExam->id,
+                        'student_id' => $student->id,
+                    ],
+                    [
+                        'marks_obtained' => $obtained,
+                        'is_passed' => $obtained >= 33,
+                        'grade' => ExamMark::calculateGrade($obtained, 100),
+                    ]
+                );
+            }
+
+            \App\Services\Exams\ExamRankingService::computeTermSummariesAndRanks($term);
+        }
 
         return response()->json([
             'success' => true,

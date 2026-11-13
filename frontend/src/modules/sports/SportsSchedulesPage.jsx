@@ -68,9 +68,9 @@ export default function SportsSchedulesPage() {
         sportsService.getFacilities(),
       ]);
 
-      if (schedRes?.success) setSchedules(schedRes.data?.schedules || []);
-      if (discRes?.success) setDisciplines(discRes.data || []);
-      if (facRes?.success) setFacilities(facRes.data?.facilities || []);
+      if (schedRes?.success) setSchedules(Array.isArray(schedRes.data) ? schedRes.data : (schedRes.data?.schedules || []));
+      if (discRes?.success) setDisciplines(Array.isArray(discRes.data) ? discRes.data : (discRes.data?.sports || []));
+      if (facRes?.success) setFacilities(Array.isArray(facRes.data) ? facRes.data : (facRes.data?.facilities || []));
     } catch (err) {
       console.error('Error fetching schedules:', err);
     } finally {

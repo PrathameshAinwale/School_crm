@@ -22,6 +22,34 @@ export const adminService = {
     return apiRequest('/admin/academic/subjects');
   },
 
+  // Class Subjects & Curriculum Roster
+  getClassSubjects(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/class-subjects${qs ? `?${qs}` : ''}`);
+  },
+  assignClassSubject(data) {
+    return apiRequest('/admin/class-subjects', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  updateClassSubject(id, data) {
+    return apiRequest(`/admin/class-subjects/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  deleteClassSubject(id) {
+    return apiRequest(`/admin/class-subjects/${id}`, {
+      method: 'DELETE',
+    });
+  },
+  syncClassSubjectsToStudents(classId) {
+    return apiRequest(`/admin/class-subjects/${classId}/sync-students`, {
+      method: 'POST',
+    });
+  },
+
   // Standard-wise Fee Structure Management
   getFeeStructures() {
     return apiRequest('/admin/fee-structures');

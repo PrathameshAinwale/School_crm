@@ -1,0 +1,241 @@
+name: Production CI/CD Deployment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  # ============================================================================
+  # 1. PRE-DEPLOYMENT VALIDATION & TESTING
+  # Guardrail: Never deploy code to production that fails tests or compilation.
+  # ============================================================================
+  pre-deploy-validation:
+    name: Pre-Flight Tests & Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # ---------------- Backend Verification ----------------
+      - name: Setup PHP 8.2 & Tools
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, bcmath, curl, zip, sqlite3, pdo_sqlite
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        working-directory: backend
+        run: composer validate --strict
+
+      - name: Install Dependencies for PHPUnit
+        working-directory: backend
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Setup Test Environment
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Execute Backend Automated Tests
+        working-directory: backend
+        run: php artisan test
+
+      # ---------------- Frontend Verification ----------------
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run Frontend Linter (oxlint)
+        working-directory: frontend
+        run: |
+          npm run lint || echo "::warning::Linter reported warnings or formatting notices."
+
+      - name: Verify Frontend Production Build
+        working-directory: frontend
+        env:
+          VITE_API_URL: https://archcampus.archenterprises.co.in/api/v1
+        run: npm run build
+
+  # ============================================================================
+  # 2. BACKEND DEPLOYMENT (Isolated Laravel API -> sibling backend/ directory)
+  # ============================================================================
+  deploy-backend:
+    name: Package & Deploy Backend
+    runs-on: ubuntu-latest
+    needs: pre-deploy-validation
+    environment:
+      name: production
+      url: https://archcampus.archenterprises.co.in
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.2 & Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, bcmath, curl, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        working-directory: backend
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Production Dependencies & Bundle Vendor
+        working-directory: backend
+        run: |
+          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+          zip -q -r vendor.zip vendor
+
+      - name: Deploy Backend Files to Hostinger via FTPS/FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.PROD_FTP_HOST }}
+          username: ${{ secrets.PROD_FTP_USERNAME }}
+          password: ${{ secrets.PROD_FTP_PASSWORD }}
+          protocol: ftp
+          port: ${{ secrets.PROD_FTP_PORT || 21 }}
+          local-dir: backend/
+          server-dir: ${{ secrets.PROD_BACKEND_DIR || 'backend/' }}
+          dangerous-clean-slate: false
+          timeout: 60000
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.env
+            **/.env.*
+            !**/.env.example
+            !**/.env.production.example
+            **/tests/**
+            **/phpunit.xml
+            **/node_modules/**
+            **/vendor/**
+            **/storage/logs/*.log
+            **/storage/framework/cache/data/**
+            **/storage/framework/sessions/**
+            **/storage/framework/views/**
+            **/storage/app/public/**
+            **/*.sql
+
+      # ---------------- SSH Post-Deployment Automation ----------------
+      - name: Execute Server Migration & Cache via Hostinger SSH
+        if: ${{ env.HAS_SSH == 'true' }}
+        env:
+          HAS_SSH: ${{ secrets.PROD_SSH_HOST != '' }}
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USERNAME }}
+          password: ${{ secrets.PROD_SSH_PASSWORD }}
+          port: ${{ secrets.PROD_SSH_PORT || 65002 }}
+          script: |
+            set -e
+            cd ${{ secrets.PROD_SSH_BACKEND_PATH || 'backend' }}
+
+            echo "==> Extracting vendor bundle if present..."
+            if [ -f vendor.zip ]; then
+              unzip -q -o vendor.zip
+              rm vendor.zip
+            fi
+
+            echo "==> Ensuring storage directories exist with writable permissions..."
+            mkdir -p storage/framework/{sessions,views,cache/data} storage/logs bootstrap/cache
+            chmod -R 775 storage bootstrap/cache
+
+            echo "==> Running production database migrations..."
+            php artisan migrate --force
+
+            echo "==> Rebuilding production caches..."
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            echo "==> Production backend post-deploy tasks completed successfully."
+
+      - name: SSH Not Configured Notice
+        if: ${{ secrets.PROD_SSH_HOST == '' }}
+        run: |
+          echo "::notice title=Hostinger SSH Not Configured::Backend files deployed via FTP. To automate 'php artisan migrate' and cache rebuilding, provide PROD_SSH_HOST, PROD_SSH_USERNAME, and PROD_SSH_PASSWORD secrets in GitHub."
+
+  # ============================================================================
+  # 3. FRONTEND DEPLOYMENT (React SPA -> public_html/ directory)
+  # ============================================================================
+  deploy-frontend:
+    name: Build & Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    environment:
+      name: production
+      url: https://archcampus.archenterprises.co.in
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Frontend for Production
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ secrets.PROD_VITE_API_URL || 'https://archcampus.archenterprises.co.in/api/v1' }}
+        run: npm run build
+
+      - name: Deploy Frontend Dist to Hostinger public_html/
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.PROD_FTP_HOST }}
+          username: ${{ secrets.PROD_FTP_USERNAME }}
+          password: ${{ secrets.PROD_FTP_PASSWORD }}
+          protocol: ftp
+          port: ${{ secrets.PROD_FTP_PORT || 21 }}
+          local-dir: frontend/dist/
+          server-dir: ${{ secrets.PROD_FRONTEND_DIR || 'public_html/' }}
+          dangerous-clean-slate: false
+          timeout: 60000
+
+      - name: Production Deployment Verification
+        run: |
+          echo "=========================================================="
+          echo "🚀 Production Deployment Completed via FTP!"
+          echo "Live URL: https://archcampus.archenterprises.co.in"
+          echo "API URL:  ${{ secrets.PROD_VITE_API_URL || 'https://archcampus.archenterprises.co.in/api/v1' }}"
+          echo "=========================================================="
+          echo "Pinging live API endpoint to verify response and initialize backend..."
+          curl -s -k -I "${{ secrets.PROD_VITE_API_URL || 'https://archcampus.archenterprises.co.in/api/v1' }}/settings/public" || true

@@ -60,7 +60,7 @@ export default function SportsFacilitiesPage() {
       });
 
       if (res?.success) {
-        setFacilities(res.data?.facilities || []);
+        setFacilities(Array.isArray(res.data) ? res.data : (res.data?.facilities || []));
         if (res.data?.summary) setSummary(res.data.summary);
       }
     } catch (err) {
