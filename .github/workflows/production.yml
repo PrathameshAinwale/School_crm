@@ -203,7 +203,7 @@ jobs:
         run: npm run build
 
       - name: Settle FTP Connection Pool
-        run: sleep 5
+        run: sleep 15
 
       - name: Deploy Frontend Dist to Hostinger public_html/
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -216,6 +216,7 @@ jobs:
           port: ${{ secrets.PROD_FTP_PORT || 21 }}
           local-dir: frontend/dist/
           server-dir: ${{ secrets.PROD_FRONTEND_DIR || './' }}
+          state-name: .ftp-deploy-frontend-sync.json
           dangerous-clean-slate: false
           timeout: 180000
 

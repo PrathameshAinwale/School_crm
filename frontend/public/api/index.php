@@ -13,11 +13,13 @@
 
 define('LARAVEL_START', microtime(true));
 
-// Locate the isolated sibling backend directory
+// Locate the isolated backend directory (supports sibling or document root placement)
 $backendCandidates = [
     dirname(__DIR__, 2) . '/backend',
     dirname(__DIR__) . '/../backend',
+    dirname(__DIR__) . '/backend',
     (isset($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . '/../backend' : null),
+    (isset($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . '/backend' : null),
 ];
 
 $backendPath = null;
