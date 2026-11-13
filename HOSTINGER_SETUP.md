@@ -67,7 +67,7 @@ There is **only one** database for the application.
 
 1. In hPanel, go to **Files** ➔ **FTP Accounts**.
 2. Identify your primary FTP account or create a dedicated deployment account:
-   - **FTP IP / Host**: e.g. `ftp.archenterprises.co.in` or your server IP.
+   - **FTP IP / Host**: `145.79.210.95` or `ftp.archenterprises.co.in` (Do NOT use `archcampus.archenterprises.co.in` because web proxies do not route port 21).
    - **FTP Username**: e.g. `u123456789`.
    - **FTP Port**: `21`.
    - **FTP Password**: Your secure FTP password.

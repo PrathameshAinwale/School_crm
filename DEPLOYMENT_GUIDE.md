@@ -87,7 +87,7 @@ Add the following production secrets:
 
 | Secret Name | Description | Example / Typical Value |
 |---|---|---|
-| `PROD_FTP_HOST` | Hostinger FTP Hostname or Server IP | `ftp.archenterprises.co.in` or `195.35.x.x` |
+| `PROD_FTP_HOST` | Hostinger FTP Hostname or Server IP | `145.79.210.95` or `ftp.archenterprises.co.in` |
 | `PROD_FTP_USERNAME` | Production FTP username | `u123456789` |
 | `PROD_FTP_PASSWORD` | Production FTP password | `YourStrongFtpPassword` |
 | `PROD_FTP_PORT` | FTP port (default is 21) | `21` |
