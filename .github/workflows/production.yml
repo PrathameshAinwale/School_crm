@@ -202,6 +202,9 @@ jobs:
           VITE_API_URL: ${{ secrets.PROD_VITE_API_URL || 'https://archcampus.archenterprises.co.in/api/v1' }}
         run: npm run build
 
+      - name: Settle FTP Connection Pool
+        run: sleep 5
+
       - name: Deploy Frontend Dist to Hostinger public_html/
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -212,9 +215,9 @@ jobs:
           security: loose
           port: ${{ secrets.PROD_FTP_PORT || 21 }}
           local-dir: frontend/dist/
-          server-dir: ${{ secrets.PROD_FRONTEND_DIR || 'public_html/' }}
+          server-dir: ${{ secrets.PROD_FRONTEND_DIR || './' }}
           dangerous-clean-slate: false
-          timeout: 60000
+          timeout: 180000
 
       - name: Production Deployment Verification
         run: |

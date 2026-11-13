@@ -13,8 +13,9 @@ Options +FollowSymLinks -Indexes
   RewriteCond %{HTTP:X-Forwarded-Proto} !https
   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-  # 2. Block direct access to hidden files (.env, .git, etc.)
+  # 2. Block direct access to hidden files (.env, .git, etc.) and private backend
   RewriteRule (^|/)\.(?!well-known) - [F]
+  RewriteRule ^backend(/.*)?$ - [F,L]
 
   # 3. Preserve HTTP Authorization Header for Sanctum & JWT Bearer Tokens
   RewriteCond %{HTTP:Authorization} .
