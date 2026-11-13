@@ -67,6 +67,7 @@ class ExamRankingService
                 $hasAbsent = false;
                 $hasFail = false;
                 $allExemptOrMedical = true;
+                $hasEvaluatedScore = false;
 
                 foreach ($studentExams as $exam) {
                     $mark = ExamScore::where('exam_id', $exam->id)
@@ -77,6 +78,8 @@ class ExamRankingService
                         $hasAbsent = true;
                         continue;
                     }
+
+                    $hasEvaluatedScore = true;
 
                     $specialStatus = strtoupper($mark->special_status ?? '');
 
@@ -139,6 +142,7 @@ class ExamRankingService
                     'overall_gpa' => $evaluatedOverall['grade_point'],
                     'result_status' => $resultStatus,
                     'is_eligible_for_rank' => ($resultStatus !== 'RESULT_PENDING' && !$allExemptOrMedical),
+                    'has_evaluated_score' => $hasEvaluatedScore,
                 ];
             }
 
@@ -184,7 +188,7 @@ class ExamRankingService
 
             // 3. Upsert into student_report_summaries for evaluated students only
             foreach ($classPerformanceList as $item) {
-                if ($item['total_max_marks'] <= 0 || ($item['total_obtained_marks'] <= 0 && $item['result_status'] === 'RESULT_PENDING')) {
+                if (!$item['has_evaluated_score']) {
                     continue;
                 }
 
