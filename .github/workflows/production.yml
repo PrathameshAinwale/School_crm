@@ -144,47 +144,6 @@ jobs:
             **/storage/app/public/**
             **/*.sql
 
-      # ---------------- SSH Post-Deployment Automation ----------------
-      - name: Execute Server Migration & Cache via Hostinger SSH
-        if: ${{ env.HAS_SSH == 'true' }}
-        env:
-          HAS_SSH: ${{ secrets.PROD_SSH_HOST != '' }}
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.PROD_SSH_HOST }}
-          username: ${{ secrets.PROD_SSH_USERNAME }}
-          password: ${{ secrets.PROD_SSH_PASSWORD }}
-          port: ${{ secrets.PROD_SSH_PORT || 65002 }}
-          script: |
-            set -e
-            cd ${{ secrets.PROD_SSH_BACKEND_PATH || 'backend' }}
-
-            echo "==> Extracting vendor bundle if present..."
-            if [ -f vendor.zip ]; then
-              unzip -q -o vendor.zip
-              rm vendor.zip
-            fi
-
-            echo "==> Ensuring storage directories exist with writable permissions..."
-            mkdir -p storage/framework/{sessions,views,cache/data} storage/logs bootstrap/cache
-            chmod -R 775 storage bootstrap/cache
-
-            echo "==> Running production database migrations..."
-            php artisan migrate --force
-
-            echo "==> Rebuilding production caches..."
-            php artisan optimize:clear
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-
-            echo "==> Production backend post-deploy tasks completed successfully."
-
-      - name: SSH Not Configured Notice
-        if: ${{ secrets.PROD_SSH_HOST == '' }}
-        run: |
-          echo "::notice title=Hostinger SSH Not Configured::Backend files deployed via FTP. To automate 'php artisan migrate' and cache rebuilding, provide PROD_SSH_HOST, PROD_SSH_USERNAME, and PROD_SSH_PASSWORD secrets in GitHub."
-
   # ============================================================================
   # 3. FRONTEND DEPLOYMENT (React SPA -> public_html/ directory)
   # ============================================================================
