@@ -260,7 +260,22 @@ jobs:
           echo "Formatted deployment target: $FORMATTED_DIR on host $SERVER_CLEAN"
 
       # ========================================================================
-      # 8. DEPLOY PRODUCTION PAYLOAD TO HOSTINGER VIA FTPS / FTP
+      # 7b. TEST FTP AUTHENTICATION DIAGNOSTIC
+      # ========================================================================
+      - name: Test FTP Authentication (Diagnostic)
+        continue-on-error: true
+        env:
+          FTP_SERVER: ${{ steps.format-dir.outputs.server_host }}
+          FTP_USER: ${{ secrets.FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          echo "=========================================================="
+          echo "🔍 Testing FTP Connection & Authentication..."
+          echo "=========================================================="
+          curl -s --connect-timeout 10 --max-time 15 "ftp://$FTP_SERVER/" --user "$FTP_USER:$FTP_PASS" && echo "✅ FTP Login Succeeded via curl!" || echo "⚠️ Notice: Direct curl FTP test returned non-zero."
+
+      # ========================================================================
+      # 8. DEPLOY PRODUCTION PAYLOAD TO HOSTINGER VIA FTP
       # ========================================================================
       - name: Deploy Production Files to Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -268,7 +283,7 @@ jobs:
           server: ${{ steps.format-dir.outputs.server_host }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
+          protocol: ${{ secrets.FTP_PROTOCOL || 'ftp' }}
           port: ${{ secrets.FTP_PORT || 21 }}
           security: loose
           local-dir: production_payload/
