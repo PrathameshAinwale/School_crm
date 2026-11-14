@@ -41,8 +41,12 @@ jobs:
             MISSING=1
           else
             echo "✅ FTP_SERVER secret is configured"
-            if ! getent ahosts "$FTP_SERVER" >/dev/null 2>&1 && ! nslookup "$FTP_SERVER" >/dev/null 2>&1; then
-              echo "❌ ERROR: Cannot resolve hostname '$FTP_SERVER' in DNS!"
+            SERVER_CLEAN="${FTP_SERVER#ftp://}"
+            SERVER_CLEAN="${SERVER_CLEAN#http://}"
+            SERVER_CLEAN="${SERVER_CLEAN#https://}"
+            SERVER_CLEAN="${SERVER_CLEAN%/}"
+            if ! getent ahosts "$SERVER_CLEAN" >/dev/null 2>&1 && ! nslookup "$SERVER_CLEAN" >/dev/null 2>&1; then
+              echo "❌ ERROR: Cannot resolve hostname '$SERVER_CLEAN' in DNS!"
               echo "👉 Hostinger subdomains do not have their own FTP record."
               echo "   Set FTP_SERVER to: ftp.archenterprises.co.in (or IP: 145.79.210.95)"
               MISSING=1
@@ -215,20 +219,29 @@ jobs:
           ls -la production_payload/
 
       # ========================================================================
-      # 7. FORMAT TARGET SERVER DIRECTORY (Using Env Variables)
+      # 7. FORMAT TARGET SERVER & DIRECTORY (Sanitizes Host & Paths)
       # ========================================================================
-      - name: Format Target Server Directory
+      - name: Format Target Server & Directory
         id: format-dir
         env:
+          RAW_SERVER: ${{ secrets.FTP_SERVER }}
           RAW_DIR: ${{ secrets.FTP_SERVER_DIR }}
         run: |
-          if [ -z "$RAW_DIR" ] || [ "$RAW_DIR" = "/" ] || [ "$RAW_DIR" = "." ]; then
+          # Sanitize server: strip ftp://, http://, https://, and trailing slashes
+          SERVER_CLEAN="${RAW_SERVER#ftp://}"
+          SERVER_CLEAN="${SERVER_CLEAN#http://}"
+          SERVER_CLEAN="${SERVER_CLEAN#https://}"
+          SERVER_CLEAN="${SERVER_CLEAN%/}"
+          echo "server_host=$SERVER_CLEAN" >> "$GITHUB_OUTPUT"
+
+          # Format target directory
+          if [ -z "$RAW_DIR" ] || [ "$RAW_DIR" = "/" ] || [ "$RAW_DIR" = "." ] || [ "$RAW_DIR" = "./" ]; then
             FORMATTED_DIR="./"
           else
             FORMATTED_DIR="${RAW_DIR%/}/"
           fi
           echo "target_dir=$FORMATTED_DIR" >> "$GITHUB_OUTPUT"
-          echo "Formatted deployment directory: $FORMATTED_DIR"
+          echo "Formatted deployment target: $FORMATTED_DIR on host $SERVER_CLEAN"
 
       # ========================================================================
       # 8. DEPLOY PRODUCTION PAYLOAD TO HOSTINGER VIA FTPS / FTP
@@ -236,7 +249,7 @@ jobs:
       - name: Deploy Production Files to Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          server: ${{ steps.format-dir.outputs.server_host }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
