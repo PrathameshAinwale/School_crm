@@ -39,6 +39,9 @@ jobs:
           if [ -z "$FTP_SERVER" ]; then
             echo "❌ ERROR: FTP_SERVER secret is not configured in GitHub Secrets!"
             MISSING=1
+          elif [ "$FTP_SERVER" = "." ] || [ "$FTP_SERVER" = "./" ] || [ "$FTP_SERVER" = "/" ]; then
+            echo "⚠️ NOTICE: FTP_SERVER secret was set to '$FTP_SERVER' (directory). Auto-recovering to Hostinger server IP: 145.79.210.95"
+            FTP_SERVER="145.79.210.95"
           else
             echo "✅ FTP_SERVER secret is configured"
             SERVER_CLEAN="${FTP_SERVER#ftp://}"
@@ -232,6 +235,19 @@ jobs:
           SERVER_CLEAN="${SERVER_CLEAN#http://}"
           SERVER_CLEAN="${SERVER_CLEAN#https://}"
           SERVER_CLEAN="${SERVER_CLEAN%/}"
+
+          # Fail-safe: Handle accidental swap or dot in FTP_SERVER
+          if [ "$SERVER_CLEAN" = "." ] || [ "$SERVER_CLEAN" = "./" ] || [ -z "$SERVER_CLEAN" ]; then
+            if [ -n "$RAW_DIR" ] && [ "$RAW_DIR" != "." ] && [ "$RAW_DIR" != "./" ] && [ "$RAW_DIR" != "/" ] && [ "$RAW_DIR" != "public_html" ] && [ "$RAW_DIR" != "public_html/" ]; then
+              echo "⚠️ DETECTED SWAPPED SECRETS: Auto-reversing FTP_SERVER ('$SERVER_CLEAN') and FTP_SERVER_DIR ('$RAW_DIR')."
+              SERVER_CLEAN="${RAW_DIR#ftp://}"
+              SERVER_CLEAN="${SERVER_CLEAN%/}"
+              RAW_DIR="./"
+            else
+              echo "⚠️ NOTICE: FTP_SERVER was set to '$SERVER_CLEAN'. Defaulting to Hostinger server IP 145.79.210.95"
+              SERVER_CLEAN="145.79.210.95"
+            fi
+          fi
           echo "server_host=$SERVER_CLEAN" >> "$GITHUB_OUTPUT"
 
           # Format target directory
