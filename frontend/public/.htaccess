@@ -2,26 +2,29 @@
   RewriteEngine On
   RewriteBase /
 
-  # Handle Authorization Header for API tokens (Sanctum/JWT)
+  # 1. Prioritize React index.html while preserving default.php on server
+  DirectoryIndex index.html index.php default.php
+
+  # 2. Security: Deny all direct web access to backend source, .env, .git, and composer files
+  RewriteRule ^backend(/|$) - [F,L,NC]
+  RewriteRule (^|/)\.(env|git) - [F,L,NC]
+  RewriteRule (^|/)composer\.(json|lock) - [F,L,NC]
+  RewriteRule ^storage/logs/ - [F,L,NC]
+
+  # 3. Handle Authorization Header for API tokens (Sanctum/Bearer)
   RewriteCond %{HTTP:Authorization} .
   RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-  # If file or folder exists physically, serve directly
+  # 4. Route all /api requests to the Laravel API bridge
+  RewriteCond %{REQUEST_URI} ^/api [NC]
+  RewriteRule ^api(/.*)?$ api/index.php [L,QSA]
+
+  # 5. If file or folder exists physically, serve directly (assets, favicon, logo, etc.)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Route /api to backend if backend/public/index.php exists
-  RewriteCond %{REQUEST_URI} ^/api [NC]
-  RewriteCond %{DOCUMENT_ROOT}/backend/public/index.php -f
-  RewriteRule ^api/(.*)$ backend/public/index.php [L,QSA]
-
-  # Route /api to api/index.php if api/index.php exists
-  RewriteCond %{REQUEST_URI} ^/api [NC]
-  RewriteCond %{DOCUMENT_ROOT}/api/index.php -f
-  RewriteRule ^api/(.*)$ api/index.php [L,QSA]
-
-  # Single Page Application (SPA) - send all other requests to index.html
+  # 6. Single Page Application (SPA) fallback - send all other requests to index.html
   RewriteRule ^ index.html [L]
 </IfModule>
 

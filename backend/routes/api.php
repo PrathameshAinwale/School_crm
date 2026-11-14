@@ -70,8 +70,22 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
+// Unauthenticated Health Check (Production CI/CD & Monitoring)
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'healthy',
+        'timestamp' => now()->toIso8601String(),
+    ]);
+});
+
 // Public Authentication & Public Assets & Inbound Webhooks
 Route::prefix('v1')->group(function () {
+    Route::get('/health', function () {
+        return response()->json([
+            'status' => 'healthy',
+            'timestamp' => now()->toIso8601String(),
+        ]);
+    });
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::get('/settings/public', [SchoolSettingsController::class, 'publicConfig']);
     Route::get('/files/public/{token}', [MediaFileController::class, 'publicStream']);

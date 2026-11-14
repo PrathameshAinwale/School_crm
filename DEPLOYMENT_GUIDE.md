@@ -1,125 +1,169 @@
-# 🚀 Complete CI/CD Deployment Guide for Hostinger
+# 🚀 Automated CI/CD Deployment Guide for Arch Campus (Hostinger)
 
-This project is now equipped with a fully automated **GitHub Actions CI/CD pipeline**.
-Every time you push code to the `main` branch (`git push origin main`), GitHub will automatically:
-1. **Build the Frontend** (React + Vite + Tailwind CSS) with optimized production bundling.
-2. **Package the Backend** (Laravel) with Composer production dependencies (`--no-dev --optimize-autoloader`).
-3. **Deploy to Hostinger** directly without requiring manual zipping or file manager uploads.
+This guide provides the complete setup instructions for deploying **Arch Campus** automatically to Hostinger using **GitHub Actions** and **FTP**.
 
----
-
-## 📌 Step 1: Get Your FTP Details from Hostinger
-
-1. Log in to your [Hostinger hPanel](https://hpanel.hostinger.com/).
-2. Select your hosting plan / domain: `powderblue-trout-993647.hostingersite.com`.
-3. Go to **Files** ➔ **FTP Accounts**.
-4. You will see:
-   - **FTP IP / Hostname**: e.g., `ftp.powderblue-trout-993647.hostingersite.com` or your Hostinger server IP (e.g., `195.35.x.x`).
-   - **FTP Username**: e.g., `u773098752`
-   - **FTP Port**: `21`
-   - **FTP Password**: (If you don't remember it, click **Change Password** to set a fresh password).
+- **Production Domain**: `https://archcampus.archenterprises.co.in/`
+- **Source Control**: GitHub (`main` branch)
+- **CI/CD Workflow**: `.github/workflows/deploy.yml`
+- **Hosting Provider**: Hostinger (hPanel)
 
 ---
 
-## 📌 Step 2: Add Secrets to Your GitHub Repository
+## 🏗️ 1. Architecture & Directory Structure
 
-1. Open your GitHub repository in your browser:
-   [https://github.com/PrathameshAinwale/School_crm](https://github.com/PrathameshAinwale/School_crm)
-2. Go to **Settings** ➔ **Secrets and variables** ➔ **Actions**.
-3. Under **Repository secrets**, click **New repository secret** and add the following 3 required secrets:
+Your project is a full-stack application consisting of:
+1. **Frontend**: React 19 + Vite 8 + Tailwind CSS v4 Single Page Application (SPA).
+2. **Backend**: Laravel 12 API with MySQL and Sanctum authentication.
 
-| Secret Name | Value Description | Example |
-|---|---|---|
-| `HOSTINGER_FTP_SERVER` | Your Hostinger FTP Host or IP | `ftp.powderblue-trout-993647.hostingersite.com` |
-| `HOSTINGER_FTP_USERNAME` | Your Hostinger FTP Username | `u773098752` |
-| `HOSTINGER_FTP_PASSWORD` | Your Hostinger FTP Password | `YourSecurePasswordHere` |
+### Hostinger Directory Layout
 
-*(Optional overrides if your folder paths on Hostinger differ from defaults)*:
-- `HOSTINGER_FRONTEND_DIR`: Target folder for frontend assets. Defaults to `public_html/`.
-- `HOSTINGER_BACKEND_DIR`: Target folder for Laravel API. Defaults to `backend/`.
-- `VITE_API_URL`: Custom API endpoint for frontend build. Defaults to `http://powderblue-trout-993647.hostingersite.com/api/v1`.
-
----
-
-## 📌 Step 3: Server Directory Layout on Hostinger
-
-In your Hostinger File Manager, the folder layout is organized as follows:
+When deployed to Hostinger, the application is organized inside your web directory (e.g., `public_html/`):
 
 ```text
-/home/u773098752/
+public_html/                           <-- Web DocumentRoot (FTP_SERVER_DIR)
 │
-├── public_html/                       <-- Frontend Dist files deployed here
-│   ├── assets/                        <-- React JS & CSS bundles
-│   ├── index.html                     <-- React SPA Entrypoint
-│   ├── .htaccess                      <-- Routes SPA & forwards /api to Laravel
-│   └── icons.svg
+├── index.html                         <-- React SPA Entrypoint
+├── assets/                            <-- Compiled React JS & CSS bundles
+├── vehicles/                          <-- Vehicle icons & static images
+├── favicon.svg, logo.png, logo.svg    <-- Brand assets
+├── .htaccess                          <-- SPA routing, DirectoryIndex, /api proxy
 │
-└── backend/                           <-- Laravel API deployed here
+├── api/
+│   └── index.php                      <-- Front-Controller bridge to Laravel
+│
+└── backend/                           <-- Private Laravel Application
     ├── app/
     ├── bootstrap/
     ├── config/
     ├── database/
-    ├── public/
-    │   └── index.php
     ├── routes/
-    ├── storage/
-    ├── vendor/
-    └── .env                           <-- Stored safely on Hostinger (Never overwritten by Git)
+    ├── resources/
+    ├── vendor/                        <-- Production Composer dependencies
+    ├── artisan                        <-- CLI runner
+    ├── composer.json
+    ├── .htaccess                      <-- "Require all denied" (Blocks web access)
+    ├── .env                           <-- Stored on Hostinger (Never overwritten by Git)
+    └── storage/                       <-- User uploads, sessions & logs (Preserved)
 ```
 
-### Important First-Time Checklist on Hostinger:
-1. **Laravel `.env` File**:
-   Make sure you have your `.env` file in your `backend/` directory on Hostinger containing your production DB credentials:
+### 🛡️ Why `default.php` is Safe
+Hostinger automatically creates a placeholder `default.php` file when a new website or subdomain is initialized.
+- Our `.htaccess` explicitly sets:
+  ```apache
+  DirectoryIndex index.html index.php default.php
+  ```
+- This ensures Apache **immediately serves `index.html` (your React app)** without needing to delete `default.php`.
+- The GitHub Actions workflow is configured with `dangerous-clean-slate: false`, so **`default.php` and any existing server files will not be deleted**.
+
+---
+
+## 🔑 2. Required GitHub Repository Secrets
+
+Configure the following 4 secrets in your GitHub repository:
+
+1. Open your repository on GitHub:
+   [https://github.com/PrathameshAinwale/School_crm](https://github.com/PrathameshAinwale/School_crm)
+2. Go to **Settings** ➔ **Secrets and variables** ➔ **Actions**.
+3. Under **Repository secrets**, click **New repository secret** and add:
+
+| Secret Name | Description | Example / Recommended Value |
+|---|---|---|
+| `FTP_SERVER` | Hostinger FTP Hostname or Server IP | `ftp.archenterprises.co.in` or `145.79.210.95` *(do not include `http://` or `ftp://`)* |
+| `FTP_USERNAME` | Hostinger FTP Account Username | `u773098752` or sub-account (e.g. `u773098752.arch`) |
+| `FTP_PASSWORD` | Hostinger FTP Account Password | Your Hostinger FTP password |
+| `FTP_SERVER_DIR` | Target directory on Hostinger | `public_html/` *(see Step 3 below to identify exact folder)* |
+
+*(Optional)*:
+- `FTP_PROTOCOL`: Protocol to use. Defaults to `ftp` for maximum compatibility on Hostinger port 21.
+
+---
+
+## 🔍 3. Where to Find FTP Details & Identify the Correct Directory
+
+### A. Finding Your FTP Credentials in Hostinger
+1. Log in to [Hostinger hPanel](https://hpanel.hostinger.com/).
+2. Select your hosting plan or website.
+3. In the search bar or left navigation, go to **Files** ➔ **FTP Accounts**.
+4. You will see:
+   - **FTP IP / Hostname**: (e.g., `145.79.210.95` or your server IP).
+   - **FTP Username**: (e.g., `u773098752`).
+   - **FTP Port**: `21`.
+   - **Password**: If unknown, click **Change Password** to set a new password.
+
+### B. Determining the Exact Value for `FTP_SERVER_DIR`
+Because `archcampus.archenterprises.co.in` is a subdomain, verify its document root:
+
+1. In hPanel, go to **Domains** ➔ **Subdomains** (or **Websites** ➔ **Manage Website**).
+2. Check the **Directory** column for `archcampus`:
+   - If the Directory is `public_html`:
+     Set `FTP_SERVER_DIR` to: `public_html/`
+   - If the Directory is `public_html/archcampus`:
+     Set `FTP_SERVER_DIR` to: `public_html/archcampus/`
+   - If the Directory is `domains/archenterprises.co.in/public_html/archcampus`:
+     Set `FTP_SERVER_DIR` to: `domains/archenterprises.co.in/public_html/archcampus/`
+   - If your FTP account was created specifically with its root folder set directly to the website root:
+     Set `FTP_SERVER_DIR` to: `./`
+
+---
+
+## 🔒 4. Creating the Production `.env` File on Hostinger
+
+Before your first API request, ensure your Laravel backend has its production `.env` file on Hostinger:
+
+1. Open Hostinger **File Manager**.
+2. Navigate into your deployment folder (e.g., `public_html/backend/`).
+3. Create a file named `.env` with your production settings:
    ```env
    APP_NAME="Arch Campus"
    APP_ENV=production
-   APP_DEBUG=false
-   APP_URL=http://powderblue-trout-993647.hostingersite.com
    APP_KEY=base64:B39gZBC5HcPL6sBP0PA2V1ANd15LgFeG5TF0Ne0cy54=
+   APP_DEBUG=false
+   APP_TIMEZONE=Asia/Kolkata
+   APP_URL=https://archcampus.archenterprises.co.in
+   FRONTEND_URL=https://archcampus.archenterprises.co.in
 
    DB_CONNECTION=mysql
    DB_HOST=127.0.0.1
    DB_PORT=3306
-   DB_DATABASE=u773098752_school_sms
-   DB_USERNAME=u773098752_school_sms
-   DB_PASSWORD=your_db_password
-   ```
-   > **Note**: GitHub Actions is explicitly configured **never** to overwrite your server `.env` or delete server-side logs/sessions!
+   DB_DATABASE=YOUR_HOSTINGER_DB_NAME
+   DB_USERNAME=YOUR_HOSTINGER_DB_USER
+   DB_PASSWORD=YOUR_HOSTINGER_DB_PASSWORD
 
-2. **Storage Permissions**:
-   In Hostinger File Manager, ensure `backend/storage` and `backend/bootstrap/cache` are writable (permissions `755` or `775`).
+   SESSION_DRIVER=file
+   SESSION_LIFETIME=120
+   CACHE_STORE=file
+   QUEUE_CONNECTION=file
+   SANCTUM_STATEFUL_DOMAINS=archcampus.archenterprises.co.in
+   ```
+4. Save the file.
+> [!NOTE]
+> GitHub Actions is configured with strict FTP exclusions. It will **never** overwrite, delete, or modify this server `.env` file!
 
 ---
 
-## 📌 Step 4: (Optional) Automated Migrations & Cache via SSH
+## 🚀 5. How to Deploy (Git Commands)
 
-If your Hostinger plan includes SSH (Hostinger hPanel ➔ **Advanced** ➔ **SSH Access**):
-1. Enable SSH access in hPanel.
-2. Add these additional secrets to GitHub:
-   - `HOSTINGER_SSH_HOST`: Your server SSH IP or hostname.
-   - `HOSTINGER_SSH_USER`: Your SSH username (e.g. `u773098752`).
-   - `HOSTINGER_SSH_PASSWORD`: Your SSH password.
-   - `HOSTINGER_SSH_PORT`: `65002` (Hostinger's default SSH port).
-   - `HOSTINGER_SSH_PATH`: Path to your backend on server (e.g., `backend` or `domains/powderblue-trout-993647.hostingersite.com/backend`).
+Whenever you are ready to deploy changes to production:
 
-When these secrets are provided, GitHub Actions will automatically run:
 ```bash
-php artisan migrate --force
-php artisan config:cache
-php artisan route:cache
+git add .
+git commit -m "Configure automated GitHub Actions CI/CD deployment to Hostinger"
+git push origin main
 ```
-If you don't configure SSH, this step is automatically skipped, and deployments still complete via FTP!
 
 ---
 
-## 🚀 How to Deploy Now
+## 🚦 6. Verifying the Deployment
 
-1. Commit and push your changes to GitHub:
-   ```bash
-   git add .
-   git commit -m "Configure GitHub Actions CI/CD for Hostinger auto-deployment"
-   git push origin main
-   ```
-2. Open the **Actions** tab in your GitHub repository:
-   You will see the **Deploy to Hostinger** workflow running live with step-by-step progress and status checks!
-3. Once completed, your website at `http://powderblue-trout-993647.hostingersite.com` will be updated with your latest changes.
+1. **GitHub Actions Monitor**:
+   - Go to your repository's **Actions** tab on GitHub:
+     [https://github.com/PrathameshAinwale/School_crm/actions](https://github.com/PrathameshAinwale/School_crm/actions)
+   - Click the running workflow **Deploy to Hostinger Production**.
+   - Review each step (`Setup`, `Frontend Build`, `Composer Install`, `Deploy Production Files`).
+2. **Website Check**:
+   - Open [https://archcampus.archenterprises.co.in/](https://archcampus.archenterprises.co.in/).
+   - Confirm the React Single Page Application loads.
+   - Test navigating to an internal route (e.g. `/teachers` or `/admin/dashboard`) and refreshing the browser (verifies `.htaccess` SPA rewriting).
+3. **API Health Check**:
+   - Open [https://archcampus.archenterprises.co.in/api/v1/auth/login](https://archcampus.archenterprises.co.in/api/v1/auth/login) in your browser or Postman.
+   - It should return a JSON response (verifying the Laravel API bridge is working).

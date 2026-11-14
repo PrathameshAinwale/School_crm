@@ -23,7 +23,7 @@ const API_BASE_URL =
   typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://127.0.0.1:8000/api/v1'
-    : import.meta.env.VITE_API_URL || 'https://powderblue-trout-993647.hostingersite.com/api/v1';
+    : import.meta.env.VITE_API_URL || 'https://archcampus.archenterprises.co.in/api/v1';
 
 export default function ResultsPage() {
   const { currentRole, user } = useAuth();

@@ -1,0 +1,326 @@
+name: Deploy to Hostinger Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build & Deploy via FTP
+    runs-on: ubuntu-latest
+
+    steps:
+      # ========================================================================
+      # 1. CHECKOUT REPOSITORY
+      # ========================================================================
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # ========================================================================
+      # 2. VALIDATE REQUIRED GITHUB ACTIONS SECRETS (Using Env Variables)
+      # ========================================================================
+      - name: Validate GitHub Secrets Configuration
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
+        run: |
+          echo "=========================================================="
+          echo "🔍 Validating Deployment Secrets..."
+          echo "=========================================================="
+          MISSING=0
+          if [ -z "$FTP_SERVER" ]; then
+            echo "❌ ERROR: FTP_SERVER secret is not configured in GitHub Secrets!"
+            MISSING=1
+          else
+            echo "✅ FTP_SERVER secret is configured"
+          fi
+
+          if [ -z "$FTP_USERNAME" ]; then
+            echo "❌ ERROR: FTP_USERNAME secret is not configured in GitHub Secrets!"
+            MISSING=1
+          else
+            echo "✅ FTP_USERNAME secret is configured (${#FTP_USERNAME} chars)"
+          fi
+
+          if [ -z "$FTP_PASSWORD" ]; then
+            echo "❌ ERROR: FTP_PASSWORD secret is not configured in GitHub Secrets!"
+            MISSING=1
+          else
+            echo "✅ FTP_PASSWORD secret is configured"
+          fi
+
+          if [ -z "$FTP_SERVER_DIR" ]; then
+            echo "ℹ️  FTP_SERVER_DIR is not set; will default to 'public_html/'"
+          else
+            echo "✅ FTP_SERVER_DIR is configured: $FTP_SERVER_DIR"
+          fi
+
+          if [ $MISSING -eq 1 ]; then
+            echo "=========================================================="
+            echo "❌ Deployment halted due to missing secrets."
+            echo "Go to: GitHub Repo -> Settings -> Secrets and variables -> Actions"
+            echo "Add: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, FTP_SERVER_DIR"
+            echo "=========================================================="
+            exit 1
+          fi
+
+      # ========================================================================
+      # 3. SETUP RUNTIME ENVIRONMENTS (NODE.JS & PHP)
+      # ========================================================================
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup PHP 8.2 & Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, bcmath, curl, zip, fileinfo
+          coverage: none
+          tools: composer:v2
+
+      # ========================================================================
+      # 4. FRONTEND BUILD (REACT + VITE + TAILWIND)
+      # ========================================================================
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Frontend for Production
+        working-directory: frontend
+        env:
+          VITE_API_URL: https://archcampus.archenterprises.co.in/api/v1
+        run: npm run build
+
+      # ========================================================================
+      # 5. BACKEND COMPOSER DEPENDENCIES
+      # ========================================================================
+      - name: Validate composer.json
+        working-directory: backend
+        run: composer validate --strict
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        working-directory: backend
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Backend Production Dependencies
+        working-directory: backend
+        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+      # ========================================================================
+      # 6. ASSEMBLE PRODUCTION PAYLOAD
+      # ========================================================================
+      - name: Prepare Unified Production Payload
+        run: |
+          echo "=========================================================="
+          echo "📦 Assembling Production Payload Directory..."
+          echo "=========================================================="
+          rm -rf production_payload
+          mkdir -p production_payload
+
+          # 1. Copy Frontend Static Build (including hidden files like .htaccess)
+          if [ -d "frontend/dist" ]; then
+            cp -a frontend/dist/. production_payload/
+          else
+            echo "❌ ERROR: frontend/dist directory not found!"
+            exit 1
+          fi
+
+          # Ensure root .htaccess exists
+          if [ -f "frontend/public/.htaccess" ] && [ ! -f "production_payload/.htaccess" ]; then
+            cp "frontend/public/.htaccess" "production_payload/.htaccess"
+          fi
+
+          # Ensure api/ bridge front-controller exists
+          mkdir -p production_payload/api
+          if [ -f "frontend/public/api/index.php" ]; then
+            cp "frontend/public/api/index.php" "production_payload/api/index.php"
+          fi
+
+          # 2. Copy Backend Application
+          mkdir -p production_payload/backend
+          for item in app bootstrap config database resources routes vendor public artisan composer.json composer.lock; do
+            if [ -e "backend/$item" ]; then
+              cp -a "backend/$item" "production_payload/backend/"
+            fi
+          done
+
+          # Ensure backend/.htaccess exists with strict denial
+          if [ -f "backend/.htaccess" ]; then
+            cp "backend/.htaccess" "production_payload/backend/.htaccess"
+          else
+            cat << 'EOF' > production_payload/backend/.htaccess
+          <IfModule mod_authz_core.c>
+              Require all denied
+          </IfModule>
+          <IfModule !mod_authz_core.c>
+              Deny from all
+          </IfModule>
+          EOF
+          fi
+
+          # 3. Create required writable storage directory skeletons
+          mkdir -p production_payload/backend/storage/framework/{cache/data,sessions,views}
+          mkdir -p production_payload/backend/storage/logs
+          mkdir -p production_payload/backend/storage/app/public
+          mkdir -p production_payload/backend/bootstrap/cache
+          touch production_payload/backend/storage/framework/cache/data/.gitkeep
+          touch production_payload/backend/storage/framework/sessions/.gitkeep
+          touch production_payload/backend/storage/framework/views/.gitkeep
+          touch production_payload/backend/storage/logs/.gitkeep
+          touch production_payload/backend/storage/app/public/.gitkeep
+
+          # Preserve Composer-generated package & service discovery files (packages.php, services.php)
+          # Only remove environment-dependent local caches if present (config, routes, events)
+          rm -f production_payload/backend/bootstrap/cache/config.php \
+                production_payload/backend/bootstrap/cache/routes-v7.php \
+                production_payload/backend/bootstrap/cache/events.php
+
+          # 4. Strict Security Check: Verify no .env file exists in the payload
+          if [ -f "production_payload/.env" ] || [ -f "production_payload/backend/.env" ]; then
+            echo "❌ CRITICAL SECURITY ERROR: .env file found in production payload! Aborting deployment."
+            rm -f production_payload/.env production_payload/backend/.env
+            exit 1
+          fi
+
+          # Remove any local database dumps or development artifacts
+          rm -f production_payload/*.sql production_payload/backend/*.sql
+
+          echo "✅ Production payload successfully assembled."
+          ls -la production_payload/
+
+      # ========================================================================
+      # 7. FORMAT TARGET SERVER DIRECTORY (Using Env Variables)
+      # ========================================================================
+      - name: Format Target Server Directory
+        id: format-dir
+        env:
+          RAW_DIR: ${{ secrets.FTP_SERVER_DIR }}
+        run: |
+          if [ -z "$RAW_DIR" ] || [ "$RAW_DIR" = "/" ] || [ "$RAW_DIR" = "." ]; then
+            FORMATTED_DIR="./"
+          else
+            FORMATTED_DIR="${RAW_DIR%/}/"
+          fi
+          echo "target_dir=$FORMATTED_DIR" >> "$GITHUB_OUTPUT"
+          echo "Formatted deployment directory: $FORMATTED_DIR"
+
+      # ========================================================================
+      # 8. DEPLOY PRODUCTION PAYLOAD TO HOSTINGER VIA FTPS / FTP
+      # ========================================================================
+      - name: Deploy Production Files to Hostinger
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
+          port: ${{ secrets.FTP_PORT || 21 }}
+          security: loose
+          local-dir: production_payload/
+          server-dir: ${{ steps.format-dir.outputs.target_dir }}
+          dangerous-clean-slate: false
+          timeout: 300000
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.env
+            **/.env.*
+            !**/.env.example
+            !**/.env.production.example
+            **/tests/**
+            **/node_modules/**
+            **/storage/logs/*.log
+            **/storage/framework/cache/data/**
+            **/storage/framework/sessions/**
+            **/storage/framework/views/**
+            **/storage/app/public/**
+            **/*.sql
+
+      # ========================================================================
+      # 9. DEPLOYMENT VERIFICATION & HEALTH CHECK (Standard SSL Verification)
+      # ========================================================================
+      - name: Verify Live Production Website & API Health
+        run: |
+          echo "=========================================================="
+          echo "🌐 Verifying Production Deployment Health..."
+          echo "=========================================================="
+          echo "Allowing web server processes to settle (5s)..."
+          sleep 5
+
+          MAX_RETRIES=3
+          RETRY_DELAY=5
+
+          # --------------------------------------------------------------------
+          # 1. Verify Frontend Web Root (React SPA)
+          # Uses standard SSL certificate verification (no -k / --insecure)
+          # --------------------------------------------------------------------
+          FRONTEND_OK=0
+          FRONTEND_STATUS=0
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $i: Checking https://archcampus.archenterprises.co.in/ ..."
+            FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 20 "https://archcampus.archenterprises.co.in/") || true
+            if [ "$FRONTEND_STATUS" -eq 200 ]; then
+              FRONTEND_OK=1
+              echo "✅ Frontend responded with HTTP 200 OK"
+              break
+            fi
+            echo "⚠️ Attempt $i: Frontend returned HTTP $FRONTEND_STATUS. Retrying in ${RETRY_DELAY}s..."
+            sleep $RETRY_DELAY
+          done
+
+          if [ $FRONTEND_OK -ne 1 ]; then
+            echo "❌ ERROR: Production frontend failed health verification after $MAX_RETRIES attempts (HTTP $FRONTEND_STATUS)."
+            exit 1
+          fi
+
+          # --------------------------------------------------------------------
+          # 2. Verify Laravel API Health Endpoint (/api/v1/health)
+          # Uses standard SSL certificate verification and validates JSON payload
+          # --------------------------------------------------------------------
+          API_OK=0
+          API_STATUS=0
+          HEALTH_BODY=""
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $i: Checking https://archcampus.archenterprises.co.in/api/v1/health ..."
+            API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 20 "https://archcampus.archenterprises.co.in/api/v1/health") || true
+            HEALTH_BODY=$(curl -s --connect-timeout 10 --max-time 20 "https://archcampus.archenterprises.co.in/api/v1/health") || true
+
+            if [ "$API_STATUS" -eq 200 ] && echo "$HEALTH_BODY" | grep -q '"status"[[:space:]]*:[[:space:]]*"healthy"'; then
+              API_OK=1
+              echo "✅ API responded with HTTP 200 OK and expected payload: $HEALTH_BODY"
+              break
+            fi
+            echo "⚠️ Attempt $i: API returned HTTP $API_STATUS with body: $HEALTH_BODY. Retrying in ${RETRY_DELAY}s..."
+            sleep $RETRY_DELAY
+          done
+
+          if [ $API_OK -ne 1 ]; then
+            echo "❌ ERROR: Production API health check failed after $MAX_RETRIES attempts."
+            echo "Last HTTP Status: $API_STATUS"
+            echo "Last Response Body: $HEALTH_BODY"
+            exit 1
+          fi
+
+          echo "=========================================================="
+          echo "🎉 ALL HEALTH CHECKS PASSED: DEPLOYMENT VERIFIED!"
+          echo "=========================================================="
