@@ -141,10 +141,29 @@ jobs:
             FTP_PASS="${{ secrets.PROD_FTP_PASSWORD }}"
             echo "✅ PROD_FTP_PASSWORD is set (length: ${#FTP_PASS} chars)"
           fi
+          echo "PROD_FRONTEND_DIR secret is: '${{ secrets.PROD_FRONTEND_DIR }}' (default: public_html/)"
+          echo "PROD_BACKEND_DIR secret is:  '${{ secrets.PROD_BACKEND_DIR }}' (default: backend/)"
           if [ "$MISSING" -eq 1 ]; then
             echo "Please ensure PROD_FTP_HOST, PROD_FTP_USERNAME, and PROD_FTP_PASSWORD are defined in GitHub Secrets."
             exit 1
           fi
+
+      - name: Inspect Hostinger Remote Directory Structure
+        run: |
+          echo "=========================================================="
+          echo "📂 Hostinger Remote Directory Inspection"
+          echo "=========================================================="
+          echo "--- Listing FTP Root (/): ---"
+          curl -s --user "${{ secrets.PROD_FTP_USERNAME }}:${{ secrets.PROD_FTP_PASSWORD }}" "ftp://${{ secrets.PROD_FTP_HOST }}/" || true
+          echo ""
+          echo "--- Listing domains/ (if exists): ---"
+          curl -s --user "${{ secrets.PROD_FTP_USERNAME }}:${{ secrets.PROD_FTP_PASSWORD }}" "ftp://${{ secrets.PROD_FTP_HOST }}/domains/" || true
+          echo ""
+          echo "--- Listing domains/archenterprises.co.in/ (if exists): ---"
+          curl -s --user "${{ secrets.PROD_FTP_USERNAME }}:${{ secrets.PROD_FTP_PASSWORD }}" "ftp://${{ secrets.PROD_FTP_HOST }}/domains/archenterprises.co.in/" || true
+          echo ""
+          echo "--- Listing public_html/ (if exists): ---"
+          curl -s --user "${{ secrets.PROD_FTP_USERNAME }}:${{ secrets.PROD_FTP_PASSWORD }}" "ftp://${{ secrets.PROD_FTP_HOST }}/public_html/" || true
 
       - name: Deploy Backend Files to Hostinger via FTPS/FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
