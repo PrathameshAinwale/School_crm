@@ -1,48 +1,36 @@
-# ==============================================================================
-# Hostinger Production Apache Configuration (archcampus.archenterprises.co.in)
-# ==============================================================================
-
-Options +FollowSymLinks -Indexes
-
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # 1. Force HTTPS in Production
-  RewriteCond %{HTTPS} off
-  RewriteCond %{HTTP:X-Forwarded-Proto} !https
-  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
-  # 2. Block direct access to hidden files (.env, .git, etc.) and private backend
-  RewriteRule (^|/)\.(?!well-known) - [F]
-  RewriteRule ^backend(/.*)?$ - [F,L]
-
-  # 3. Preserve HTTP Authorization Header for Sanctum & JWT Bearer Tokens
+  # Handle Authorization Header for API tokens (Sanctum/JWT)
   RewriteCond %{HTTP:Authorization} .
   RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-  # 4. Route all /api and /api/* requests to the API front-controller bridge
-  RewriteRule ^api(/.*)?$ api/index.php [L,QSA]
-
-  # 5. Serve existing physical files and directories directly
+  # If file or folder exists physically, serve directly
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # 6. React Single Page Application (SPA) fallback
+  # Route /api to backend if backend/public/index.php exists
+  RewriteCond %{REQUEST_URI} ^/api [NC]
+  RewriteCond %{DOCUMENT_ROOT}/backend/public/index.php -f
+  RewriteRule ^api/(.*)$ backend/public/index.php [L,QSA]
+
+  # Route /api to api/index.php if api/index.php exists
+  RewriteCond %{REQUEST_URI} ^/api [NC]
+  RewriteCond %{DOCUMENT_ROOT}/api/index.php -f
+  RewriteRule ^api/(.*)$ api/index.php [L,QSA]
+
+  # Single Page Application (SPA) - send all other requests to index.html
   RewriteRule ^ index.html [L]
 </IfModule>
 
-# ==============================================================================
-# Performance: Gzip Compression
-# ==============================================================================
+# Enable Gzip compression for faster loading
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json application/xml
 </IfModule>
 
-# ==============================================================================
-# Performance: Browser Caching for Static Assets
-# ==============================================================================
+# Browser Caching for static assets
 <IfModule mod_expires.c>
   ExpiresActive On
   ExpiresByType image/jpg "access plus 1 month"
