@@ -148,39 +148,47 @@ jobs:
             exit 1
           fi
 
-      - name: Settle FTP Connection Pool
-        run: sleep 10
-
-      - name: Deploy Backend Files to Hostinger via FTPS/FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.PROD_FTP_HOST }}
-          username: ${{ secrets.PROD_FTP_USERNAME }}
-          password: ${{ secrets.PROD_FTP_PASSWORD }}
-          protocol: ftp
-          port: 21
-          local-dir: backend/
-          server-dir: ${{ secrets.PROD_BACKEND_DIR || 'backend/' }}
-          state-name: .ftp-deploy-backend-sync.json
-          dangerous-clean-slate: false
-          timeout: 180000
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.env
-            **/.env.*
-            !**/.env.example
-            !**/.env.production.example
-            **/tests/**
-            **/phpunit.xml
-            **/node_modules/**
-            **/vendor/**
-            **/storage/logs/*.log
-            **/storage/framework/cache/data/**
-            **/storage/framework/sessions/**
-            **/storage/framework/views/**
-            **/storage/app/public/**
-            **/*.sql
+      - name: Deploy Backend Files to Hostinger via lftp
+        env:
+          FTP_HOST: ${{ secrets.PROD_FTP_HOST }}
+          FTP_USER: ${{ secrets.PROD_FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.PROD_FTP_PASSWORD }}
+          RAW_TARGET: ${{ secrets.PROD_BACKEND_DIR || 'backend' }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          TARGET_DIR="${RAW_TARGET%/}"
+          echo "Deploying backend files to Hostinger $TARGET_DIR/..."
+          lftp << EOF
+          set ssl:verify-certificate no
+          set ftp:ssl-allow yes
+          set ftp:ssl-protect-data yes
+          set ftp:passive-mode true
+          set net:timeout 120
+          set net:max-retries 3
+          open -u "$FTP_USER","$FTP_PASS" "$FTP_HOST"
+          mkdir -p "$TARGET_DIR"
+          mirror --reverse \
+            --exclude-glob .git* \
+            --exclude-glob .git*/** \
+            --exclude-glob .env \
+            --exclude-glob .env.* \
+            --exclude-glob tests/ \
+            --exclude-glob tests/** \
+            --exclude-glob node_modules/ \
+            --exclude-glob node_modules/** \
+            --exclude-glob vendor/ \
+            --exclude-glob vendor/** \
+            --exclude-glob storage/logs/*.log \
+            --exclude-glob storage/framework/cache/data/** \
+            --exclude-glob storage/framework/sessions/** \
+            --exclude-glob storage/framework/views/** \
+            --exclude-glob storage/app/public/** \
+            --exclude-glob *.sql \
+            backend/ "$TARGET_DIR/"
+          echo "Backend deployment finished. Directory listing:"
+          ls -la "$TARGET_DIR"
+          bye
+          EOF
 
       # ---------------- Optional Post-Deployment SSH Tasks ----------------
       - name: Execute Server Migration & Cache via Hostinger SSH (Optional)
@@ -245,21 +253,33 @@ jobs:
         run: npm run build
 
       - name: Settle FTP Connection Pool
-        run: sleep 15
+        run: sleep 5
 
-      - name: Deploy Frontend Dist to Hostinger public_html/
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.PROD_FTP_HOST }}
-          username: ${{ secrets.PROD_FTP_USERNAME }}
-          password: ${{ secrets.PROD_FTP_PASSWORD }}
-          protocol: ftp
-          port: 21
-          local-dir: frontend/dist/
-          server-dir: ${{ secrets.PROD_FRONTEND_DIR || 'public_html/' }}
-          state-name: .ftp-deploy-frontend-sync.json
-          dangerous-clean-slate: false
-          timeout: 180000
+      - name: Deploy Frontend Dist to Hostinger via lftp
+        env:
+          FTP_HOST: ${{ secrets.PROD_FTP_HOST }}
+          FTP_USER: ${{ secrets.PROD_FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.PROD_FTP_PASSWORD }}
+          RAW_TARGET: ${{ secrets.PROD_FRONTEND_DIR || 'public_html' }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          TARGET_DIR="${RAW_TARGET%/}"
+          echo "Deploying frontend dist to Hostinger $TARGET_DIR/..."
+          lftp << EOF
+          set ssl:verify-certificate no
+          set ftp:ssl-allow yes
+          set ftp:ssl-protect-data yes
+          set ftp:passive-mode true
+          set net:timeout 120
+          set net:max-retries 3
+          open -u "$FTP_USER","$FTP_PASS" "$FTP_HOST"
+          mkdir -p "$TARGET_DIR"
+          mirror --reverse frontend/dist/ "$TARGET_DIR/"
+          put -O "$TARGET_DIR" frontend/dist/.htaccess
+          echo "Frontend deployment finished. Directory listing:"
+          ls -la "$TARGET_DIR"
+          bye
+          EOF
 
       - name: Production Deployment Verification
         run: |
@@ -268,5 +288,7 @@ jobs:
           echo "Live URL: https://archcampus.archenterprises.co.in"
           echo "API URL:  ${{ secrets.PROD_VITE_API_URL || 'https://archcampus.archenterprises.co.in/api/v1' }}"
           echo "=========================================================="
+          echo "Pinging live production website..."
+          curl -s -k -I "https://archcampus.archenterprises.co.in/" || true
           echo "Pinging live API endpoint to verify response and initialize backend..."
           curl -s -k -I "${{ secrets.PROD_VITE_API_URL || 'https://archcampus.archenterprises.co.in/api/v1' }}/settings/public" || true
