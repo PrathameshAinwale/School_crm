@@ -71,7 +71,7 @@ There is **only one** database for the application.
    - **FTP Username**: e.g. `u123456789`.
    - **FTP Port**: `21`.
    - **FTP Password**: Your secure FTP password.
-   - **Directory**: Ensure access covers both `public_html/` and `backend/`.
+   - **Directory**: Set to `/` or the domain root (e.g. `domains/archcampus.archenterprises.co.in` or empty). **Do NOT set it to `/public_html`**, because the FTP account must have access to both the `public_html/` and `backend/` sibling directories.
 
 ---
 

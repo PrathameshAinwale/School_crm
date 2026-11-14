@@ -45,6 +45,8 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+          mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+          chmod -R 777 storage bootstrap/cache
 
       - name: Execute Backend Automated Tests
         working-directory: backend
@@ -80,6 +82,8 @@ jobs:
     name: Package & Deploy Backend
     runs-on: ubuntu-latest
     needs: pre-deploy-validation
+    env:
+      SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
 
     steps:
       - name: Checkout Code
@@ -174,6 +178,39 @@ jobs:
             **/storage/app/public/**
             **/*.sql
 
+      # ---------------- Optional Post-Deployment SSH Tasks ----------------
+      - name: Execute Server Migration & Cache via Hostinger SSH (Optional)
+        if: ${{ env.SSH_HOST != '' }}
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USERNAME }}
+          password: ${{ secrets.PROD_SSH_PASSWORD }}
+          port: ${{ secrets.PROD_SSH_PORT || 65002 }}
+          script: |
+            set -e
+            cd ${{ secrets.PROD_BACKEND_DIR || 'backend' }}
+
+            echo "==> Ensuring storage directories exist with writable permissions..."
+            mkdir -p storage/framework/{sessions,views,cache/data} storage/logs bootstrap/cache
+            chmod -R 775 storage bootstrap/cache
+
+            echo "==> Running production database migrations..."
+            php artisan migrate --force
+
+            echo "==> Rebuilding production caches..."
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            echo "==> Production backend post-deploy tasks completed successfully."
+
+      - name: SSH Not Configured Notice
+        if: ${{ env.SSH_HOST == '' }}
+        run: |
+          echo "::notice title=Hostinger SSH Optional::Backend files deployed successfully via FTP. (Optional: To automate 'php artisan migrate' on push, configure PROD_SSH_HOST, PROD_SSH_USERNAME, and PROD_SSH_PASSWORD secrets in GitHub)."
+
   # ============================================================================
   # 3. FRONTEND DEPLOYMENT (React SPA -> public_html/ directory)
   # ============================================================================
@@ -216,7 +253,7 @@ jobs:
           security: loose
           port: ${{ secrets.PROD_FTP_PORT || 21 }}
           local-dir: frontend/dist/
-          server-dir: ${{ secrets.PROD_FRONTEND_DIR || './' }}
+          server-dir: ${{ secrets.PROD_FRONTEND_DIR || 'public_html/' }}
           state-name: .ftp-deploy-frontend-sync.json
           dangerous-clean-slate: false
           timeout: 180000

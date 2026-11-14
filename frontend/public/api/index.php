@@ -48,11 +48,27 @@ if (file_exists($maintenance = $backendPath . '/storage/framework/maintenance.ph
 // 2. Auto-extract vendor bundle if deployed via FTP
 $vendorZip = $backendPath . '/vendor.zip';
 if (file_exists($vendorZip) && class_exists('ZipArchive')) {
+    @set_time_limit(300);
+    @ini_set('memory_limit', '512M');
     $zip = new ZipArchive();
     if ($zip->open($vendorZip) === true) {
         $zip->extractTo($backendPath);
         $zip->close();
         @unlink($vendorZip);
+    }
+}
+
+// Ensure framework storage and cache directories exist with writable permissions
+$requiredDirs = [
+    $backendPath . '/storage/framework/cache/data',
+    $backendPath . '/storage/framework/sessions',
+    $backendPath . '/storage/framework/views',
+    $backendPath . '/storage/logs',
+    $backendPath . '/bootstrap/cache',
+];
+foreach ($requiredDirs as $dir) {
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
     }
 }
 
