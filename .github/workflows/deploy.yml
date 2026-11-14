@@ -41,6 +41,12 @@ jobs:
             MISSING=1
           else
             echo "✅ FTP_SERVER secret is configured"
+            if ! getent ahosts "$FTP_SERVER" >/dev/null 2>&1 && ! nslookup "$FTP_SERVER" >/dev/null 2>&1; then
+              echo "❌ ERROR: Cannot resolve hostname '$FTP_SERVER' in DNS!"
+              echo "👉 Hostinger subdomains do not have their own FTP record."
+              echo "   Set FTP_SERVER to: ftp.archenterprises.co.in (or IP: 145.79.210.95)"
+              MISSING=1
+            fi
           fi
 
           if [ -z "$FTP_USERNAME" ]; then
