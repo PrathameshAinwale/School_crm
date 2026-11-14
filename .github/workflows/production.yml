@@ -148,12 +148,8 @@ jobs:
             exit 1
           fi
 
-      - name: Report Hostinger Directory Tree
-        run: |
-          echo "Checking connected FTP root for $FTP_USER..."
-          ROOT_LIST=$(curl -s --user "${{ secrets.PROD_FTP_USERNAME }}:${{ secrets.PROD_FTP_PASSWORD }}" "ftp://${{ secrets.PROD_FTP_HOST }}/" | tr '\r\n' ' | ')
-          echo "::notice title=Connected FTP Directory::$ROOT_LIST"
-          curl -s --user "${{ secrets.PROD_FTP_USERNAME }}:${{ secrets.PROD_FTP_PASSWORD }}" "ftp://${{ secrets.PROD_FTP_HOST }}/public_html/" || true
+      - name: Settle FTP Connection Pool
+        run: sleep 10
 
       - name: Deploy Backend Files to Hostinger via FTPS/FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -161,9 +157,8 @@ jobs:
           server: ${{ secrets.PROD_FTP_HOST }}
           username: ${{ secrets.PROD_FTP_USERNAME }}
           password: ${{ secrets.PROD_FTP_PASSWORD }}
-          protocol: ${{ secrets.PROD_FTP_PROTOCOL || 'ftp' }}
-          security: loose
-          port: ${{ secrets.PROD_FTP_PORT || 21 }}
+          protocol: ftp
+          port: 21
           local-dir: backend/
           server-dir: ${{ secrets.PROD_BACKEND_DIR || 'backend/' }}
           state-name: .ftp-deploy-backend-sync.json
@@ -258,9 +253,8 @@ jobs:
           server: ${{ secrets.PROD_FTP_HOST }}
           username: ${{ secrets.PROD_FTP_USERNAME }}
           password: ${{ secrets.PROD_FTP_PASSWORD }}
-          protocol: ${{ secrets.PROD_FTP_PROTOCOL || 'ftp' }}
-          security: loose
-          port: ${{ secrets.PROD_FTP_PORT || 21 }}
+          protocol: ftp
+          port: 21
           local-dir: frontend/dist/
           server-dir: ${{ secrets.PROD_FRONTEND_DIR || 'public_html/' }}
           state-name: .ftp-deploy-frontend-sync.json
