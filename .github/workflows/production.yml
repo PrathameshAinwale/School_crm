@@ -148,6 +148,21 @@ jobs:
             exit 1
           fi
 
+      - name: Report Hostinger Directory Tree
+        run: |
+          echo "Querying Hostinger FTP root..."
+          ROOT_LIST=$(curl -s --user "${{ secrets.PROD_FTP_USERNAME }}:${{ secrets.PROD_FTP_PASSWORD }}" "ftp://${{ secrets.PROD_FTP_HOST }}/" | tr '\r\n' ' | ')
+          echo "::notice title=FTP Root Contents::$ROOT_LIST"
+
+          DOM_LIST=$(curl -s --user "${{ secrets.PROD_FTP_USERNAME }}:${{ secrets.PROD_FTP_PASSWORD }}" "ftp://${{ secrets.PROD_FTP_HOST }}/domains/" | tr '\r\n' ' | ')
+          echo "::notice title=FTP domains Contents::$DOM_LIST"
+
+          ARCH_LIST=$(curl -s --user "${{ secrets.PROD_FTP_USERNAME }}:${{ secrets.PROD_FTP_PASSWORD }}" "ftp://${{ secrets.PROD_FTP_HOST }}/domains/archenterprises.co.in/" | tr '\r\n' ' | ')
+          echo "::notice title=FTP archenterprises Contents::$ARCH_LIST"
+
+          PUB_ARCH=$(curl -s --user "${{ secrets.PROD_FTP_USERNAME }}:${{ secrets.PROD_FTP_PASSWORD }}" "ftp://${{ secrets.PROD_FTP_HOST }}/domains/archenterprises.co.in/public_html/" | tr '\r\n' ' | ')
+          echo "::notice title=FTP archenterprises public_html Contents::$PUB_ARCH"
+
       - name: Inspect Hostinger Remote Directory Structure
         run: |
           echo "=========================================================="
