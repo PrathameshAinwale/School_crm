@@ -4,10 +4,10 @@
  * School CRM - Laravel 12 API Front Controller
  *
  * Production location:
- * public_html/api/index.php or api/index.php
+ * api/index.php (or public_html/api/index.php)
  *
  * Laravel backend:
- * backend/ or public_html/backend/
+ * backend/
  */
 
 define('LARAVEL_START', microtime(true));
@@ -33,8 +33,8 @@ function apiBridgeError(int $status, string $error, string $message): never
  * 1. Locate Laravel backend.
  */
 $candidatePaths = [
-    realpath(dirname(dirname(__DIR__)) . '/backend'),
     realpath(dirname(__DIR__) . '/backend'),
+    realpath(dirname(dirname(__DIR__)) . '/backend'),
     realpath(__DIR__ . '/../../backend'),
     realpath(__DIR__ . '/../backend'),
     realpath(__DIR__ . '/backend'),
@@ -147,6 +147,12 @@ try {
  * 6. Capture and handle the incoming API request.
  */
 try {
+    // Normalize SCRIPT_NAME and PHP_SELF so Symfony Request treats root as the base URL
+    // rather than stripping '/api' from the request path.
+    $_SERVER['SCRIPT_NAME'] = '/index.php';
+    $_SERVER['PHP_SELF'] = '/index.php';
+    unset($_SERVER['ORIG_SCRIPT_NAME']);
+
     $request = \Illuminate\Http\Request::capture();
 
     $app->handleRequest($request);
