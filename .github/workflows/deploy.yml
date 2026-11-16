@@ -147,31 +147,31 @@ jobs:
           echo "📦 Assembling Production Payload Directory..."
           echo "=========================================================="
           rm -rf production_payload
-          mkdir -p production_payload/public_html
+          mkdir -p production_payload
           mkdir -p production_payload/backend
 
-          # 1. Copy Frontend Static Build to public_html/
+          # 1. Copy Frontend Static Build directly to production payload root (Hostinger FTP is jailed to public_html)
           if [ -d "frontend/dist" ]; then
-            cp -a frontend/dist/. production_payload/public_html/
+            cp -a frontend/dist/. production_payload/
           else
             echo "❌ ERROR: frontend/dist directory not found!"
             exit 1
           fi
 
-          # Ensure root .htaccess exists in public_html/
+          # Ensure root .htaccess exists
           if [ -f "frontend/public/.htaccess" ]; then
-            cp "frontend/public/.htaccess" "production_payload/public_html/.htaccess"
+            cp "frontend/public/.htaccess" "production_payload/.htaccess"
           fi
 
-          # Ensure api/ bridge front-controller exists in public_html/api/
-          mkdir -p production_payload/public_html/api
+          # Ensure api/ bridge front-controller exists
+          mkdir -p production_payload/api
           if [ -f "frontend/public/api/index.php" ]; then
-            cp "frontend/public/api/index.php" "production_payload/public_html/api/index.php"
+            cp "frontend/public/api/index.php" "production_payload/api/index.php"
           fi
 
-          # Copy secure vendor extractor into public_html/
+          # Copy secure vendor extractor
           if [ -f "frontend/public/extract_vendor.php" ]; then
-            cp "frontend/public/extract_vendor.php" "production_payload/public_html/extract_vendor.php"
+            cp "frontend/public/extract_vendor.php" "production_payload/extract_vendor.php"
           fi
 
           # 2. Copy Backend Application to backend/ (excluding raw vendor directory)
@@ -216,18 +216,17 @@ jobs:
                 production_payload/backend/bootstrap/cache/events.php
 
           # 5. Strict Security Check: Verify no .env file exists in the payload
-          if [ -f "production_payload/.env" ] || [ -f "production_payload/public_html/.env" ] || [ -f "production_payload/backend/.env" ]; then
+          if [ -f "production_payload/.env" ] || [ -f "production_payload/backend/.env" ]; then
             echo "❌ CRITICAL SECURITY ERROR: .env file found in production payload! Aborting deployment."
-            rm -f production_payload/.env production_payload/public_html/.env production_payload/backend/.env
+            rm -f production_payload/.env production_payload/backend/.env
             exit 1
           fi
 
           # Remove any local database dumps or development artifacts
-          rm -f production_payload/*.sql production_payload/public_html/*.sql production_payload/backend/*.sql
+          rm -f production_payload/*.sql production_payload/backend/*.sql
 
           echo "✅ Production payload successfully assembled."
           ls -la production_payload/
-          ls -la production_payload/public_html/
           ls -la production_payload/backend/
 
       # ========================================================================
