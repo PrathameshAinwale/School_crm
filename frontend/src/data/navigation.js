@@ -55,12 +55,7 @@ const navigation = {
         { label: 'Subscriptions & MRR', path: '/super-admin/subscriptions', icon: LuWallet },
         { label: 'UDISE+ Compliance', path: '/udise', icon: LuShieldCheck },
       ],
-    },
-    {
-      label: 'Platform Profile',
-      path: '/profile',
-      icon: LuUser,
-    },
+    }
   ],
 
   principal: [

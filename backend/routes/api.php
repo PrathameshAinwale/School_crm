@@ -62,6 +62,9 @@ use App\Http\Controllers\Api\Admin\ExamReportController;
 use App\Http\Controllers\Api\Teacher\ScoresheetController;
 use App\Http\Controllers\Api\StudentParent\ExamResultController;
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -84,6 +87,50 @@ Route::prefix('v1')->group(function () {
         return response()->json([
             'status' => 'healthy',
             'timestamp' => now()->toIso8601String(),
+        ]);
+    });
+
+    // Production Maintenance & Database Diagnostics
+    Route::get('/system/db-status', function (Request $request) {
+        if ($request->query('token') !== 'School_crm_2026_deploy_salt') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $dbName = DB::connection()->getDatabaseName();
+        $tables = DB::select('SHOW TABLES');
+        $tableList = array_map(function ($t) {
+            $arr = (array)$t;
+            return reset($arr);
+        }, $tables);
+        sort($tableList);
+
+        return response()->json([
+            'database' => $dbName,
+            'total_tables' => count($tableList),
+            'tables' => $tableList,
+        ]);
+    });
+
+    Route::post('/system/migrate', function (Request $request) {
+        if ($request->query('token') !== 'School_crm_2026_deploy_salt') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        Artisan::call('migrate', ['--force' => true]);
+        $output = Artisan::output();
+
+        $tables = DB::select('SHOW TABLES');
+        $tableList = array_map(function ($t) {
+            $arr = (array)$t;
+            return reset($arr);
+        }, $tables);
+        sort($tableList);
+
+        return response()->json([
+            'success' => true,
+            'artisan_output' => $output,
+            'total_tables' => count($tableList),
+            'tables' => $tableList,
         ]);
     });
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
