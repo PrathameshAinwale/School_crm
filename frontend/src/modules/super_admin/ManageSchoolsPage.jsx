@@ -27,6 +27,7 @@ export default function ManageSchoolsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [planFilter, setPlanFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -68,6 +69,8 @@ export default function ManageSchoolsPage() {
   const [copiedText, setCopiedText] = useState(false);
 
   const fetchSchools = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const params = {};
       if (planFilter !== 'All') params.plan = planFilter;
@@ -77,9 +80,12 @@ export default function ManageSchoolsPage() {
       const res = await superAdminService.getSchools(params);
       if (res?.success) {
         setSchools(res.data?.schools || res.schools || []);
+      } else {
+        setError(res?.message || 'Failed to retrieve client schools list.');
       }
     } catch (err) {
       console.error('Error fetching schools:', err);
+      setError(err.data?.message || err.message || 'Unable to connect to the backend server. Please verify your connection or session.');
     } finally {
       setLoading(false);
     }
@@ -298,7 +304,31 @@ export default function ManageSchoolsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
-              {schools.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-xs font-semibold text-slate-500">Loading client institutions...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={7} className="py-10 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2 max-w-md mx-auto p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700">
+                      <LuShieldAlert className="w-5 h-5 text-rose-500" />
+                      <span className="text-xs font-semibold">{error}</span>
+                      <button
+                        onClick={fetchSchools}
+                        className="mt-1 px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg cursor-pointer transition-all"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : schools.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
                     No schools found matching your search and filter criteria.

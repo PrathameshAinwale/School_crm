@@ -26,9 +26,9 @@ class SuperAdminController extends Controller
         $trialSchools = School::where('subscription_status', 'trial')->count();
 
         // Platform-wide student & staff totals
-        $totalStudents = Student::count();
-        $totalTeachers = Teacher::count();
-        $totalUsers = User::count();
+        $totalStudents = Student::withoutGlobalScope('school')->count();
+        $totalTeachers = Teacher::withoutGlobalScope('school')->count();
+        $totalUsers = User::withoutGlobalScope('school')->count();
 
         // Subscriptions & MRR Estimation
         $planPricing = [
@@ -50,7 +50,9 @@ class SuperAdminController extends Controller
             ->keyBy('subscription_plan');
 
         // Recent Onboardings
-        $recentSchools = School::with('adminUser')
+        $recentSchools = School::with(['adminUser' => function ($q) {
+                $q->withoutGlobalScope('school');
+            }])
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get()
@@ -62,8 +64,8 @@ class SuperAdminController extends Controller
                     'city' => $s->city ?: 'Metro Campus',
                     'plan' => $s->subscription_plan,
                     'status' => $s->status,
-                    'studentsCount' => $s->students()->count(),
-                    'staffCount' => $s->teachers()->count(),
+                    'studentsCount' => Student::withoutGlobalScope('school')->where('school_id', $s->id)->count(),
+                    'staffCount' => Teacher::withoutGlobalScope('school')->where('school_id', $s->id)->count(),
                     'adminName' => $s->adminUser ? $s->adminUser->name : 'System Admin',
                     'adminEmail' => $s->adminUser ? $s->adminUser->email : $s->email,
                     'createdAt' => $s->created_at ? $s->created_at->format('M d, Y') : '—',
@@ -100,7 +102,9 @@ class SuperAdminController extends Controller
      */
     public function schoolsList(Request $request)
     {
-        $query = School::with('adminUser');
+        $query = School::with(['adminUser' => function ($q) {
+            $q->withoutGlobalScope('school');
+        }]);
 
         if ($request->filled('status') && strtolower($request->status) !== 'all') {
             $query->where('status', $request->status);
@@ -124,8 +128,8 @@ class SuperAdminController extends Controller
         $schools = $query->orderBy('created_at', 'desc')->get();
 
         $mapped = $schools->map(function ($s) {
-            $studentsCount = Student::where('school_id', $s->id)->count();
-            $staffCount = Teacher::where('school_id', $s->id)->count();
+            $studentsCount = Student::withoutGlobalScope('school')->where('school_id', $s->id)->count();
+            $staffCount = Teacher::withoutGlobalScope('school')->where('school_id', $s->id)->count();
             $admin = $s->adminUser;
 
             return [
@@ -280,10 +284,12 @@ class SuperAdminController extends Controller
      */
     public function showSchool($id)
     {
-        $school = School::with('adminUser')->findOrFail($id);
+        $school = School::with(['adminUser' => function ($q) {
+            $q->withoutGlobalScope('school');
+        }])->findOrFail($id);
 
-        $studentsCount = Student::where('school_id', $school->id)->count();
-        $teachersCount = Teacher::where('school_id', $school->id)->count();
+        $studentsCount = Student::withoutGlobalScope('school')->where('school_id', $school->id)->count();
+        $teachersCount = Teacher::withoutGlobalScope('school')->where('school_id', $school->id)->count();
 
         return response()->json([
             'success' => true,

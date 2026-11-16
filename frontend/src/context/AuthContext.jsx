@@ -71,6 +71,12 @@ export function AuthProvider({ children }) {
       const res = await authService.login(identifier, password);
       if (res.success && res.token) {
         clearApiCache();
+        if (res.user?.role === 'super_admin') {
+          localStorage.removeItem('active_school_id');
+          localStorage.removeItem('active_school_name');
+          localStorage.removeItem('active_branch_id');
+          localStorage.removeItem('active_academic_year_id');
+        }
         setUser(res.user);
         setToken(res.token);
         setIsAuthenticated(true);

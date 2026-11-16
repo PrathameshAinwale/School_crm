@@ -27,6 +27,13 @@ class ResolveActiveSchool
         }
 
         // 2. Resolve Active School Branch
+        // Platform Super Admin routes are global and never constrained to a specific school tenant
+        if ($request->is('*super-admin*')) {
+            SchoolContext::setActiveSchoolId(null);
+            $request->attributes->set('active_school_id', null);
+            return $next($request);
+        }
+
         $user = $request->user();
 
         if ($user) {

@@ -21,15 +21,21 @@ export default function SuperAdminDashboard() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const fetchDashboardData = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const res = await superAdminService.getDashboard();
       if (res?.success) {
         setData(res.data);
+      } else {
+        setError(res?.message || 'Failed to load platform overview metrics.');
       }
     } catch (err) {
       console.error('Error loading super admin dashboard:', err);
+      setError(err.data?.message || err.message || 'Unable to connect to the backend server. Please verify your connection or session.');
     } finally {
       setLoading(false);
     }
@@ -83,6 +89,22 @@ export default function SuperAdminDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-3">
+            <LuShieldAlert className="w-5 h-5 text-rose-600 shrink-0" />
+            <span className="text-xs font-semibold">{error}</span>
+          </div>
+          <button
+            onClick={fetchDashboardData}
+            className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg cursor-pointer transition-all"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Platform KPI Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -195,7 +217,16 @@ export default function SuperAdminDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
-              {recentSchools.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-xs font-semibold text-slate-500">Loading recent onboarding activity...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : recentSchools.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400">
                     No schools registered yet. Click 'Onboard New School' to add your first tenant.

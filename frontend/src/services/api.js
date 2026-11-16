@@ -90,14 +90,15 @@ export async function apiRequest(endpoint, options = {}) {
   const tenantSchool = activeSchoolId || userSchoolId || 'default';
   const tenantBranch = activeBranchId || userBranchId || 'default';
   const tenantYear = activeAcademicYearId || 'default';
+  const isSuperAdminRoute = endpoint.startsWith('/super-admin');
 
   const headers = {
     'Accept': 'application/json',
     'Bypass-Tunnel-Reminder': 'true',
     'Accept-Language': activeLang,
-    ...(tenantSchool !== 'default' ? { 'X-School-Id': tenantSchool } : {}),
-    ...(tenantBranch !== 'default' ? { 'X-Branch-Id': tenantBranch } : {}),
-    ...(tenantYear !== 'default' ? { 'X-Academic-Year-Id': tenantYear } : {}),
+    ...(!isSuperAdminRoute && tenantSchool !== 'default' ? { 'X-School-Id': tenantSchool } : {}),
+    ...(!isSuperAdminRoute && tenantBranch !== 'default' ? { 'X-Branch-Id': tenantBranch } : {}),
+    ...(!isSuperAdminRoute && tenantYear !== 'default' ? { 'X-Academic-Year-Id': tenantYear } : {}),
     ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...options.headers,
