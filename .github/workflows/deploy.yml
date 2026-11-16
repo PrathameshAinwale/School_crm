@@ -49,10 +49,8 @@ jobs:
             SERVER_CLEAN="${SERVER_CLEAN#https://}"
             SERVER_CLEAN="${SERVER_CLEAN%/}"
             if ! getent ahosts "$SERVER_CLEAN" >/dev/null 2>&1 && ! nslookup "$SERVER_CLEAN" >/dev/null 2>&1; then
-              echo "❌ ERROR: Cannot resolve hostname '$SERVER_CLEAN' in DNS!"
-              echo "👉 Hostinger subdomains do not have their own FTP record."
-              echo "   Set FTP_SERVER to: ftp.archenterprises.co.in (or IP: 145.79.210.95)"
-              MISSING=1
+              echo "⚠️ NOTICE: Cannot resolve hostname '$SERVER_CLEAN' in DNS."
+              echo "👉 Will attempt automatic fallback to Hostinger server IP: 145.79.210.95"
             fi
           fi
 
@@ -247,6 +245,9 @@ jobs:
               echo "⚠️ NOTICE: FTP_SERVER was set to '$SERVER_CLEAN'. Defaulting to Hostinger server IP 145.79.210.95"
               SERVER_CLEAN="145.79.210.95"
             fi
+          elif ! getent ahosts "$SERVER_CLEAN" >/dev/null 2>&1 && ! nslookup "$SERVER_CLEAN" >/dev/null 2>&1; then
+            echo "⚠️ NOTICE: Server '$SERVER_CLEAN' cannot be resolved in DNS. Defaulting to Hostinger server IP 145.79.210.95"
+            SERVER_CLEAN="145.79.210.95"
           fi
           echo "server_host=$SERVER_CLEAN" >> "$GITHUB_OUTPUT"
 
@@ -280,7 +281,7 @@ jobs:
       - name: Deploy Production Files to Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          server: ${{ steps.format-dir.outputs.server_host || secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftp
