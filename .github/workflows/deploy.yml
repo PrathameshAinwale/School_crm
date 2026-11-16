@@ -280,14 +280,13 @@ jobs:
       - name: Deploy Production Files to Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ steps.format-dir.outputs.server_host }}
+          server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ${{ secrets.FTP_PROTOCOL || 'ftp' }}
-          port: ${{ secrets.FTP_PORT || 21 }}
-          security: loose
+          protocol: ftp
+          port: 21
+          server-dir: /
           local-dir: production_payload/
-          server-dir: ${{ steps.format-dir.outputs.target_dir }}
           dangerous-clean-slate: false
           timeout: 300000
           exclude: |
