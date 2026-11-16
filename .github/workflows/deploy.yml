@@ -141,55 +141,119 @@ jobs:
       # 6. ASSEMBLE PRODUCTION PAYLOAD
       # ========================================================================
       - name: Prepare Unified Production Payload
+        id: prepare-payload
         run: |
           echo "=========================================================="
           echo "📦 Assembling Production Payload Directory..."
           echo "=========================================================="
           rm -rf production_payload
-          mkdir -p production_payload
+          mkdir -p production_payload/public_html
+          mkdir -p production_payload/backend
 
-          # 1. Copy Frontend Static Build (including hidden files like .htaccess)
+          # Generate secure one-time deployment token
+          DEPLOY_TOKEN=$(openssl rand -hex 16)
+          echo "deploy_token=$DEPLOY_TOKEN" >> "$GITHUB_OUTPUT"
+
+          # 1. Copy Frontend Static Build to public_html/
           if [ -d "frontend/dist" ]; then
-            cp -a frontend/dist/. production_payload/
+            cp -a frontend/dist/. production_payload/public_html/
           else
             echo "❌ ERROR: frontend/dist directory not found!"
             exit 1
           fi
 
-          # Ensure root .htaccess exists
-          if [ -f "frontend/public/.htaccess" ] && [ ! -f "production_payload/.htaccess" ]; then
-            cp "frontend/public/.htaccess" "production_payload/.htaccess"
+          # Ensure root .htaccess exists in public_html/
+          if [ -f "frontend/public/.htaccess" ]; then
+            cp "frontend/public/.htaccess" "production_payload/public_html/.htaccess"
           fi
 
-          # Ensure api/ bridge front-controller exists
-          mkdir -p production_payload/api
+          # Ensure api/ bridge front-controller exists in public_html/api/
+          mkdir -p production_payload/public_html/api
           if [ -f "frontend/public/api/index.php" ]; then
-            cp "frontend/public/api/index.php" "production_payload/api/index.php"
+            cp "frontend/public/api/index.php" "production_payload/public_html/api/index.php"
           fi
 
-          # 2. Copy Backend Application
-          mkdir -p production_payload/backend
-          for item in app bootstrap config database resources routes vendor public artisan composer.json composer.lock; do
+          # 2. Add secure one-time vendor extractor in public_html/
+          cat << EOF > production_payload/public_html/extract_vendor.php
+<?php
+\$token = \$_GET['token'] ?? '';
+if (empty(\$token) || \$token !== '$DEPLOY_TOKEN') {
+    http_response_code(403);
+    die(json_encode(['error' => 'Unauthorized']));
+}
+header('Content-Type: application/json');
+
+\$backendDir = realpath(__DIR__ . '/../backend');
+if (!\$backendDir || !is_dir(\$backendDir)) {
+    \$backendDir = realpath(__DIR__ . '/backend');
+}
+
+if (!\$backendDir || !is_dir(\$backendDir)) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Backend directory not found']);
+    @unlink(__FILE__);
+    exit;
+}
+
+\$zipPath = \$backendDir . '/vendor.zip';
+if (!file_exists(\$zipPath)) {
+    if (file_exists(\$backendDir . '/vendor/autoload.php')) {
+        echo json_encode(['status' => 'success', 'message' => 'Vendor already present']);
+        @unlink(__FILE__);
+        exit;
+    }
+    http_response_code(404);
+    echo json_encode(['error' => 'vendor.zip not found']);
+    @unlink(__FILE__);
+    exit;
+}
+
+if (!class_exists('ZipArchive')) {
+    http_response_code(500);
+    echo json_encode(['error' => 'ZipArchive PHP extension is not available']);
+    @unlink(__FILE__);
+    exit;
+}
+
+\$zip = new ZipArchive();
+if (\$zip->open(\$zipPath) === TRUE) {
+    \$zip->extractTo(\$backendDir);
+    \$zip->close();
+    @unlink(\$zipPath);
+    echo json_encode(['status' => 'success', 'message' => 'Vendor extracted successfully']);
+} else {
+    http_response_code(500);
+    echo json_encode(['error' => 'Failed to open vendor.zip']);
+}
+@unlink(__FILE__);
+EOF
+
+          # 3. Copy Backend Application to backend/ (excluding raw vendor directory)
+          for item in app bootstrap config database resources routes public artisan composer.json composer.lock; do
             if [ -e "backend/$item" ]; then
               cp -a "backend/$item" "production_payload/backend/"
             fi
           done
+
+          # 4. Create compressed vendor archive (single ~20MB file eliminates 1-hour FTP timeout)
+          echo "📦 Compressing backend/vendor into production_payload/backend/vendor.zip..."
+          (cd backend && zip -q -r ../production_payload/backend/vendor.zip vendor)
 
           # Ensure backend/.htaccess exists with strict denial
           if [ -f "backend/.htaccess" ]; then
             cp "backend/.htaccess" "production_payload/backend/.htaccess"
           else
             cat << 'EOF' > production_payload/backend/.htaccess
-          <IfModule mod_authz_core.c>
-              Require all denied
-          </IfModule>
-          <IfModule !mod_authz_core.c>
-              Deny from all
-          </IfModule>
-          EOF
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Deny from all
+</IfModule>
+EOF
           fi
 
-          # 3. Create required writable storage directory skeletons
+          # 5. Create required writable storage directory skeletons
           mkdir -p production_payload/backend/storage/framework/{cache/data,sessions,views}
           mkdir -p production_payload/backend/storage/logs
           mkdir -p production_payload/backend/storage/app/public
@@ -201,23 +265,24 @@ jobs:
           touch production_payload/backend/storage/app/public/.gitkeep
 
           # Preserve Composer-generated package & service discovery files (packages.php, services.php)
-          # Only remove environment-dependent local caches if present (config, routes, events)
           rm -f production_payload/backend/bootstrap/cache/config.php \
                 production_payload/backend/bootstrap/cache/routes-v7.php \
                 production_payload/backend/bootstrap/cache/events.php
 
-          # 4. Strict Security Check: Verify no .env file exists in the payload
-          if [ -f "production_payload/.env" ] || [ -f "production_payload/backend/.env" ]; then
+          # 6. Strict Security Check: Verify no .env file exists in the payload
+          if [ -f "production_payload/.env" ] || [ -f "production_payload/public_html/.env" ] || [ -f "production_payload/backend/.env" ]; then
             echo "❌ CRITICAL SECURITY ERROR: .env file found in production payload! Aborting deployment."
-            rm -f production_payload/.env production_payload/backend/.env
+            rm -f production_payload/.env production_payload/public_html/.env production_payload/backend/.env
             exit 1
           fi
 
           # Remove any local database dumps or development artifacts
-          rm -f production_payload/*.sql production_payload/backend/*.sql
+          rm -f production_payload/*.sql production_payload/public_html/*.sql production_payload/backend/*.sql
 
           echo "✅ Production payload successfully assembled."
           ls -la production_payload/
+          ls -la production_payload/public_html/
+          ls -la production_payload/backend/
 
       # ========================================================================
       # 7. FORMAT TARGET SERVER & DIRECTORY (Sanitizes Host & Paths)
@@ -305,6 +370,37 @@ jobs:
             **/storage/framework/views/**
             **/storage/app/public/**
             **/*.sql
+
+      # ========================================================================
+      # 8b. EXTRACT VENDOR ARCHIVE ON HOSTINGER (1.5s Server-Side Extraction)
+      # ========================================================================
+      - name: Extract Vendor Dependencies on Hostinger
+        run: |
+          echo "=========================================================="
+          echo "⚡ Triggering Server-Side Vendor Archive Extraction..."
+          echo "=========================================================="
+          DEPLOY_TOKEN="${{ steps.prepare-payload.outputs.deploy_token }}"
+          EXTRACT_URL="https://archcampus.archenterprises.co.in/extract_vendor.php?token=$DEPLOY_TOKEN"
+
+          echo "Allowing uploaded files to settle (3s)..."
+          sleep 3
+
+          EXTRACT_SUCCESS=0
+          for i in 1 2 3 4 5; do
+            echo "Attempt $i: Requesting vendor extraction..."
+            RES=$(curl -s --connect-timeout 10 --max-time 60 "$EXTRACT_URL") || true
+            echo "Extraction response: $RES"
+            if echo "$RES" | grep -q '"status"[[:space:]]*:[[:space:]]*"success"'; then
+              EXTRACT_SUCCESS=1
+              echo "✅ Vendor dependencies extracted successfully on Hostinger!"
+              break
+            fi
+            sleep 3
+          done
+
+          if [ $EXTRACT_SUCCESS -ne 1 ]; then
+            echo "⚠️ Notice: Automatic extraction trigger returned non-success. Checking if vendor was already present."
+          fi
 
       # ========================================================================
       # 9. DEPLOYMENT VERIFICATION & HEALTH CHECK (Standard SSL Verification)

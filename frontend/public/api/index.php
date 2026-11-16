@@ -38,7 +38,10 @@ function apiBridgeError(int $status, string $error, string $message): never
  * ├── api/index.php
  * └── backend/bootstrap/app.php
  */
-$backendPath = realpath(dirname(__DIR__) . '/backend');
+$backendPath = realpath(dirname(dirname(__DIR__)) . '/backend');
+if (!$backendPath || !file_exists($backendPath . '/bootstrap/app.php')) {
+    $backendPath = realpath(dirname(__DIR__) . '/backend');
+}
 
 if (
     !$backendPath ||
