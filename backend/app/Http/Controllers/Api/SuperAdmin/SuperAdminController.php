@@ -10,7 +10,9 @@ use App\Models\Teacher;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class SuperAdminController extends Controller
@@ -200,11 +202,10 @@ class SuperAdminController extends Controller
             'admin_name' => 'required|string|max:255',
             'admin_email' => 'required|email|max:255|unique:users,email',
             'admin_password' => 'required|string|min:6',
-            'admin_phone' => 'nullable|string|max:30',
+            'admin_phone' => 'nullable|string|max:30|unique:users,phone',
         ]);
 
         $slug = Str::slug($request->name);
-        // Ensure slug is unique
         $originalSlug = $slug;
         $counter = 1;
         while (School::where('slug', $slug)->exists()) {
@@ -219,64 +220,74 @@ class SuperAdminController extends Controller
             default => Carbon::now()->addYear()->toDateString(),
         };
 
-        // 1. Create School Record
-        $school = School::create([
-            'name' => $request->name,
-            'code' => strtoupper($request->code),
-            'slug' => $slug,
-            'affiliation' => $request->affiliation ?? 'CBSE',
-            'address' => $request->address,
-            'city' => $request->city,
-            'state' => $request->state,
-            'phone' => $request->phone,
-            'email' => $request->email,
-            'website' => $request->website,
-            'principal_name' => $request->principal_name,
-            'subscription_plan' => $request->subscription_plan,
-            'subscription_status' => 'active',
-            'subscription_expires_at' => $expiryDate,
-            'max_students' => $request->max_students ?? 3000,
-            'max_staff' => $request->max_staff ?? 100,
-            'status' => 'active',
-        ]);
+        // Determine unique admin phone
+        $adminPhone = null;
+        if ($request->filled('admin_phone')) {
+            $adminPhone = trim($request->admin_phone);
+        } elseif ($request->filled('phone') && !User::where('phone', trim($request->phone))->exists()) {
+            $adminPhone = trim($request->phone);
+        }
 
-        // 2. Automatically Provision School Admin User
-        $adminUser = User::create([
-            'school_id' => $school->id,
-            'name' => $request->admin_name,
-            'email' => $request->admin_email,
-            'phone' => $request->admin_phone ?? $request->phone,
-            'password' => Hash::make($request->admin_password),
-            'role' => 'admin',
-            'must_change_password' => false,
-            'status' => 'active',
-        ]);
+        return DB::transaction(function () use ($request, $slug, $expiryDate, $adminPhone) {
+            // 1. Create School Record
+            $school = School::create([
+                'name' => $request->name,
+                'code' => strtoupper($request->code),
+                'slug' => $slug,
+                'affiliation' => $request->affiliation ?? 'CBSE',
+                'address' => $request->address,
+                'city' => $request->city,
+                'state' => $request->state,
+                'phone' => $request->phone,
+                'email' => $request->email,
+                'website' => $request->website,
+                'principal_name' => $request->principal_name,
+                'subscription_plan' => $request->subscription_plan,
+                'subscription_status' => 'active',
+                'subscription_expires_at' => $expiryDate,
+                'max_students' => $request->max_students ?? 3000,
+                'max_staff' => $request->max_staff ?? 100,
+                'status' => 'active',
+            ]);
 
-        // 3. Create Welcome in-app notification for School Admin
-        Notification::create([
-            'school_id' => $school->id,
-            'user_id' => $adminUser->id,
-            'role' => 'admin',
-            'title' => "Welcome to Arch Campus: {$school->name}",
-            'message' => "Your school instance ({$school->code}) has been successfully provisioned on the {$school->subscription_plan} plan. You can now add teachers, enroll students, and manage your campus.",
-            'type' => 'success',
-            'link' => '/dashboard',
-            'is_read' => false,
-        ]);
+            // 2. Automatically Provision School Admin User
+            $adminUser = User::create([
+                'school_id' => $school->id,
+                'name' => $request->admin_name,
+                'email' => $request->admin_email,
+                'phone' => $adminPhone,
+                'password' => Hash::make($request->admin_password),
+                'role' => 'admin',
+                'must_change_password' => false,
+                'status' => 'active',
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => "School '{$school->name}' onboarded successfully! Admin account created for {$adminUser->email}.",
-            'data' => [
-                'school' => $school,
-                'admin' => [
-                    'id' => $adminUser->id,
-                    'name' => $adminUser->name,
-                    'email' => $adminUser->email,
-                    'role' => $adminUser->role,
+            // 3. Create Welcome in-app notification for School Admin
+            Notification::create([
+                'school_id' => $school->id,
+                'user_id' => $adminUser->id,
+                'role' => 'admin',
+                'title' => "Welcome to Arch Campus: {$school->name}",
+                'message' => "Your school instance ({$school->code}) has been successfully provisioned on the {$school->subscription_plan} plan. You can now add teachers, enroll students, and manage your campus.",
+                'type' => 'success',
+                'link' => '/dashboard',
+                'is_read' => false,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "School '{$school->name}' onboarded successfully! Admin account created for {$adminUser->email}.",
+                'data' => [
+                    'school' => $school,
+                    'admin' => [
+                        'id' => $adminUser->id,
+                        'name' => $adminUser->name,
+                        'email' => $adminUser->email,
+                        'role' => $adminUser->role,
+                    ],
                 ],
-            ],
-        ], 201);
+            ], 201);
+        });
     }
 
     /**
@@ -374,20 +385,63 @@ class SuperAdminController extends Controller
     }
 
     /**
-     * Delete a School and all its tenant data.
+     * Delete a School and all its tenant data cleanly and safely.
      */
     public function destroySchool(Request $request, $id)
     {
         $school = School::findOrFail($id);
         $schoolName = $school->name;
 
-        // Delete all associated users and school record
-        User::where('school_id', $school->id)->delete();
-        $school->delete();
+        DB::transaction(function () use ($school) {
+            $schoolId = $school->id;
+
+            // Temporarily disable foreign key checks to purge all multi-tenant child tables in one transaction
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            try {
+                $tenantTables = [
+                    'class_teacher_allocations', 'teacher_subject_assignments',
+                    'student_subject_enrollments', 'student_report_summaries',
+                    'student_fee_concessions', 'fee_payment_allocations',
+                    'fee_payments', 'fee_refunds', 'fee_ledgers',
+                    'fee_concession_types', 'fee_structures', 'student_fees',
+                    'receipt_sequences', 'grading_scales', 'exam_marks',
+                    'exam_scores', 'exams', 'examinations', 'exam_terms',
+                    'report_cards', 'assignment_submissions', 'assignments',
+                    'student_attendances', 'staff_attendances', 'attendances',
+                    'leave_applications', 'leave_types', 'ptm_appointments',
+                    'faculty_trainings', 'school_calendar_events', 'school_notices',
+                    'sections', 'school_classes', 'subjects', 'syllabuses',
+                    'study_materials', 'admissions', 'students', 'teachers',
+                    'sports_fitness_assessments', 'sports_equipment_issues',
+                    'sports_equipment', 'sports_participants', 'sports_training_schedules',
+                    'sports_facilities', 'sports_competitions', 'sports',
+                    'book_issues', 'books', 'library_settings',
+                    'communication_logs', 'communication_campaigns',
+                    'communication_templates', 'communication_opt_outs',
+                    'device_push_tokens', 'salary_disbursement_requests',
+                    'school_expenses', 'purchase_orders', 'vendors',
+                    'vehicles', 'feedbacks', 'resource_requests', 'resources',
+                    'udise_student_details', 'udise_teacher_details',
+                    'udise_school_facilities', 'udise_school_profiles',
+                    'udise_submissions', 'notifications', 'school_settings',
+                    'academic_years', 'users',
+                ];
+
+                foreach ($tenantTables as $table) {
+                    if (Schema::hasTable($table) && Schema::hasColumn($table, 'school_id')) {
+                        DB::table($table)->where('school_id', $schoolId)->delete();
+                    }
+                }
+
+                $school->delete();
+            } finally {
+                DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            }
+        });
 
         return response()->json([
             'success' => true,
-            'message' => "School '{$schoolName}' and associated tenant data removed from platform.",
+            'message' => "School '{$schoolName}' and all associated tenant data removed from platform.",
         ]);
     }
 }

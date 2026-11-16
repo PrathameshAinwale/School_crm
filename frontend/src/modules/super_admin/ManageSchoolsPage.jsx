@@ -160,16 +160,20 @@ export default function ManageSchoolsPage() {
   };
 
   const handleDeleteSchool = async (school) => {
-    if (!window.confirm(`WARNING: Are you sure you want to permanently delete "${school.name}" and all its tenant data?`)) return;
+    if (!window.confirm(`WARNING: Are you sure you want to permanently delete "${school.name}" and all its tenant data? This action cannot be undone.`)) return;
     try {
       const res = await superAdminService.deleteSchool(school.id);
       if (res?.success) {
-        setToastMsg(`School "${school.name}" deleted.`);
+        setToastMsg(`School "${school.name}" and all associated tenant data deleted successfully.`);
         fetchSchools();
-        setTimeout(() => setToastMsg(''), 4000);
+        setTimeout(() => setToastMsg(''), 5000);
+      } else {
+        alert(res?.message || 'Failed to delete school.');
       }
     } catch (err) {
-      setToastMsg('Failed to delete school.');
+      const errMsg = err.data?.message || err.message || 'Failed to delete school.';
+      setToastMsg(`Error: ${errMsg}`);
+      alert(`Deletion Failed: ${errMsg}`);
     }
   };
 
