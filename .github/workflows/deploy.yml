@@ -69,7 +69,7 @@ jobs:
           fi
 
           if [ -z "$FTP_SERVER_DIR" ]; then
-            echo "ℹ️  FTP_SERVER_DIR is not set; will default to 'public_html/'"
+            echo "ℹ️  FTP_SERVER_DIR is not set; will default to '/'"
           else
             echo "✅ FTP_SERVER_DIR is configured: $FTP_SERVER_DIR"
           fi
@@ -147,32 +147,42 @@ jobs:
           echo "📦 Assembling Production Payload Directory..."
           echo "=========================================================="
           rm -rf production_payload
-          mkdir -p production_payload
+          mkdir -p production_payload/public_html
           mkdir -p production_payload/backend
 
-          # 1. Copy Frontend Static Build directly to production payload root (Hostinger FTP is jailed to public_html)
+          # 1. Copy Frontend Static Build to BOTH root AND public_html/
+          # This guarantees compatibility whether Hostinger FTP root is jailed to public_html or sits one level above.
           if [ -d "frontend/dist" ]; then
             cp -a frontend/dist/. production_payload/
+            cp -a frontend/dist/. production_payload/public_html/
           else
             echo "❌ ERROR: frontend/dist directory not found!"
             exit 1
           fi
 
-          # Ensure root .htaccess exists
+          # Ensure root and public_html/.htaccess exist
           if [ -f "frontend/public/.htaccess" ]; then
             cp "frontend/public/.htaccess" "production_payload/.htaccess"
+            cp "frontend/public/.htaccess" "production_payload/public_html/.htaccess"
           fi
 
-          # Ensure api/ bridge front-controller exists
-          mkdir -p production_payload/api
+          # Ensure api/ bridge front-controller exists in both locations
+          mkdir -p production_payload/api production_payload/public_html/api
           if [ -f "frontend/public/api/index.php" ]; then
             cp "frontend/public/api/index.php" "production_payload/api/index.php"
+            cp "frontend/public/api/index.php" "production_payload/public_html/api/index.php"
           fi
 
-          # Copy secure vendor extractor
+          # Copy secure vendor extractor to both locations
           if [ -f "frontend/public/extract_vendor.php" ]; then
             cp "frontend/public/extract_vendor.php" "production_payload/extract_vendor.php"
+            cp "frontend/public/extract_vendor.php" "production_payload/public_html/extract_vendor.php"
           fi
+
+          # Generate secure deploy token for server-side extractor
+          DEPLOY_SALT="School_crm_2026_deploy_salt"
+          DEPLOY_TOKEN=$(php -r "echo hash('sha256', '$DEPLOY_SALT');")
+          echo "deploy_token=$DEPLOY_TOKEN" >> "$GITHUB_OUTPUT"
 
           # 2. Copy Backend Application to backend/ (excluding raw vendor directory)
           for item in app bootstrap config database resources routes public artisan composer.json composer.lock; do
@@ -216,17 +226,18 @@ jobs:
                 production_payload/backend/bootstrap/cache/events.php
 
           # 5. Strict Security Check: Verify no .env file exists in the payload
-          if [ -f "production_payload/.env" ] || [ -f "production_payload/backend/.env" ]; then
+          if [ -f "production_payload/.env" ] || [ -f "production_payload/public_html/.env" ] || [ -f "production_payload/backend/.env" ]; then
             echo "❌ CRITICAL SECURITY ERROR: .env file found in production payload! Aborting deployment."
-            rm -f production_payload/.env production_payload/backend/.env
+            rm -f production_payload/.env production_payload/public_html/.env production_payload/backend/.env
             exit 1
           fi
 
           # Remove any local database dumps or development artifacts
-          rm -f production_payload/*.sql production_payload/backend/*.sql
+          rm -f production_payload/*.sql production_payload/public_html/*.sql production_payload/backend/*.sql
 
           echo "✅ Production payload successfully assembled."
           ls -la production_payload/
+          ls -la production_payload/public_html/
           ls -la production_payload/backend/
 
       # ========================================================================
@@ -325,26 +336,37 @@ jobs:
           echo "⚡ Triggering Server-Side Vendor Archive Extraction..."
           echo "=========================================================="
           DEPLOY_TOKEN="${{ steps.prepare-payload.outputs.deploy_token }}"
-          EXTRACT_URL="https://archcampus.archenterprises.co.in/extract_vendor.php?token=$DEPLOY_TOKEN"
+          ROOT_EXTRACT_URL="https://archcampus.archenterprises.co.in/extract_vendor.php?token=$DEPLOY_TOKEN"
+          PUBLIC_HTML_EXTRACT_URL="https://archcampus.archenterprises.co.in/public_html/extract_vendor.php?token=$DEPLOY_TOKEN"
 
           echo "Allowing uploaded files to settle (3s)..."
           sleep 3
 
           EXTRACT_SUCCESS=0
           for i in 1 2 3 4 5; do
-            echo "Attempt $i: Requesting vendor extraction..."
-            RES=$(curl -s --connect-timeout 10 --max-time 60 "$EXTRACT_URL") || true
-            echo "Extraction response: $RES"
+            echo "Attempt $i: Requesting vendor extraction via root URL..."
+            RES=$(curl -s --connect-timeout 10 --max-time 60 "$ROOT_EXTRACT_URL") || true
+            echo "Root extraction response: $RES"
             if echo "$RES" | grep -q '"status"[[:space:]]*:[[:space:]]*"success"'; then
               EXTRACT_SUCCESS=1
-              echo "✅ Vendor dependencies extracted successfully on Hostinger!"
+              echo "✅ Vendor dependencies extracted successfully via root URL!"
               break
             fi
+
+            echo "Attempt $i: Requesting vendor extraction via public_html URL..."
+            RES_SUB=$(curl -s --connect-timeout 10 --max-time 60 "$PUBLIC_HTML_EXTRACT_URL") || true
+            echo "public_html extraction response: $RES_SUB"
+            if echo "$RES_SUB" | grep -q '"status"[[:space:]]*:[[:space:]]*"success"'; then
+              EXTRACT_SUCCESS=1
+              echo "✅ Vendor dependencies extracted successfully via public_html URL!"
+              break
+            fi
+
             sleep 3
           done
 
           if [ $EXTRACT_SUCCESS -ne 1 ]; then
-            echo "⚠️ Notice: Automatic extraction trigger returned non-success. Checking if vendor was already present."
+            echo "⚠️ Notice: Automatic extraction trigger returned non-success ($RES / $RES_SUB). Checking if vendor was already present."
           fi
 
       # ========================================================================
@@ -358,7 +380,7 @@ jobs:
           echo "Allowing web server processes to settle (5s)..."
           sleep 5
 
-          MAX_RETRIES=3
+          MAX_RETRIES=4
           RETRY_DELAY=5
 
           # --------------------------------------------------------------------

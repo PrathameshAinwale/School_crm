@@ -1,14 +1,13 @@
-
 <?php
 
 /**
  * School CRM - Laravel 12 API Front Controller
  *
  * Production location:
- * public_html/api/index.php
+ * public_html/api/index.php or api/index.php
  *
  * Laravel backend:
- * public_html/backend/
+ * backend/ or public_html/backend/
  */
 
 define('LARAVEL_START', microtime(true));
@@ -32,15 +31,21 @@ function apiBridgeError(int $status, string $error, string $message): never
 
 /**
  * 1. Locate Laravel backend.
- *
- * Expected structure:
- * public_html/
- * ├── api/index.php
- * └── backend/bootstrap/app.php
  */
-$backendPath = realpath(dirname(dirname(__DIR__)) . '/backend');
-if (!$backendPath || !file_exists($backendPath . '/bootstrap/app.php')) {
-    $backendPath = realpath(dirname(__DIR__) . '/backend');
+$candidatePaths = [
+    realpath(dirname(dirname(__DIR__)) . '/backend'),
+    realpath(dirname(__DIR__) . '/backend'),
+    realpath(__DIR__ . '/../../backend'),
+    realpath(__DIR__ . '/../backend'),
+    realpath(__DIR__ . '/backend'),
+];
+
+$backendPath = false;
+foreach ($candidatePaths as $candidate) {
+    if ($candidate && is_dir($candidate) && file_exists($candidate . '/bootstrap/app.php')) {
+        $backendPath = $candidate;
+        break;
+    }
 }
 
 if (
